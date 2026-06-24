@@ -1,0 +1,85 @@
+version: '3.9'
+
+services:
+
+  # ─────────────────────────────────────────
+  # FRONTEND — داشبورد Next.js
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: archon_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # BACKEND — API سرور FastAPI
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: archon_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./database/archon.db
+      - REDIS_URL=redis://redis:6379
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+      - ./database:/app/database
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # WORKER — Celery background jobs
+  # ─────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: archon_worker
+    command: celery -A app.worker worker --loglevel=info
+    environment:
+      - DATABASE_URL=sqlite:///./database/archon.db
+      - REDIS_URL=redis://redis:6379
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+    volumes:
+      - ./backend:/app
+      - ./database:/app/database
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # REDIS — صف کارهای background
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: archon_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+# ─────────────────────────────────────────
+# VOLUMES — داده‌های ماندگار
+# ─────────────────────────────────────────
+volumes:
+  redis_data:
+  
