@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models.database import init_db
+from app.routers import companies
 
 app = FastAPI(
     title="Archon API",
@@ -19,6 +20,8 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
+
+app.include_router(companies.router)
 
 @app.get("/")
 def root():
