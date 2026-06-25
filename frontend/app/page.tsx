@@ -1,65 +1,231 @@
-import Image from "next/image";
+'use client'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 
-export default function Home() {
+const API = 'http://localhost:8000'
+
+const STATUS_COLORS: Record<string, string> = {
+  new: 'bg-blue-100 text-blue-700',
+  reviewed: 'bg-purple-100 text-purple-700',
+  ready: 'bg-yellow-100 text-yellow-700',
+  sent: 'bg-orange-100 text-orange-700',
+  waiting: 'bg-gray-100 text-gray-600',
+  replied: 'bg-green-100 text-green-700',
+  meeting: 'bg-teal-100 text-teal-700',
+  client: 'bg-emerald-100 text-emerald-700',
+  archive: 'bg-red-100 text-red-400',
+}
+
+const HEAT: Record<string, string> = {
+  hot: '🔥',
+  warm: '🌤',
+  cold: '❄️',
+}
+
+interface Company {
+  id: number
+  name: string
+  domain: string
+  country: string
+  city: string
+  industry: string
+  company_size: string
+  email: string
+  status: string
+  heat_level: string
+  opportunity_score: number
+  is_favorite: boolean
+  ai_summary: string
+  tags: string
+}
+
+export default function Dashboard() {
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [total, setTotal] = useState(0)
+  const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterIndustry, setFilterIndustry] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const fetchCompanies = async () => {
+    setLoading(true)
+    try {
+      const params: Record<string, string> = {}
+      if (search) params.search = search
+      if (filterStatus) params.status = filterStatus
+      if (filterIndustry) params.industry = filterIndustry
+
+      const res = await axios.get(`${API}/companies/`, { params })
+      setCompanies(res.data.companies)
+      setTotal(res.data.total)
+    } catch (e) {
+      console.error(e)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
+
+  const toggleFavorite = async (id: number) => {
+    await axios.patch(`${API}/companies/${id}/favorite`)
+    fetchCompanies()
+  }
+
+  const updateStatus = async (id: number, status: string) => {
+    await axios.patch(`${API}/companies/${id}/status?status=${status}`)
+    fetchCompanies()
+  }
+
+  const getInitials = (name: string) =>
+    name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#22c55e'
+    if (score >= 60) return '#f59e0b'
+    return '#94a3b8'
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-gray-50">
+      {/* HEADER */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Archon</h1>
+          <p className="text-xs text-gray-400">by Armila Design</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">{total} companies</span>
+          <button
+            onClick={() => window.location.href = '/add'}
+            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            + Add Company
+          </button>
+        </div>
+      </div>
+
+      {/* FILTERS */}
+      <div className="px-6 py-3 bg-white border-b border-gray-100 flex gap-3 flex-wrap">
+        <input
+          type="text"
+          placeholder="Search companies..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Status</option>
+          {Object.keys(STATUS_COLORS).map(s => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+          ))}
+        </select>
+        <select
+          value={filterIndustry}
+          onChange={e => setFilterIndustry(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Industries</option>
+          <option value="Architecture">Architecture</option>
+          <option value="CGI">CGI</option>
+          <option value="Interior Design">Interior Design</option>
+          <option value="Real Estate">Real Estate</option>
+          <option value="Visualization">Visualization</option>
+        </select>
+      </div>
+
+      {/* COMPANY LIST */}
+      <div className="px-6 py-4 space-y-3 max-w-5xl mx-auto">
+        {loading ? (
+          <div className="text-center py-20 text-gray-400">Loading...</div>
+        ) : companies.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">No companies found</div>
+        ) : (
+          companies.map(c => (
+            <div key={c.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition overflow-hidden">
+              <div className="p-4 flex items-start gap-3">
+                {/* AVATAR */}
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
+                  {getInitials(c.name)}
+                </div>
+
+                {/* MAIN INFO */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-gray-900 text-sm">{c.name}</h3>
+                    <span className="text-sm">{HEAT[c.heat_level] || '❄️'}</span>
+                    {c.tags && c.tags.split(',').map((tag: string) => (
+                      <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag.trim()}</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {[c.country, c.city, c.industry, c.company_size].filter(Boolean).join(' · ')}
+                  </p>
+                  {c.ai_summary && (
+                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{c.ai_summary}</p>
+                  )}
+                </div>
+
+                {/* SCORE + STATUS */}
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  {/* Score Ring */}
+                  <div className="relative w-10 h-10">
+                    <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
+                      <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3"/>
+                      <circle
+                        cx="20" cy="20" r="16" fill="none"
+                        stroke={getScoreColor(c.opportunity_score)}
+                        strokeWidth="3"
+                        strokeDasharray={`${c.opportunity_score} 100`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">
+                      {Math.round(c.opportunity_score)}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <select
+                    value={c.status}
+                    onChange={e => updateStatus(c.id, e.target.value)}
+                    className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}
+                  >
+                    {Object.keys(STATUS_COLORS).map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* BOTTOM BAR */}
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex gap-3 text-xs text-gray-400">
+                  {c.email && <span>✉ {c.email}</span>}
+                  {c.domain && <span>🌐 {c.domain}</span>}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleFavorite(c.id)}
+                    className={`text-sm px-2 py-1 rounded-lg transition ${c.is_favorite ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
+                  >
+                    ★
+                  </button>
+                  <button className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition">
+                    Notes
+                  </button>
+                  <button className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                    ✉ Email
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
-  );
+  )
 }
