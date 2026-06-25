@@ -225,7 +225,10 @@ export default function CompanyDetail() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-gray-600 transition">
+        <button
+          onClick={() => window.location.href = '/'}
+          className="text-gray-400 hover:text-gray-600 transition"
+        >
           ← Back
         </button>
         <div className="flex-1" />
@@ -277,14 +280,30 @@ export default function CompanyDetail() {
                 </button>
               )}
             </div>
-            <div className="relative w-14 h-14 flex-shrink-0">
-              <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
-                <circle cx="28" cy="28" r="22" fill="none" stroke="#f1f5f9" strokeWidth="4"/>
-                <circle cx="28" cy="28" r="22" fill="none" stroke={getScoreColor(company.opportunity_score)} strokeWidth="4" strokeDasharray={`${company.opportunity_score} 100`} strokeLinecap="round"/>
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
-                {Math.round(company.opportunity_score)}
-              </span>
+
+            {/* SCORE + EDIT */}
+            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+              <div className="relative w-14 h-14">
+                <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="#f1f5f9" strokeWidth="4"/>
+                  <circle
+                    cx="28" cy="28" r="22" fill="none"
+                    stroke={getScoreColor(company.opportunity_score)}
+                    strokeWidth="4"
+                    strokeDasharray={`${company.opportunity_score} 100`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
+                  {Math.round(company.opportunity_score)}
+                </span>
+              </div>
+              <button
+                onClick={() => window.location.href = `/edit?id=${id}`}
+                className="text-xs text-gray-400 hover:text-blue-600 border border-gray-200 px-2 py-1 rounded-lg hover:border-blue-300 transition"
+              >
+                ✏️ Edit
+              </button>
             </div>
           </div>
 
@@ -318,9 +337,13 @@ export default function CompanyDetail() {
               <span>{HEAT[company.heat_level] || '❄️ Cold'}</span>
             </div>
             {company.tags && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
                 <span>🏷</span>
-                <span>{company.tags}</span>
+                {company.tags.split(',').map(tag => (
+                  <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    {tag.trim()}
+                  </span>
+                ))}
               </div>
             )}
           </div>
@@ -348,7 +371,9 @@ export default function CompanyDetail() {
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm text-gray-400 text-center py-8">Contacts and more details coming soon.</p>
+            <p className="text-sm text-gray-400 text-center py-8">
+              Contacts and more details coming soon.
+            </p>
           </div>
         )}
 
@@ -388,11 +413,16 @@ export default function CompanyDetail() {
                 <div key={note.id} className={`bg-white rounded-xl border p-4 ${note.pinned ? 'border-yellow-200' : 'border-gray-200'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm text-gray-700 flex-1">{note.content}</p>
-                    <button onClick={() => togglePin(note.id, note.pinned)} className={`text-sm flex-shrink-0 ${note.pinned ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
+                    <button
+                      onClick={() => togglePin(note.id, note.pinned)}
+                      className={`text-sm flex-shrink-0 ${note.pinned ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}
+                    >
                       📌
                     </button>
                   </div>
-                  <p className="text-xs text-gray-300 mt-2">{new Date(note.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-300 mt-2">
+                    {new Date(note.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               ))
             )}
@@ -410,7 +440,9 @@ export default function CompanyDetail() {
                   <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-gray-700">{item.description}</p>
-                    <p className="text-xs text-gray-300 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-gray-300 mt-1">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               ))
@@ -429,10 +461,15 @@ export default function CompanyDetail() {
                     key={tone}
                     onClick={() => setEmailTone(tone)}
                     className={`text-xs px-4 py-2 rounded-lg border transition font-medium ${
-                      emailTone === tone ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                      emailTone === tone
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-300'
                     }`}
                   >
-                    {tone === 'friendly' ? '😊 Friendly' : tone === 'formal' ? '💼 Formal' : tone === 'brief' ? '⚡ Brief' : '📖 Storytelling'}
+                    {tone === 'friendly' ? '😊 Friendly'
+                      : tone === 'formal' ? '💼 Formal'
+                      : tone === 'brief' ? '⚡ Brief'
+                      : '📖 Storytelling'}
                   </button>
                 ))}
               </div>
@@ -464,10 +501,17 @@ export default function CompanyDetail() {
                   />
                 </div>
                 <div className="flex gap-3 mt-3">
-                  <button onClick={generateEmail} disabled={generatingEmail} className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
+                  <button
+                    onClick={generateEmail}
+                    disabled={generatingEmail}
+                    className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition"
+                  >
                     🔄 Regenerate
                   </button>
-                  <button onClick={copyAndOpenGmail} className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition">
+                  <button
+                    onClick={copyAndOpenGmail}
+                    className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition"
+                  >
                     {copied ? '✅ Copied!' : '📋 Copy + Open Gmail'}
                   </button>
                 </div>
@@ -482,7 +526,10 @@ export default function CompanyDetail() {
             {campaigns.length === 0 ? (
               <div className="text-center py-12 text-gray-300 text-sm">
                 No emails generated yet.<br/>
-                <button onClick={() => setActiveTab('email')} className="text-blue-500 mt-2 text-xs hover:underline">
+                <button
+                  onClick={() => setActiveTab('email')}
+                  className="text-blue-500 mt-2 text-xs hover:underline"
+                >
                   Generate your first email →
                 </button>
               </div>
@@ -510,7 +557,9 @@ export default function CompanyDetail() {
                         <option value="sent">Sent</option>
                         <option value="replied">Replied</option>
                       </select>
-                      <span className="text-gray-400 text-xs">{expandedCampaign === campaign.id ? '▲' : '▼'}</span>
+                      <span className="text-gray-400 text-xs">
+                        {expandedCampaign === campaign.id ? '▲' : '▼'}
+                      </span>
                     </div>
                   </div>
                   {expandedCampaign === campaign.id && (
