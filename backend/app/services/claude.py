@@ -21,6 +21,20 @@ About Armila Design:
 """
 
 
+def parse_json_response(text: str):
+    text = text.strip()
+    if '```' in text:
+        parts = text.split('```')
+        for part in parts:
+            part = part.strip()
+            if part.startswith('json'):
+                part = part[4:].strip()
+            if part.startswith('[') or part.startswith('{'):
+                text = part
+                break
+    return json.loads(text)
+
+
 def generate_email(company: dict, tone: str = "friendly") -> dict:
     tone_guide = {
         "formal": "Write in a professional, formal tone.",
@@ -63,9 +77,7 @@ Do not include any other text or markdown.
         messages=[{"role": "user", "content": prompt}]
     )
 
-    text = message.content[0].text.strip()
-    result = json.loads(text)
-    return result
+    return parse_json_response(message.content[0].text)
 
 
 def generate_summary(company: dict) -> str:
@@ -92,7 +104,7 @@ Return ONLY the summary text, no labels or formatting.
 
 def smart_search(query: str, companies: list) -> list:
     company_summary = "\n".join([
-        f"ID:{c['id']} | {c.get('name')} | {c.get('country')} | {c.get('industry')} | {c.get('company_size')} | score:{c.get('opportunity_score')} | status:{c.get('status')} | heat:{c.get('heat_level')}"
+        f"ID:{c['id']} | {c.get('name')} | {c.get('country')} | {c.get('industry')} | score:{c.get('opportunity_score')} | status:{c.get('status')} | heat:{c.get('heat_level')}"
         for c in companies
     ])
 
@@ -104,15 +116,7 @@ User query: "{query}"
 Available companies:
 {company_summary}
 
-Based on the query, return ONLY a JSON array of matching company IDs.
-Examples:
-- "architecture firms in Germany" → find companies where country=Germany and industry=Architecture
-- "companies not contacted" → find companies where status=new or status=reviewed
-- "hot companies" → find companies where heat_level=hot
-- "high score" → find companies with opportunity_score >= 70
-- "favorites" → find companies where is_favorite=true
-
-Return ONLY a JSON array like: [1, 3, 5]
+Return ONLY a JSON array of matching company IDs like: [1, 3, 5]
 If no matches, return: []
 Do not include any other text.
 """
@@ -123,5 +127,63 @@ Do not include any other text.
         messages=[{"role": "user", "content": prompt}]
     )
 
-    text = message.content[0].text.strip()
-    return json.loads(text)
+    return parse_json_response(message.content[0].text)
+
+
+def generate_daily_tasks(companies: list, lang: str = "en") -> list:
+    today_stats = {
+        "total": len(companies),
+        "new": len([c for c in companies if c.get('status') == 'new']),
+        "reviewed": len([c for c in companies if c.get('status') == 'reviewed']),
+        "sent": len([c for c in companies if c.get('status') == 'sent']),
+        "replied": len([c for c in companies if c.get('status') == 'replied']),
+        "hot": len([c for c in companies if c.get('heat_level') == 'hot']),
+        "no_summary": len([c for c in companies if not c.get('ai_summary')]),
+    }
+
+    top_companies = sorted(
+        [c for c in companies if c.get('status') in ['new', 'reviewed']],
+        key=lambda x: x.get('opportunity_score', 0),
+        reverse=True
+    )[:10]
+
+    company_list = "\n".join([
+        f"- {c.get('name')} | {c.get('country')} | {c.get('industry')} | score:{c.get('opportunity_score')} | status:{c.get('status')}"
+        for c in top_companies
+    ])
+
+    lang_instruction = (
+        "IMPORTANT: Write all task titles and descriptions in Persian (Farsi). Use natural professional Persian."
+        if lang == "fa"
+        else "Write all task titles and descriptions in English."
+    )
+
+    prompt = f"""
+{ARMILA_DNA}
+
+CRM Stats:
+- Total: {today_stats['total']} | New: {today_stats['new']} | Reviewed: {today_stats['reviewed']}
+- Sent: {today_stats['sent']} | Replied: {today_stats['replied']}
+- Hot: {today_stats['hot']} | Missing summary: {today_stats['no_summary']}
+
+Top companies:
+{company_list}
+
+{lang_instruction}
+
+Generate exactly 5 specific actionable daily tasks for Milad.
+Types: review, email, followup, research, update
+
+Return ONLY this JSON array, no markdown, no extra text:
+[
+  {{"type": "email", "priority": 1, "title": "...", "description": "...", "company_name": "..."}}
+]
+"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return parse_json_response(message.content[0].text)

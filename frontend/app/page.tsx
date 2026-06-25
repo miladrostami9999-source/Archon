@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 
 const API = 'http://localhost:8000'
@@ -59,7 +59,6 @@ export default function Dashboard() {
   const [smartSearching, setSmartSearching] = useState(false)
   const [isSmartMode, setIsSmartMode] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
-  const contextMenuRef = useRef<HTMLDivElement>(null)
 
   const fetchCompanies = async () => {
     setLoading(true)
@@ -102,7 +101,6 @@ export default function Dashboard() {
 
   useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
 
-  // بستن context menu با کلیک خارج
   useEffect(() => {
     const handleClick = () => setContextMenu(null)
     document.addEventListener('click', handleClick)
@@ -167,7 +165,6 @@ export default function Dashboard() {
       {/* CONTEXT MENU */}
       {contextMenu && (
         <div
-          ref={contextMenuRef}
           className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-52"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={e => e.stopPropagation()}
@@ -175,42 +172,31 @@ export default function Dashboard() {
           <div className="px-3 py-2 border-b border-gray-100">
             <p className="text-xs font-medium text-gray-800 truncate">{contextMenu.company.name}</p>
           </div>
-          <button
-            onClick={() => { goToCompany(contextMenu.company.id); setContextMenu(null) }}
-            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
+          <button onClick={() => { goToCompany(contextMenu.company.id); setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             👁 View Profile
           </button>
-          <button
-            onClick={() => { window.location.href = `/edit?id=${contextMenu.company.id}`; setContextMenu(null) }}
-            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
+          <button onClick={() => { window.location.href = `/edit?id=${contextMenu.company.id}`; setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             ✏️ Edit Company
           </button>
-          <button
-            onClick={() => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) }}
-            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
+          <button onClick={() => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             ✉ Generate Email
           </button>
           <div className="border-t border-gray-100 my-1" />
           <p className="px-3 py-1 text-xs text-gray-400">Change Status</p>
           {['reviewed', 'ready', 'sent', 'replied', 'archive'].map(s => (
-            <button
-              key={s}
-              onClick={() => quickUpdateStatus(contextMenu.company.id, s)}
+            <button key={s} onClick={() => quickUpdateStatus(contextMenu.company.id, s)}
               className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${
                 contextMenu.company.status === s ? 'font-medium text-blue-600' : 'text-gray-600'
-              }`}
-            >
+              }`}>
               {contextMenu.company.status === s ? '✓' : '○'} {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
           <div className="border-t border-gray-100 my-1" />
-          <button
-            onClick={() => quickToggleFavorite(contextMenu.company.id)}
-            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
+          <button onClick={() => quickToggleFavorite(contextMenu.company.id)}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             {contextMenu.company.is_favorite ? '★ Remove Favorite' : '☆ Add to Favorites'}
           </button>
         </div>
@@ -224,6 +210,10 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{total} companies</span>
+          <button onClick={() => window.location.href = '/tasks'}
+            className="text-sm text-gray-500 hover:text-gray-700 transition px-3 py-2 rounded-lg hover:bg-gray-100">
+            ✅ Tasks
+          </button>
           <button onClick={() => window.location.href = '/analytics'}
             className="text-sm text-gray-500 hover:text-gray-700 transition px-3 py-2 rounded-lg hover:bg-gray-100">
             📊 Analytics
@@ -343,12 +333,9 @@ export default function Dashboard() {
           <div className="text-center py-20 text-gray-400">No companies found</div>
         ) : (
           companies.map(c => (
-            <div
-              key={c.id}
-              onClick={() => goToCompany(c.id)}
+            <div key={c.id} onClick={() => goToCompany(c.id)}
               onContextMenu={e => handleRightClick(e, c)}
-              className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition overflow-hidden cursor-pointer"
-            >
+              className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition overflow-hidden cursor-pointer">
               <div className="p-4 flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
                   {getInitials(c.name)}
@@ -389,12 +376,8 @@ export default function Dashboard() {
                       {Math.round(c.opportunity_score)}
                     </span>
                   </div>
-                  <select
-                    value={c.status}
-                    onChange={e => updateStatus(e, c.id)}
-                    onClick={e => e.stopPropagation()}
-                    className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}
-                  >
+                  <select value={c.status} onChange={e => updateStatus(e, c.id)} onClick={e => e.stopPropagation()}
+                    className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
                     {Object.keys(STATUS_COLORS).map(s => (
                       <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                     ))}
