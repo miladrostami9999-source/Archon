@@ -49,6 +49,15 @@ interface Company {
   tags: string
 }
 
+interface Contact {
+  id: number
+  full_name: string
+  role: string
+  email: string
+  linkedin: string
+  is_primary: boolean
+}
+
 interface Note {
   id: number
   content: string
@@ -83,6 +92,7 @@ interface Campaign {
 export default function CompanyDetail() {
   const { id } = useParams()
   const [company, setCompany] = useState<Company | null>(null)
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -97,6 +107,9 @@ export default function CompanyDetail() {
   const [generatingSummary, setGeneratingSummary] = useState(false)
   const [copied, setCopied] = useState(false)
   const [expandedCampaign, setExpandedCampaign] = useState<number | null>(null)
+  const [showAddContact, setShowAddContact] = useState(false)
+  const [newContact, setNewContact] = useState({ full_name: '', role: '', email: '', linkedin: '', is_primary: false })
+  const [savingContact, setSavingContact] = useState(false)
 
   const fetchCompany = async () => {
     try {
@@ -106,6 +119,13 @@ export default function CompanyDetail() {
       window.location.href = '/'
     }
     setLoading(false)
+  }
+
+  const fetchContacts = async () => {
+    try {
+      const res = await axios.get(`${API}/companies/${id}/contacts`)
+      setContacts(res.data)
+    } catch {}
   }
 
   const fetchNotes = async () => {
@@ -131,6 +151,7 @@ export default function CompanyDetail() {
 
   useEffect(() => {
     fetchCompany()
+    fetchContacts()
     fetchNotes()
     fetchHistory()
     fetchCampaigns()
@@ -150,11 +171,7 @@ export default function CompanyDetail() {
     if (!newNote.trim()) return
     setSavingNote(true)
     try {
-      await axios.post(`${API}/companies/${id}/notes`, {
-        content: newNote,
-        language: noteLang,
-        pinned: false
-      })
+      await axios.post(`${API}/companies/${id}/notes`, { content: newNote, language: noteLang, pinned: false })
       setNewNote('')
       fetchNotes()
     } catch {}
@@ -164,6 +181,23 @@ export default function CompanyDetail() {
   const togglePin = async (noteId: number, pinned: boolean) => {
     await axios.patch(`${API}/companies/${id}/notes/${noteId}`, { pinned: !pinned })
     fetchNotes()
+  }
+
+  const saveContact = async () => {
+    if (!newContact.full_name.trim()) return
+    setSavingContact(true)
+    try {
+      await axios.post(`${API}/companies/${id}/contacts`, newContact)
+      setNewContact({ full_name: '', role: '', email: '', linkedin: '', is_primary: false })
+      setShowAddContact(false)
+      fetchContacts()
+    } catch {}
+    setSavingContact(false)
+  }
+
+  const deleteContact = async (contactId: number) => {
+    await axios.delete(`${API}/companies/${id}/contacts/${contactId}`)
+    fetchContacts()
   }
 
   const generateEmail = async () => {
@@ -215,9 +249,7 @@ export default function CompanyDetail() {
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">
-      Loading...
-    </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>
   )
   if (!company) return null
 
@@ -225,19 +257,14 @@ export default function CompanyDetail() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <button
-          onClick={() => window.location.href = '/'}
-          className="text-gray-400 hover:text-gray-600 transition"
-        >
+        <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-gray-600 transition">
           ← Back
         </button>
         <div className="flex-1" />
         <button
           onClick={toggleFavorite}
           className={`text-xl transition ${company.is_favorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
-        >
-          ★
-        </button>
+        >★</button>
         <select
           value={company.status}
           onChange={e => updateStatus(e.target.value)}
@@ -250,9 +277,7 @@ export default function CompanyDetail() {
         <button
           onClick={() => setActiveTab('email')}
           className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          ✉ Generate Email
-        </button>
+        >✉ Generate Email</button>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-6">
@@ -271,28 +296,17 @@ export default function CompanyDetail() {
               {company.ai_summary ? (
                 <p className="text-sm text-gray-500 mt-2 leading-relaxed">{company.ai_summary}</p>
               ) : (
-                <button
-                  onClick={generateSummary}
-                  disabled={generatingSummary}
-                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 transition disabled:opacity-40"
-                >
+                <button onClick={generateSummary} disabled={generatingSummary}
+                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 transition disabled:opacity-40">
                   {generatingSummary ? '⏳ Generating...' : '✨ Generate AI Summary'}
                 </button>
               )}
             </div>
-
-            {/* SCORE + EDIT */}
             <div className="flex flex-col items-center gap-2 flex-shrink-0">
               <div className="relative w-14 h-14">
                 <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
                   <circle cx="28" cy="28" r="22" fill="none" stroke="#f1f5f9" strokeWidth="4"/>
-                  <circle
-                    cx="28" cy="28" r="22" fill="none"
-                    stroke={getScoreColor(company.opportunity_score)}
-                    strokeWidth="4"
-                    strokeDasharray={`${company.opportunity_score} 100`}
-                    strokeLinecap="round"
-                  />
+                  <circle cx="28" cy="28" r="22" fill="none" stroke={getScoreColor(company.opportunity_score)} strokeWidth="4" strokeDasharray={`${company.opportunity_score} 100`} strokeLinecap="round"/>
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
                   {Math.round(company.opportunity_score)}
@@ -301,9 +315,7 @@ export default function CompanyDetail() {
               <button
                 onClick={() => window.location.href = `/edit?id=${id}`}
                 className="text-xs text-gray-400 hover:text-blue-600 border border-gray-200 px-2 py-1 rounded-lg hover:border-blue-300 transition"
-              >
-                ✏️ Edit
-              </button>
+              >✏️ Edit</button>
             </div>
           </div>
 
@@ -340,9 +352,7 @@ export default function CompanyDetail() {
               <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
                 <span>🏷</span>
                 {company.tags.split(',').map(tag => (
-                  <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                    {tag.trim()}
-                  </span>
+                  <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag.trim()}</span>
                 ))}
               </div>
             )}
@@ -352,13 +362,10 @@ export default function CompanyDetail() {
         {/* TABS */}
         <div className="flex gap-1 mb-4 bg-white rounded-xl border border-gray-200 p-1 overflow-x-auto">
           {(['overview', 'notes', 'history', 'email', 'emails'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+            <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-xs font-medium rounded-lg transition whitespace-nowrap px-2 ${
                 activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
+              }`}>
               {tab === 'overview' ? '📋 Overview'
                 : tab === 'notes' ? '📝 Notes'
                 : tab === 'history' ? '📅 History'
@@ -370,10 +377,115 @@ export default function CompanyDetail() {
 
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm text-gray-400 text-center py-8">
-              Contacts and more details coming soon.
-            </p>
+          <div className="space-y-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-medium text-gray-700">Key Contacts</h2>
+                <button
+                  onClick={() => setShowAddContact(!showAddContact)}
+                  className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 px-3 py-1 rounded-lg transition"
+                >
+                  + Add Contact
+                </button>
+              </div>
+
+              {showAddContact && (
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      placeholder="Full Name *"
+                      value={newContact.full_name}
+                      onChange={e => setNewContact({ ...newContact, full_name: e.target.value })}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      placeholder="Role (CEO, Founder...)"
+                      value={newContact.role}
+                      onChange={e => setNewContact({ ...newContact, role: e.target.value })}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      placeholder="Email"
+                      value={newContact.email}
+                      onChange={e => setNewContact({ ...newContact, email: e.target.value })}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      placeholder="LinkedIn URL"
+                      value={newContact.linkedin}
+                      onChange={e => setNewContact({ ...newContact, linkedin: e.target.value })}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newContact.is_primary}
+                        onChange={e => setNewContact({ ...newContact, is_primary: e.target.checked })}
+                        className="rounded"
+                      />
+                      Primary contact
+                    </label>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowAddContact(false)}
+                        className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition">
+                        Cancel
+                      </button>
+                      <button onClick={saveContact} disabled={savingContact || !newContact.full_name.trim()}
+                        className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-40">
+                        {savingContact ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {contacts.length === 0 ? (
+                <p className="text-sm text-gray-300 text-center py-6">No contacts yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {contacts.map(contact => (
+                    <div key={contact.id} className={`flex items-center justify-between p-3 rounded-xl border ${contact.is_primary ? 'border-blue-100 bg-blue-50' : 'border-gray-100'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                          {contact.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-800">{contact.full_name}</p>
+                            {contact.is_primary && (
+                              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">Primary</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400">{contact.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {contact.email && (
+                          <a href={`mailto:${contact.email}`}
+                            className="text-xs text-gray-400 hover:text-blue-600 transition">
+                            ✉
+                          </a>
+                        )}
+                        {contact.linkedin && (
+                          <a href={contact.linkedin} target="_blank"
+                            className="text-xs text-gray-400 hover:text-blue-600 transition">
+                            💼
+                          </a>
+                        )}
+                        <button onClick={() => deleteContact(contact.id)}
+                          className="text-xs text-gray-300 hover:text-red-400 transition ml-1">
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -381,27 +493,17 @@ export default function CompanyDetail() {
         {activeTab === 'notes' && (
           <div className="space-y-3">
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <textarea
-                value={newNote}
-                onChange={e => setNewNote(e.target.value)}
-                placeholder="Add a note... (English or فارسی)"
-                rows={3}
-                className="w-full text-sm text-gray-700 placeholder-gray-300 resize-none focus:outline-none"
-              />
+              <textarea value={newNote} onChange={e => setNewNote(e.target.value)}
+                placeholder="Add a note... (English or فارسی)" rows={3}
+                className="w-full text-sm text-gray-700 placeholder-gray-300 resize-none focus:outline-none" />
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                <select
-                  value={noteLang}
-                  onChange={e => setNoteLang(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none"
-                >
+                <select value={noteLang} onChange={e => setNoteLang(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none">
                   <option value="en">English</option>
                   <option value="fa">فارسی</option>
                 </select>
-                <button
-                  onClick={saveNote}
-                  disabled={savingNote || !newNote.trim()}
-                  className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-40"
-                >
+                <button onClick={saveNote} disabled={savingNote || !newNote.trim()}
+                  className="bg-blue-600 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-40">
                   {savingNote ? 'Saving...' : 'Save Note'}
                 </button>
               </div>
@@ -413,16 +515,12 @@ export default function CompanyDetail() {
                 <div key={note.id} className={`bg-white rounded-xl border p-4 ${note.pinned ? 'border-yellow-200' : 'border-gray-200'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm text-gray-700 flex-1">{note.content}</p>
-                    <button
-                      onClick={() => togglePin(note.id, note.pinned)}
-                      className={`text-sm flex-shrink-0 ${note.pinned ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}
-                    >
+                    <button onClick={() => togglePin(note.id, note.pinned)}
+                      className={`text-sm flex-shrink-0 ${note.pinned ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
                       📌
                     </button>
                   </div>
-                  <p className="text-xs text-gray-300 mt-2">
-                    {new Date(note.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="text-xs text-gray-300 mt-2">{new Date(note.created_at).toLocaleDateString()}</p>
                 </div>
               ))
             )}
@@ -440,9 +538,7 @@ export default function CompanyDetail() {
                   <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-gray-700">{item.description}</p>
-                    <p className="text-xs text-gray-300 mt-1">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </p>
+                    <p className="text-xs text-gray-300 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))
@@ -457,27 +553,16 @@ export default function CompanyDetail() {
               <p className="text-sm font-medium text-gray-700 mb-3">Email Tone</p>
               <div className="flex gap-2 flex-wrap">
                 {['friendly', 'formal', 'brief', 'storytelling'].map(tone => (
-                  <button
-                    key={tone}
-                    onClick={() => setEmailTone(tone)}
+                  <button key={tone} onClick={() => setEmailTone(tone)}
                     className={`text-xs px-4 py-2 rounded-lg border transition font-medium ${
-                      emailTone === tone
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-gray-200 text-gray-600 hover:border-blue-300'
-                    }`}
-                  >
-                    {tone === 'friendly' ? '😊 Friendly'
-                      : tone === 'formal' ? '💼 Formal'
-                      : tone === 'brief' ? '⚡ Brief'
-                      : '📖 Storytelling'}
+                      emailTone === tone ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                    }`}>
+                    {tone === 'friendly' ? '😊 Friendly' : tone === 'formal' ? '💼 Formal' : tone === 'brief' ? '⚡ Brief' : '📖 Storytelling'}
                   </button>
                 ))}
               </div>
-              <button
-                onClick={generateEmail}
-                disabled={generatingEmail}
-                className="w-full mt-4 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
-              >
+              <button onClick={generateEmail} disabled={generatingEmail}
+                className="w-full mt-4 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50">
                 {generatingEmail ? '⏳ Generating...' : '✨ Generate Email'}
               </button>
             </div>
@@ -485,33 +570,21 @@ export default function CompanyDetail() {
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="mb-3">
                   <p className="text-xs text-gray-400 mb-1">Subject</p>
-                  <input
-                    value={emailDraft.subject}
-                    onChange={e => setEmailDraft({ ...emailDraft, subject: e.target.value })}
-                    className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <input value={emailDraft.subject} onChange={e => setEmailDraft({ ...emailDraft, subject: e.target.value })}
+                    className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Body</p>
-                  <textarea
-                    value={emailDraft.body}
-                    onChange={e => setEmailDraft({ ...emailDraft, body: e.target.value })}
-                    rows={10}
-                    className="w-full text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
+                  <textarea value={emailDraft.body} onChange={e => setEmailDraft({ ...emailDraft, body: e.target.value })}
+                    rows={10} className="w-full text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
                 </div>
                 <div className="flex gap-3 mt-3">
-                  <button
-                    onClick={generateEmail}
-                    disabled={generatingEmail}
-                    className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition"
-                  >
+                  <button onClick={generateEmail} disabled={generatingEmail}
+                    className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
                     🔄 Regenerate
                   </button>
-                  <button
-                    onClick={copyAndOpenGmail}
-                    className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
+                  <button onClick={copyAndOpenGmail}
+                    className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition">
                     {copied ? '✅ Copied!' : '📋 Copy + Open Gmail'}
                   </button>
                 </div>
@@ -526,20 +599,15 @@ export default function CompanyDetail() {
             {campaigns.length === 0 ? (
               <div className="text-center py-12 text-gray-300 text-sm">
                 No emails generated yet.<br/>
-                <button
-                  onClick={() => setActiveTab('email')}
-                  className="text-blue-500 mt-2 text-xs hover:underline"
-                >
+                <button onClick={() => setActiveTab('email')} className="text-blue-500 mt-2 text-xs hover:underline">
                   Generate your first email →
                 </button>
               </div>
             ) : (
               campaigns.map(campaign => (
                 <div key={campaign.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-                    onClick={() => setExpandedCampaign(expandedCampaign === campaign.id ? null : campaign.id)}
-                  >
+                  <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                    onClick={() => setExpandedCampaign(expandedCampaign === campaign.id ? null : campaign.id)}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{campaign.subject}</p>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -547,19 +615,15 @@ export default function CompanyDetail() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 ml-3">
-                      <select
-                        value={campaign.status}
+                      <select value={campaign.status}
                         onChange={e => { e.stopPropagation(); updateCampaignStatus(campaign.id, e.target.value) }}
                         onClick={e => e.stopPropagation()}
-                        className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${CAMPAIGN_STATUS[campaign.status] || 'bg-gray-100 text-gray-600'}`}
-                      >
+                        className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${CAMPAIGN_STATUS[campaign.status] || 'bg-gray-100 text-gray-600'}`}>
                         <option value="draft">Draft</option>
                         <option value="sent">Sent</option>
                         <option value="replied">Replied</option>
                       </select>
-                      <span className="text-gray-400 text-xs">
-                        {expandedCampaign === campaign.id ? '▲' : '▼'}
-                      </span>
+                      <span className="text-gray-400 text-xs">{expandedCampaign === campaign.id ? '▲' : '▼'}</span>
                     </div>
                   </div>
                   {expandedCampaign === campaign.id && (
@@ -571,8 +635,7 @@ export default function CompanyDetail() {
                           navigator.clipboard.writeText(`Subject: ${campaign.subject}\n\n${campaign.body}`)
                           window.open('https://mail.google.com/mail/u/0/#compose', '_blank')
                         }}
-                        className="mt-3 text-xs bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition"
-                      >
+                        className="mt-3 text-xs bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition">
                         📋 Copy + Open Gmail
                       </button>
                     </div>
