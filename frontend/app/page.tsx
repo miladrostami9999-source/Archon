@@ -54,7 +54,6 @@ export default function Dashboard() {
       if (search) params.search = search
       if (filterStatus) params.status = filterStatus
       if (filterIndustry) params.industry = filterIndustry
-
       const res = await axios.get(`${API}/companies/`, { params })
       setCompanies(res.data.companies)
       setTotal(res.data.total)
@@ -66,14 +65,20 @@ export default function Dashboard() {
 
   useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
 
-  const toggleFavorite = async (id: number) => {
+  const toggleFavorite = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/favorite`)
     fetchCompanies()
   }
 
-  const updateStatus = async (id: number, status: string) => {
-    await axios.patch(`${API}/companies/${id}/status?status=${status}`)
+  const updateStatus = async (e: React.ChangeEvent<HTMLSelectElement>, id: number) => {
+    e.stopPropagation()
+    await axios.patch(`${API}/companies/${id}/status?status=${e.target.value}`)
     fetchCompanies()
+  }
+
+  const goToCompany = (id: number) => {
+    window.location.href = `/company/${id}`
   }
 
   const getInitials = (name: string) =>
@@ -145,20 +150,23 @@ export default function Dashboard() {
           <div className="text-center py-20 text-gray-400">No companies found</div>
         ) : (
           companies.map(c => (
-            <div key={c.id} className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition overflow-hidden">
+            <div
+              key={c.id}
+              onClick={() => goToCompany(c.id)}
+              className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition overflow-hidden cursor-pointer"
+            >
               <div className="p-4 flex items-start gap-3">
-                {/* AVATAR */}
                 <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
                   {getInitials(c.name)}
                 </div>
-
-                {/* MAIN INFO */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium text-gray-900 text-sm">{c.name}</h3>
                     <span className="text-sm">{HEAT[c.heat_level] || '❄️'}</span>
                     {c.tags && c.tags.split(',').map((tag: string) => (
-                      <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag.trim()}</span>
+                      <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                        {tag.trim()}
+                      </span>
                     ))}
                   </div>
                   <p className="text-xs text-gray-400">
@@ -168,10 +176,7 @@ export default function Dashboard() {
                     <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{c.ai_summary}</p>
                   )}
                 </div>
-
-                {/* SCORE + STATUS */}
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                  {/* Score Ring */}
                   <div className="relative w-10 h-10">
                     <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
                       <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3"/>
@@ -187,11 +192,10 @@ export default function Dashboard() {
                       {Math.round(c.opportunity_score)}
                     </span>
                   </div>
-
-                  {/* Status */}
                   <select
                     value={c.status}
-                    onChange={e => updateStatus(c.id, e.target.value)}
+                    onChange={e => updateStatus(e, c.id)}
+                    onClick={e => e.stopPropagation()}
                     className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}
                   >
                     {Object.keys(STATUS_COLORS).map(s => (
@@ -200,8 +204,6 @@ export default function Dashboard() {
                   </select>
                 </div>
               </div>
-
-              {/* BOTTOM BAR */}
               <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                 <div className="flex gap-3 text-xs text-gray-400">
                   {c.email && <span>✉ {c.email}</span>}
@@ -209,15 +211,21 @@ export default function Dashboard() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleFavorite(c.id)}
+                    onClick={e => toggleFavorite(e, c.id)}
                     className={`text-sm px-2 py-1 rounded-lg transition ${c.is_favorite ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
                   >
                     ★
                   </button>
-                  <button className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition">
+                  <button
+                    onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
+                    className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition"
+                  >
                     Notes
                   </button>
-                  <button className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                  <button
+                    onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
+                    className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                  >
                     ✉ Email
                   </button>
                 </div>
