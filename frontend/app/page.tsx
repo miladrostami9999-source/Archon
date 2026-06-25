@@ -101,6 +101,12 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{total} companies</span>
           <button
+            onClick={() => window.location.href = '/analytics'}
+            className="text-sm text-gray-500 hover:text-gray-700 transition px-3 py-2 rounded-lg hover:bg-gray-100"
+          >
+            📊 Analytics
+          </button>
+          <button
             onClick={() => window.location.href = '/add'}
             className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
