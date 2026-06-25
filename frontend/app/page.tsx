@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 
 const API = 'http://localhost:8000'
@@ -40,6 +40,12 @@ interface Company {
   updated_at: string
 }
 
+interface ContextMenu {
+  x: number
+  y: number
+  company: Company
+}
+
 export default function Dashboard() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [total, setTotal] = useState(0)
@@ -52,6 +58,8 @@ export default function Dashboard() {
   const [smartQuery, setSmartQuery] = useState('')
   const [smartSearching, setSmartSearching] = useState(false)
   const [isSmartMode, setIsSmartMode] = useState(false)
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
 
   const fetchCompanies = async () => {
     setLoading(true)
@@ -94,6 +102,19 @@ export default function Dashboard() {
 
   useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
 
+  // بستن context menu با کلیک خارج
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null)
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [])
+
+  const handleRightClick = (e: React.MouseEvent, company: Company) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, company })
+  }
+
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/favorite`)
@@ -106,6 +127,18 @@ export default function Dashboard() {
     await axios.patch(`${API}/companies/${id}/status?status=${e.target.value}`)
     if (!isSmartMode) fetchCompanies()
     else setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: e.target.value } : c))
+  }
+
+  const quickUpdateStatus = async (id: number, status: string) => {
+    await axios.patch(`${API}/companies/${id}/status?status=${status}`)
+    setContextMenu(null)
+    fetchCompanies()
+  }
+
+  const quickToggleFavorite = async (id: number) => {
+    await axios.patch(`${API}/companies/${id}/favorite`)
+    setContextMenu(null)
+    fetchCompanies()
   }
 
   const goToCompany = (id: number) => {
@@ -130,6 +163,59 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* CONTEXT MENU */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-52"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="px-3 py-2 border-b border-gray-100">
+            <p className="text-xs font-medium text-gray-800 truncate">{contextMenu.company.name}</p>
+          </div>
+          <button
+            onClick={() => { goToCompany(contextMenu.company.id); setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            👁 View Profile
+          </button>
+          <button
+            onClick={() => { window.location.href = `/edit?id=${contextMenu.company.id}`; setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            ✏️ Edit Company
+          </button>
+          <button
+            onClick={() => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            ✉ Generate Email
+          </button>
+          <div className="border-t border-gray-100 my-1" />
+          <p className="px-3 py-1 text-xs text-gray-400">Change Status</p>
+          {['reviewed', 'ready', 'sent', 'replied', 'archive'].map(s => (
+            <button
+              key={s}
+              onClick={() => quickUpdateStatus(contextMenu.company.id, s)}
+              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2 ${
+                contextMenu.company.status === s ? 'font-medium text-blue-600' : 'text-gray-600'
+              }`}
+            >
+              {contextMenu.company.status === s ? '✓' : '○'} {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+          <div className="border-t border-gray-100 my-1" />
+          <button
+            onClick={() => quickToggleFavorite(contextMenu.company.id)}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            {contextMenu.company.is_favorite ? '★ Remove Favorite' : '☆ Add to Favorites'}
+          </button>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
@@ -138,22 +224,16 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{total} companies</span>
-          <button
-            onClick={() => window.location.href = '/analytics'}
-            className="text-sm text-gray-500 hover:text-gray-700 transition px-3 py-2 rounded-lg hover:bg-gray-100"
-          >
+          <button onClick={() => window.location.href = '/analytics'}
+            className="text-sm text-gray-500 hover:text-gray-700 transition px-3 py-2 rounded-lg hover:bg-gray-100">
             📊 Analytics
           </button>
-          <button
-            onClick={() => window.location.href = '/import'}
-            className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-          >
+          <button onClick={() => window.location.href = '/import'}
+            className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition">
             📥 Import CSV
           </button>
-          <button
-            onClick={() => window.location.href = '/add'}
-            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
+          <button onClick={() => window.location.href = '/add'}
+            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
             + Add Company
           </button>
         </div>
@@ -175,16 +255,11 @@ export default function Dashboard() {
       {followUpReminders.length > 0 && !isSmartMode && (
         <div className="px-6 py-3 bg-amber-50 border-b border-amber-100">
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-medium text-amber-700 mb-2">
-              ⏰ Follow-up Needed ({followUpReminders.length})
-            </p>
+            <p className="text-xs font-medium text-amber-700 mb-2">⏰ Follow-up Needed ({followUpReminders.length})</p>
             <div className="flex gap-2 flex-wrap">
               {followUpReminders.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => goToCompany(c.id)}
-                  className="text-xs bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition"
-                >
+                <button key={c.id} onClick={() => goToCompany(c.id)}
+                  className="text-xs bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition">
                   {c.name} →
                 </button>
               ))}
@@ -196,13 +271,9 @@ export default function Dashboard() {
       {/* FILTERS */}
       <div className="px-6 py-3 bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex gap-3 flex-wrap items-center">
-          <input
-            type="text"
-            placeholder="Search by name, country, city..."
-            value={search}
-            onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input type="text" placeholder="Search by name, country, city..."
+            value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">All Status</option>
@@ -219,12 +290,10 @@ export default function Dashboard() {
             <option value="Real Estate">Real Estate</option>
             <option value="Visualization">Visualization</option>
           </select>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
+          <button onClick={() => setShowAdvanced(!showAdvanced)}
             className={`text-xs px-3 py-2 rounded-lg border transition font-medium ${
               showAdvanced ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600'
-            }`}
-          >
+            }`}>
             ✨ AI Search
           </button>
         </div>
@@ -234,23 +303,15 @@ export default function Dashboard() {
       {showAdvanced && (
         <div className="px-6 py-3 bg-purple-50 border-b border-purple-100">
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs text-purple-500 mb-2 font-medium">
-              ✨ AI Search — از Claude استفاده می‌کند · هر جستجو ~$0.002
-            </p>
+            <p className="text-xs text-purple-500 mb-2 font-medium">✨ AI Search — از Claude استفاده می‌کند · هر جستجو ~$0.002</p>
             <div className="flex gap-2">
-              <input
-                type="text"
+              <input type="text"
                 placeholder="e.g. 'hot companies not contacted' or 'architecture firms with high score'"
-                value={smartQuery}
-                onChange={e => setSmartQuery(e.target.value)}
+                value={smartQuery} onChange={e => setSmartQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && runSmartSearch()}
-                className="flex-1 border border-purple-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-              />
-              <button
-                onClick={runSmartSearch}
-                disabled={smartSearching || !smartQuery.trim()}
-                className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 whitespace-nowrap"
-              >
+                className="flex-1 border border-purple-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white" />
+              <button onClick={runSmartSearch} disabled={smartSearching || !smartQuery.trim()}
+                className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 whitespace-nowrap">
                 {smartSearching ? '⏳...' : '🔍 Search'}
               </button>
               {isSmartMode && (
@@ -260,9 +321,7 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-            {isSmartMode && (
-              <p className="text-xs text-purple-500 mt-1">Results for: "{smartQuery}" — {total} found</p>
-            )}
+            {isSmartMode && <p className="text-xs text-purple-500 mt-1">Results for: "{smartQuery}" — {total} found</p>}
           </div>
         </div>
       )}
@@ -287,6 +346,7 @@ export default function Dashboard() {
             <div
               key={c.id}
               onClick={() => goToCompany(c.id)}
+              onContextMenu={e => handleRightClick(e, c)}
               className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition overflow-hidden cursor-pointer"
             >
               <div className="p-4 flex items-start gap-3">
@@ -304,9 +364,7 @@ export default function Dashboard() {
                       ) : null
                     })()}
                     {c.tags && c.tags.split(',').map((tag: string) => (
-                      <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                        {tag.trim()}
-                      </span>
+                      <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag.trim()}</span>
                     ))}
                   </div>
                   <p className="text-xs text-gray-400">
@@ -347,6 +405,7 @@ export default function Dashboard() {
                 <div className="flex gap-3 text-xs text-gray-400">
                   {c.email && <span>✉ {c.email}</span>}
                   {c.domain && <span>🌐 {c.domain}</span>}
+                  <span className="text-gray-300">Right-click for quick actions</span>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={e => toggleFavorite(e, c.id)}
