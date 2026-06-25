@@ -37,6 +37,7 @@ interface Company {
   is_favorite: boolean
   ai_summary: string
   tags: string
+  updated_at: string
 }
 
 export default function Dashboard() {
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterIndustry, setFilterIndustry] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [smartQuery, setSmartQuery] = useState('')
   const [smartSearching, setSmartSearching] = useState(false)
@@ -53,6 +55,7 @@ export default function Dashboard() {
 
   const fetchCompanies = async () => {
     setLoading(true)
+    setError('')
     setIsSmartMode(false)
     try {
       const params: Record<string, string> = {}
@@ -62,8 +65,8 @@ export default function Dashboard() {
       const res = await axios.get(`${API}/companies/`, { params })
       setCompanies(res.data.companies)
       setTotal(res.data.total)
-    } catch (e) {
-      console.error(e)
+    } catch {
+      setError('Cannot connect to server. Make sure the backend is running.')
     }
     setLoading(false)
   }
@@ -77,7 +80,7 @@ export default function Dashboard() {
       setTotal(res.data.total)
       setIsSmartMode(true)
     } catch {
-      alert('Smart search error')
+      setError('Smart search failed. Try again.')
     }
     setSmartSearching(false)
   }
@@ -95,6 +98,7 @@ export default function Dashboard() {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/favorite`)
     if (!isSmartMode) fetchCompanies()
+    else setCompanies(prev => prev.map(c => c.id === id ? { ...c, is_favorite: !c.is_favorite } : c))
   }
 
   const updateStatus = async (e: React.ChangeEvent<HTMLSelectElement>, id: number) => {
@@ -117,6 +121,13 @@ export default function Dashboard() {
     return '#94a3b8'
   }
 
+  const followUpReminders = companies.filter(c => {
+    if (c.status !== 'sent') return false
+    const updatedAt = new Date(c.updated_at)
+    const daysSince = Math.floor((Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24))
+    return daysSince >= 14
+  })
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -134,6 +145,12 @@ export default function Dashboard() {
             📊 Analytics
           </button>
           <button
+            onClick={() => window.location.href = '/import'}
+            className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition"
+          >
+            📥 Import CSV
+          </button>
+          <button
             onClick={() => window.location.href = '/add'}
             className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
           >
@@ -142,7 +159,41 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* FILTERS — رایگان */}
+      {/* ERROR BANNER */}
+      {error && (
+        <div className="px-6 py-3 bg-red-50 border-b border-red-100">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <p className="text-sm text-red-600">⚠️ {error}</p>
+            <button onClick={fetchCompanies} className="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-100 transition">
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* FOLLOW-UP REMINDERS */}
+      {followUpReminders.length > 0 && !isSmartMode && (
+        <div className="px-6 py-3 bg-amber-50 border-b border-amber-100">
+          <div className="max-w-5xl mx-auto">
+            <p className="text-xs font-medium text-amber-700 mb-2">
+              ⏰ Follow-up Needed ({followUpReminders.length})
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {followUpReminders.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => goToCompany(c.id)}
+                  className="text-xs bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition"
+                >
+                  {c.name} →
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FILTERS */}
       <div className="px-6 py-3 bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex gap-3 flex-wrap items-center">
           <input
@@ -179,7 +230,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ADVANCED SEARCH — با Claude */}
+      {/* AI SEARCH */}
       {showAdvanced && (
         <div className="px-6 py-3 bg-purple-50 border-b border-purple-100">
           <div className="max-w-5xl mx-auto">
@@ -200,7 +251,7 @@ export default function Dashboard() {
                 disabled={smartSearching || !smartQuery.trim()}
                 className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 whitespace-nowrap"
               >
-                {smartSearching ? '⏳ Searching...' : '🔍 Search'}
+                {smartSearching ? '⏳...' : '🔍 Search'}
               </button>
               {isSmartMode && (
                 <button onClick={clearSmartSearch}
@@ -210,9 +261,7 @@ export default function Dashboard() {
               )}
             </div>
             {isSmartMode && (
-              <p className="text-xs text-purple-500 mt-1">
-                Results for: "{smartQuery}" — {total} found
-              </p>
+              <p className="text-xs text-purple-500 mt-1">Results for: "{smartQuery}" — {total} found</p>
             )}
           </div>
         </div>
@@ -223,6 +272,13 @@ export default function Dashboard() {
         {loading || smartSearching ? (
           <div className="text-center py-20 text-gray-400">
             {smartSearching ? '✨ AI is searching...' : 'Loading...'}
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 mb-3">Could not load companies</p>
+            <button onClick={fetchCompanies} className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+              Try Again
+            </button>
           </div>
         ) : companies.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No companies found</div>
@@ -241,6 +297,12 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium text-gray-900 text-sm">{c.name}</h3>
                     <span className="text-sm">{HEAT[c.heat_level] || '❄️'}</span>
+                    {c.status === 'sent' && (() => {
+                      const days = Math.floor((Date.now() - new Date(c.updated_at).getTime()) / (1000 * 60 * 60 * 24))
+                      return days >= 14 ? (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏰ {days}d ago</span>
+                      ) : null
+                    })()}
                     {c.tags && c.tags.split(',').map((tag: string) => (
                       <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                         {tag.trim()}

@@ -110,6 +110,8 @@ export default function CompanyDetail() {
   const [showAddContact, setShowAddContact] = useState(false)
   const [newContact, setNewContact] = useState({ full_name: '', role: '', email: '', linkedin: '', is_primary: false })
   const [savingContact, setSavingContact] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchCompany = async () => {
     try {
@@ -165,6 +167,17 @@ export default function CompanyDetail() {
   const toggleFavorite = async () => {
     await axios.patch(`${API}/companies/${id}/favorite`)
     fetchCompany()
+  }
+
+  const deleteCompany = async () => {
+    setDeleting(true)
+    try {
+      await axios.delete(`${API}/companies/${id}`)
+      window.location.href = '/'
+    } catch {
+      setDeleting(false)
+      setShowDeleteModal(false)
+    }
   }
 
   const saveNote = async () => {
@@ -255,12 +268,51 @@ export default function CompanyDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* DELETE MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🗑</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Company?</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                <strong>{company.name}</strong> و همه اطلاعات آن برای همیشه حذف می‌شود.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteCompany}
+                disabled={deleting}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
         <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-gray-600 transition">
           ← Back
         </button>
         <div className="flex-1" />
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="text-xs text-red-400 hover:text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition"
+        >
+          🗑 Delete
+        </button>
         <button
           onClick={toggleFavorite}
           className={`text-xl transition ${company.is_favorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
@@ -294,10 +346,22 @@ export default function CompanyDetail() {
                 {[company.country, company.city, company.industry, company.company_size].filter(Boolean).join(' · ')}
               </p>
               {company.ai_summary ? (
-                <p className="text-sm text-gray-500 mt-2 leading-relaxed">{company.ai_summary}</p>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500 leading-relaxed">{company.ai_summary}</p>
+                  <button
+                    onClick={generateSummary}
+                    disabled={generatingSummary}
+                    className="text-xs text-gray-400 hover:text-blue-500 mt-1 transition disabled:opacity-40"
+                  >
+                    {generatingSummary ? '⏳ Regenerating...' : '↻ Regenerate Summary'}
+                  </button>
+                </div>
               ) : (
-                <button onClick={generateSummary} disabled={generatingSummary}
-                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 transition disabled:opacity-40">
+                <button
+                  onClick={generateSummary}
+                  disabled={generatingSummary}
+                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 transition disabled:opacity-40"
+                >
                   {generatingSummary ? '⏳ Generating...' : '✨ Generate AI Summary'}
                 </button>
               )}
@@ -367,7 +431,7 @@ export default function CompanyDetail() {
                 activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
               }`}>
               {tab === 'overview' ? '📋 Overview'
-                : tab === 'notes' ? '📝 Notes'
+                : tab === 'notes' ? `📝 Notes${notes.length > 0 ? ` (${notes.length})` : ''}`
                 : tab === 'history' ? '📅 History'
                 : tab === 'email' ? '✉ Generate'
                 : `📧 Emails (${campaigns.length})`}
@@ -381,52 +445,34 @@ export default function CompanyDetail() {
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-medium text-gray-700">Key Contacts</h2>
-                <button
-                  onClick={() => setShowAddContact(!showAddContact)}
-                  className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 px-3 py-1 rounded-lg transition"
-                >
+                <button onClick={() => setShowAddContact(!showAddContact)}
+                  className="text-xs text-blue-600 hover:text-blue-700 border border-blue-200 px-3 py-1 rounded-lg transition">
                   + Add Contact
                 </button>
               </div>
-
               {showAddContact && (
                 <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      placeholder="Full Name *"
-                      value={newContact.full_name}
+                    <input placeholder="Full Name *" value={newContact.full_name}
                       onChange={e => setNewContact({ ...newContact, full_name: e.target.value })}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      placeholder="Role (CEO, Founder...)"
-                      value={newContact.role}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input placeholder="Role (CEO, Founder...)" value={newContact.role}
                       onChange={e => setNewContact({ ...newContact, role: e.target.value })}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      placeholder="Email"
-                      value={newContact.email}
+                    <input placeholder="Email" value={newContact.email}
                       onChange={e => setNewContact({ ...newContact, email: e.target.value })}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      placeholder="LinkedIn URL"
-                      value={newContact.linkedin}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input placeholder="LinkedIn URL" value={newContact.linkedin}
                       onChange={e => setNewContact({ ...newContact, linkedin: e.target.value })}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={newContact.is_primary}
+                      <input type="checkbox" checked={newContact.is_primary}
                         onChange={e => setNewContact({ ...newContact, is_primary: e.target.checked })}
-                        className="rounded"
-                      />
+                        className="rounded" />
                       Primary contact
                     </label>
                     <div className="flex gap-2">
@@ -442,7 +488,6 @@ export default function CompanyDetail() {
                   </div>
                 </div>
               )}
-
               {contacts.length === 0 ? (
                 <p className="text-sm text-gray-300 text-center py-6">No contacts yet</p>
               ) : (
@@ -465,21 +510,13 @@ export default function CompanyDetail() {
                       </div>
                       <div className="flex items-center gap-2">
                         {contact.email && (
-                          <a href={`mailto:${contact.email}`}
-                            className="text-xs text-gray-400 hover:text-blue-600 transition">
-                            ✉
-                          </a>
+                          <a href={`mailto:${contact.email}`} className="text-xs text-gray-400 hover:text-blue-600 transition">✉</a>
                         )}
                         {contact.linkedin && (
-                          <a href={contact.linkedin} target="_blank"
-                            className="text-xs text-gray-400 hover:text-blue-600 transition">
-                            💼
-                          </a>
+                          <a href={contact.linkedin} target="_blank" className="text-xs text-gray-400 hover:text-blue-600 transition">💼</a>
                         )}
                         <button onClick={() => deleteContact(contact.id)}
-                          className="text-xs text-gray-300 hover:text-red-400 transition ml-1">
-                          ✕
-                        </button>
+                          className="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
                       </div>
                     </div>
                   ))}

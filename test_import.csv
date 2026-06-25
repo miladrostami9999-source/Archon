@@ -1,0 +1,5 @@
+name,domain,website,email,country,city,industry,company_size,linkedin,instagram,tags
+Zaha Hadid Architects,zaha-hadid.com,https://www.zaha-hadid.com,info@zaha-hadid.com,United Kingdom,London,Architecture,large,https://linkedin.com/company/zaha-hadid-architects,,luxury
+Snohetta,snohetta.com,https://snohetta.com,info@snohetta.com,Norway,Oslo,Architecture,medium,https://linkedin.com/company/snohetta,,scandinavian
+Neri&Hu Design,neriandhu.com,https://neriandhu.com,info@neriandhu.com,China,Shanghai,Interior Design,small,https://linkedin.com/company/neri-hu,,hospitality
+Visualarch Studio,visualarch.io,https://visualarch.io,hello@visualarch.io,Germany,Berlin,CGI,small,,,outsourcing
