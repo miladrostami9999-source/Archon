@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 
 const API = 'http://localhost:8000'
@@ -52,6 +52,11 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterIndustry, setFilterIndustry] = useState('')
+  const [filterHeat, setFilterHeat] = useState('')
+  const [filterFavorite, setFilterFavorite] = useState(false)
+  const [sortBy, setSortBy] = useState('score')
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
+  const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -59,6 +64,7 @@ export default function Dashboard() {
   const [smartSearching, setSmartSearching] = useState(false)
   const [isSmartMode, setIsSmartMode] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+  const sortRef = useRef<HTMLDivElement>(null)
 
   const fetchCompanies = async () => {
     setLoading(true)
@@ -69,8 +75,20 @@ export default function Dashboard() {
       if (search) params.search = search
       if (filterStatus) params.status = filterStatus
       if (filterIndustry) params.industry = filterIndustry
+      if (filterHeat) params.heat_level = filterHeat
+      if (filterFavorite) params.is_favorite = 'true'
       const res = await axios.get(`${API}/companies/`, { params })
-      setCompanies(res.data.companies)
+      let data = res.data.companies as Company[]
+      data = [...data].sort((a, b) => {
+        let valA: any, valB: any
+        if (sortBy === 'score') { valA = a.opportunity_score; valB = b.opportunity_score }
+        else if (sortBy === 'name') { valA = a.name?.toLowerCase(); valB = b.name?.toLowerCase() }
+        else if (sortBy === 'date') { valA = new Date(a.updated_at).getTime(); valB = new Date(b.updated_at).getTime() }
+        else if (sortBy === 'country') { valA = a.country?.toLowerCase(); valB = b.country?.toLowerCase() }
+        if (sortDir === 'desc') return valA > valB ? -1 : 1
+        return valA < valB ? -1 : 1
+      })
+      setCompanies(data)
       setTotal(res.data.total)
     } catch {
       setError('Cannot connect to server. Make sure the backend is running.')
@@ -87,7 +105,7 @@ export default function Dashboard() {
       setTotal(res.data.total)
       setIsSmartMode(true)
     } catch {
-      setError('Smart search failed. Try again.')
+      setError('Smart search failed.')
     }
     setSmartSearching(false)
   }
@@ -99,10 +117,27 @@ export default function Dashboard() {
     fetchCompanies()
   }
 
-  useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
+  const clearAllFilters = () => {
+    setSearch('')
+    setFilterStatus('')
+    setFilterIndustry('')
+    setFilterHeat('')
+    setFilterFavorite(false)
+    setSortBy('score')
+    setSortDir('desc')
+  }
+
+  const hasActiveFilters = search || filterStatus || filterIndustry || filterHeat || filterFavorite
+
+  useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry, filterHeat, filterFavorite, sortBy, sortDir])
 
   useEffect(() => {
-    const handleClick = () => setContextMenu(null)
+    const handleClick = (e: MouseEvent) => {
+      setContextMenu(null)
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortMenuOpen(false)
+      }
+    }
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
   }, [])
@@ -116,15 +151,13 @@ export default function Dashboard() {
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/favorite`)
-    if (!isSmartMode) fetchCompanies()
-    else setCompanies(prev => prev.map(c => c.id === id ? { ...c, is_favorite: !c.is_favorite } : c))
+    fetchCompanies()
   }
 
   const updateStatus = async (e: React.ChangeEvent<HTMLSelectElement>, id: number) => {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/status?status=${e.target.value}`)
-    if (!isSmartMode) fetchCompanies()
-    else setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: e.target.value } : c))
+    fetchCompanies()
   }
 
   const quickUpdateStatus = async (id: number, status: string) => {
@@ -139,9 +172,7 @@ export default function Dashboard() {
     fetchCompanies()
   }
 
-  const goToCompany = (id: number) => {
-    window.location.href = `/company/${id}`
-  }
+  const goToCompany = (id: number) => { window.location.href = `/company/${id}` }
 
   const getInitials = (name: string) =>
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3)
@@ -152,12 +183,19 @@ export default function Dashboard() {
     return '#94a3b8'
   }
 
+  const toggleSort = (field: string) => {
+    if (sortBy === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortBy(field); setSortDir('desc') }
+    setSortMenuOpen(false)
+  }
+
   const followUpReminders = companies.filter(c => {
     if (c.status !== 'sent') return false
-    const updatedAt = new Date(c.updated_at)
-    const daysSince = Math.floor((Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24))
-    return daysSince >= 14
+    const days = Math.floor((Date.now() - new Date(c.updated_at).getTime()) / (1000 * 60 * 60 * 24))
+    return days >= 14
   })
+
+  const sortLabel = sortBy === 'score' ? '🏆 Score' : sortBy === 'name' ? '🔤 Name' : sortBy === 'date' ? '📅 Date' : '🌍 Country'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -220,7 +258,7 @@ export default function Dashboard() {
           </button>
           <button onClick={() => window.location.href = '/import'}
             className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition">
-            📥 Import CSV
+            📥 Import
           </button>
           <button onClick={() => window.location.href = '/add'}
             className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
@@ -229,19 +267,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ERROR BANNER */}
+      {/* ERROR */}
       {error && (
         <div className="px-6 py-3 bg-red-50 border-b border-red-100">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <p className="text-sm text-red-600">⚠️ {error}</p>
-            <button onClick={fetchCompanies} className="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-100 transition">
-              Retry
-            </button>
+            <button onClick={fetchCompanies} className="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-lg">Retry</button>
           </div>
         </div>
       )}
 
-      {/* FOLLOW-UP REMINDERS */}
+      {/* FOLLOW-UP */}
       {followUpReminders.length > 0 && !isSmartMode && (
         <div className="px-6 py-3 bg-amber-50 border-b border-amber-100">
           <div className="max-w-5xl mx-auto">
@@ -263,7 +299,7 @@ export default function Dashboard() {
         <div className="max-w-5xl mx-auto flex gap-3 flex-wrap items-center">
           <input type="text" placeholder="Search by name, country, city..."
             value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">All Status</option>
@@ -280,12 +316,71 @@ export default function Dashboard() {
             <option value="Real Estate">Real Estate</option>
             <option value="Visualization">Visualization</option>
           </select>
-          <button onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`text-xs px-3 py-2 rounded-lg border transition font-medium ${
-              showAdvanced ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600'
+          <select value={filterHeat} onChange={e => setFilterHeat(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Heat</option>
+            <option value="hot">🔥 Hot</option>
+            <option value="warm">🌤 Warm</option>
+            <option value="cold">❄️ Cold</option>
+          </select>
+          <button
+            onClick={() => setFilterFavorite(!filterFavorite)}
+            className={`text-sm px-3 py-2 rounded-lg border transition ${
+              filterFavorite ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'
             }`}>
-            ✨ AI Search
+            ★ {filterFavorite ? 'Favorites' : 'All'}
           </button>
+          {hasActiveFilters && (
+            <button onClick={clearAllFilters} className="text-xs text-gray-400 hover:text-gray-600 transition">
+              ✕ Clear
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={e => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
+              className={`text-xs px-3 py-2 rounded-lg border transition font-medium ${
+                showAdvanced ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600'
+              }`}>
+              ✨ AI Search
+            </button>
+
+            {/* SORT DROPDOWN */}
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={e => { e.stopPropagation(); setSortMenuOpen(prev => !prev) }}
+                className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center gap-1.5 font-medium"
+              >
+                ↕ {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
+              </button>
+              {sortMenuOpen && (
+                <div className="absolute right-0 top-10 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-48 z-30">
+                  <p className="px-3 py-1.5 text-xs text-gray-400 font-medium uppercase tracking-wide">Sort by</p>
+                  {[
+                    { key: 'score', label: '🏆 Score' },
+                    { key: 'name', label: '🔤 Name' },
+                    { key: 'date', label: '📅 Last Updated' },
+                    { key: 'country', label: '🌍 Country' },
+                  ].map(s => (
+                    <button key={s.key}
+                      onClick={e => { e.stopPropagation(); toggleSort(s.key) }}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition ${
+                        sortBy === s.key ? 'text-blue-600 font-medium' : 'text-gray-600'
+                      }`}>
+                      {s.label}
+                      {sortBy === s.key && <span>{sortDir === 'desc' ? '↓' : '↑'}</span>}
+                    </button>
+                  ))}
+                  <div className="border-t border-gray-100 mx-2 my-1" />
+                  <button
+                    onClick={e => { e.stopPropagation(); setSortDir(d => d === 'desc' ? 'asc' : 'desc'); setSortMenuOpen(false) }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    {sortDir === 'desc' ? '↑ Ascending' : '↓ Descending'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -293,7 +388,7 @@ export default function Dashboard() {
       {showAdvanced && (
         <div className="px-6 py-3 bg-purple-50 border-b border-purple-100">
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs text-purple-500 mb-2 font-medium">✨ AI Search — از Claude استفاده می‌کند · هر جستجو ~$0.002</p>
+            <p className="text-xs text-purple-500 mb-2 font-medium">✨ AI Search — ~$0.002 per search</p>
             <div className="flex gap-2">
               <input type="text"
                 placeholder="e.g. 'hot companies not contacted' or 'architecture firms with high score'"
@@ -301,12 +396,12 @@ export default function Dashboard() {
                 onKeyDown={e => e.key === 'Enter' && runSmartSearch()}
                 className="flex-1 border border-purple-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white" />
               <button onClick={runSmartSearch} disabled={smartSearching || !smartQuery.trim()}
-                className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 whitespace-nowrap">
+                className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50">
                 {smartSearching ? '⏳...' : '🔍 Search'}
               </button>
               {isSmartMode && (
                 <button onClick={clearSmartSearch}
-                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 transition">
+                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100">
                   ✕ Clear
                 </button>
               )}
@@ -325,9 +420,7 @@ export default function Dashboard() {
         ) : error ? (
           <div className="text-center py-20">
             <p className="text-gray-400 mb-3">Could not load companies</p>
-            <button onClick={fetchCompanies} className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-              Try Again
-            </button>
+            <button onClick={fetchCompanies} className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg">Try Again</button>
           </div>
         ) : companies.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No companies found</div>
@@ -346,9 +439,7 @@ export default function Dashboard() {
                     <span className="text-sm">{HEAT[c.heat_level] || '❄️'}</span>
                     {c.status === 'sent' && (() => {
                       const days = Math.floor((Date.now() - new Date(c.updated_at).getTime()) / (1000 * 60 * 60 * 24))
-                      return days >= 14 ? (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏰ {days}d ago</span>
-                      ) : null
+                      return days >= 14 ? <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏰ {days}d</span> : null
                     })()}
                     {c.tags && c.tags.split(',').map((tag: string) => (
                       <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{tag.trim()}</span>
@@ -366,11 +457,8 @@ export default function Dashboard() {
                     <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
                       <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3"/>
                       <circle cx="20" cy="20" r="16" fill="none"
-                        stroke={getScoreColor(c.opportunity_score)}
-                        strokeWidth="3"
-                        strokeDasharray={`${c.opportunity_score} 100`}
-                        strokeLinecap="round"
-                      />
+                        stroke={getScoreColor(c.opportunity_score)} strokeWidth="3"
+                        strokeDasharray={`${c.opportunity_score} 100`} strokeLinecap="round"/>
                     </svg>
                     <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">
                       {Math.round(c.opportunity_score)}
@@ -388,7 +476,6 @@ export default function Dashboard() {
                 <div className="flex gap-3 text-xs text-gray-400">
                   {c.email && <span>✉ {c.email}</span>}
                   {c.domain && <span>🌐 {c.domain}</span>}
-                  <span className="text-gray-300">Right-click for quick actions</span>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={e => toggleFavorite(e, c.id)}
