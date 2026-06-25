@@ -46,9 +46,14 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterIndustry, setFilterIndustry] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [smartQuery, setSmartQuery] = useState('')
+  const [smartSearching, setSmartSearching] = useState(false)
+  const [isSmartMode, setIsSmartMode] = useState(false)
 
   const fetchCompanies = async () => {
     setLoading(true)
+    setIsSmartMode(false)
     try {
       const params: Record<string, string> = {}
       if (search) params.search = search
@@ -63,18 +68,40 @@ export default function Dashboard() {
     setLoading(false)
   }
 
+  const runSmartSearch = async () => {
+    if (!smartQuery.trim()) return
+    setSmartSearching(true)
+    try {
+      const res = await axios.post(`${API}/companies/search/smart`, { query: smartQuery })
+      setCompanies(res.data.companies)
+      setTotal(res.data.total)
+      setIsSmartMode(true)
+    } catch {
+      alert('Smart search error')
+    }
+    setSmartSearching(false)
+  }
+
+  const clearSmartSearch = () => {
+    setSmartQuery('')
+    setIsSmartMode(false)
+    setShowAdvanced(false)
+    fetchCompanies()
+  }
+
   useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry])
 
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/favorite`)
-    fetchCompanies()
+    if (!isSmartMode) fetchCompanies()
   }
 
   const updateStatus = async (e: React.ChangeEvent<HTMLSelectElement>, id: number) => {
     e.stopPropagation()
     await axios.patch(`${API}/companies/${id}/status?status=${e.target.value}`)
-    fetchCompanies()
+    if (!isSmartMode) fetchCompanies()
+    else setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: e.target.value } : c))
   }
 
   const goToCompany = (id: number) => {
@@ -115,43 +142,88 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* FILTERS */}
-      <div className="px-6 py-3 bg-white border-b border-gray-100 flex gap-3 flex-wrap">
-        <input
-          type="text"
-          placeholder="Search companies..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Status</option>
-          {Object.keys(STATUS_COLORS).map(s => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-        <select
-          value={filterIndustry}
-          onChange={e => setFilterIndustry(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Industries</option>
-          <option value="Architecture">Architecture</option>
-          <option value="CGI">CGI</option>
-          <option value="Interior Design">Interior Design</option>
-          <option value="Real Estate">Real Estate</option>
-          <option value="Visualization">Visualization</option>
-        </select>
+      {/* FILTERS — رایگان */}
+      <div className="px-6 py-3 bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto flex gap-3 flex-wrap items-center">
+          <input
+            type="text"
+            placeholder="Search by name, country, city..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Status</option>
+            {Object.keys(STATUS_COLORS).map(s => (
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
+          <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Industries</option>
+            <option value="Architecture">Architecture</option>
+            <option value="CGI">CGI</option>
+            <option value="Interior Design">Interior Design</option>
+            <option value="Real Estate">Real Estate</option>
+            <option value="Visualization">Visualization</option>
+          </select>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`text-xs px-3 py-2 rounded-lg border transition font-medium ${
+              showAdvanced ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600'
+            }`}
+          >
+            ✨ AI Search
+          </button>
+        </div>
       </div>
+
+      {/* ADVANCED SEARCH — با Claude */}
+      {showAdvanced && (
+        <div className="px-6 py-3 bg-purple-50 border-b border-purple-100">
+          <div className="max-w-5xl mx-auto">
+            <p className="text-xs text-purple-500 mb-2 font-medium">
+              ✨ AI Search — از Claude استفاده می‌کند · هر جستجو ~$0.002
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. 'hot companies not contacted' or 'architecture firms with high score'"
+                value={smartQuery}
+                onChange={e => setSmartQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && runSmartSearch()}
+                className="flex-1 border border-purple-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              />
+              <button
+                onClick={runSmartSearch}
+                disabled={smartSearching || !smartQuery.trim()}
+                className="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50 whitespace-nowrap"
+              >
+                {smartSearching ? '⏳ Searching...' : '🔍 Search'}
+              </button>
+              {isSmartMode && (
+                <button onClick={clearSmartSearch}
+                  className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 transition">
+                  ✕ Clear
+                </button>
+              )}
+            </div>
+            {isSmartMode && (
+              <p className="text-xs text-purple-500 mt-1">
+                Results for: "{smartQuery}" — {total} found
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* COMPANY LIST */}
       <div className="px-6 py-4 space-y-3 max-w-5xl mx-auto">
-        {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading...</div>
+        {loading || smartSearching ? (
+          <div className="text-center py-20 text-gray-400">
+            {smartSearching ? '✨ AI is searching...' : 'Loading...'}
+          </div>
         ) : companies.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No companies found</div>
         ) : (
@@ -186,8 +258,7 @@ export default function Dashboard() {
                   <div className="relative w-10 h-10">
                     <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
                       <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3"/>
-                      <circle
-                        cx="20" cy="20" r="16" fill="none"
+                      <circle cx="20" cy="20" r="16" fill="none"
                         stroke={getScoreColor(c.opportunity_score)}
                         strokeWidth="3"
                         strokeDasharray={`${c.opportunity_score} 100`}
@@ -216,22 +287,16 @@ export default function Dashboard() {
                   {c.domain && <span>🌐 {c.domain}</span>}
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={e => toggleFavorite(e, c.id)}
-                    className={`text-sm px-2 py-1 rounded-lg transition ${c.is_favorite ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
-                  >
+                  <button onClick={e => toggleFavorite(e, c.id)}
+                    className={`text-sm px-2 py-1 rounded-lg transition ${c.is_favorite ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}>
                     ★
                   </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
-                    className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition"
-                  >
+                  <button onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
+                    className="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition">
                     Notes
                   </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
-                    className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
-                  >
+                  <button onClick={e => { e.stopPropagation(); goToCompany(c.id) }}
+                    className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
                     ✉ Email
                   </button>
                 </div>

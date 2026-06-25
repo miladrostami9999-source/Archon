@@ -381,3 +381,32 @@ def delete_contact(company_id: int, contact_id: int, db: Session = Depends(get_d
     db.delete(contact)
     db.commit()
     return {"message": "Contact deleted"}
+
+    # ─────────────────────────────────────────
+# SMART SEARCH
+# ─────────────────────────────────────────
+class SearchRequest(BaseModel):
+    query: str
+
+@router.post("/search/smart")
+def smart_search(data: SearchRequest, db: Session = Depends(get_db)):
+    from app.services.claude import smart_search as claude_smart_search
+    
+    # گرفتن همه شرکت‌ها برای context
+    companies = db.query(Company).all()
+    company_list = [to_dict(c) for c in companies]
+    
+    try:
+        result_ids = claude_smart_search(data.query, company_list)
+        filtered = [c for c in company_list if c['id'] in result_ids]
+        return {"companies": filtered, "total": len(filtered), "query": data.query}
+    except Exception as e:
+        # fallback به search ساده
+        search = data.query.lower()
+        filtered = [c for c in company_list if 
+            search in (c.get('name') or '').lower() or
+            search in (c.get('country') or '').lower() or
+            search in (c.get('industry') or '').lower() or
+            search in (c.get('city') or '').lower()
+        ]
+        return {"companies": filtered, "total": len(filtered), "query": data.query}

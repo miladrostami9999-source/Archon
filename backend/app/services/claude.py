@@ -3,6 +3,7 @@ load_dotenv()
 
 import anthropic
 import os
+import json
 
 client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
 
@@ -18,6 +19,7 @@ About Armila Design:
 - Target clients: Architecture firms, CGI studios, Real estate developers
 - Website: armiladesign.com
 """
+
 
 def generate_email(company: dict, tone: str = "friendly") -> dict:
     tone_guide = {
@@ -61,7 +63,6 @@ Do not include any other text or markdown.
         messages=[{"role": "user", "content": prompt}]
     )
 
-    import json
     text = message.content[0].text.strip()
     result = json.loads(text)
     return result
@@ -87,3 +88,40 @@ Return ONLY the summary text, no labels or formatting.
     )
 
     return message.content[0].text.strip()
+
+
+def smart_search(query: str, companies: list) -> list:
+    company_summary = "\n".join([
+        f"ID:{c['id']} | {c.get('name')} | {c.get('country')} | {c.get('industry')} | {c.get('company_size')} | score:{c.get('opportunity_score')} | status:{c.get('status')} | heat:{c.get('heat_level')}"
+        for c in companies
+    ])
+
+    prompt = f"""
+You are a smart search engine for a CRM system.
+
+User query: "{query}"
+
+Available companies:
+{company_summary}
+
+Based on the query, return ONLY a JSON array of matching company IDs.
+Examples:
+- "architecture firms in Germany" → find companies where country=Germany and industry=Architecture
+- "companies not contacted" → find companies where status=new or status=reviewed
+- "hot companies" → find companies where heat_level=hot
+- "high score" → find companies with opportunity_score >= 70
+- "favorites" → find companies where is_favorite=true
+
+Return ONLY a JSON array like: [1, 3, 5]
+If no matches, return: []
+Do not include any other text.
+"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=200,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    text = message.content[0].text.strip()
+    return json.loads(text)
