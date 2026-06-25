@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import axios from 'axios'
 
 const API = 'http://localhost:8000'
@@ -58,24 +58,33 @@ interface HistoryItem {
   created_at: string
 }
 
+interface EmailDraft {
+  subject: string
+  body: string
+}
+
 export default function CompanyDetail() {
   const { id } = useParams()
-  const router = useRouter()
   const [company, setCompany] = useState<Company | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'history'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'history' | 'email'>('overview')
   const [newNote, setNewNote] = useState('')
   const [noteLang, setNoteLang] = useState('en')
   const [savingNote, setSavingNote] = useState(false)
+  const [emailDraft, setEmailDraft] = useState<EmailDraft | null>(null)
+  const [emailTone, setEmailTone] = useState('friendly')
+  const [generatingEmail, setGeneratingEmail] = useState(false)
+  const [generatingSummary, setGeneratingSummary] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const fetchCompany = async () => {
     try {
       const res = await axios.get(`${API}/companies/${id}`)
       setCompany(res.data)
     } catch {
-      router.push('/')
+      window.location.href = '/'
     }
     setLoading(false)
   }
@@ -130,6 +139,38 @@ export default function CompanyDetail() {
     fetchNotes()
   }
 
+  const generateEmail = async () => {
+    setGeneratingEmail(true)
+    setEmailDraft(null)
+    try {
+      const res = await axios.post(`${API}/companies/${id}/generate-email`, { tone: emailTone })
+      setEmailDraft(res.data)
+    } catch (e) {
+      alert('Error generating email. Check API key.')
+    }
+    setGeneratingEmail(false)
+  }
+
+  const generateSummary = async () => {
+    setGeneratingSummary(true)
+    try {
+      const res = await axios.post(`${API}/companies/${id}/generate-summary`)
+      setCompany(prev => prev ? { ...prev, ai_summary: res.data.summary } : prev)
+    } catch {
+      alert('Error generating summary.')
+    }
+    setGeneratingSummary(false)
+  }
+
+  const copyAndOpenGmail = () => {
+    if (!emailDraft) return
+    const full = `Subject: ${emailDraft.subject}\n\n${emailDraft.body}`
+    navigator.clipboard.writeText(full)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    window.open('https://mail.google.com/mail/u/0/#compose', '_blank')
+  }
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return '#22c55e'
     if (score >= 60) return '#f59e0b'
@@ -150,7 +191,10 @@ export default function CompanyDetail() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-gray-600 transition">
+        <button
+          onClick={() => window.location.href = '/'}
+          className="text-gray-400 hover:text-gray-600 transition"
+        >
           ← Back
         </button>
         <div className="flex-1" />
@@ -169,12 +213,16 @@ export default function CompanyDetail() {
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
-        <button className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+        <button
+          onClick={() => setActiveTab('email')}
+          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+        >
           ✉ Generate Email
         </button>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-6">
+
         {/* COMPANY CARD */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <div className="flex items-start gap-4">
@@ -186,8 +234,16 @@ export default function CompanyDetail() {
               <p className="text-sm text-gray-400 mt-0.5">
                 {[company.country, company.city, company.industry, company.company_size].filter(Boolean).join(' · ')}
               </p>
-              {company.ai_summary && (
+              {company.ai_summary ? (
                 <p className="text-sm text-gray-500 mt-2 leading-relaxed">{company.ai_summary}</p>
+              ) : (
+                <button
+                  onClick={generateSummary}
+                  disabled={generatingSummary}
+                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 transition disabled:opacity-40"
+                >
+                  {generatingSummary ? '⏳ Generating...' : '✨ Generate AI Summary'}
+                </button>
               )}
             </div>
             <div className="relative w-14 h-14 flex-shrink-0">
@@ -247,7 +303,7 @@ export default function CompanyDetail() {
 
         {/* TABS */}
         <div className="flex gap-1 mb-4 bg-white rounded-xl border border-gray-200 p-1">
-          {(['overview', 'notes', 'history'] as const).map(tab => (
+          {(['overview', 'notes', 'history', 'email'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -255,7 +311,10 @@ export default function CompanyDetail() {
                 activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab === 'overview' ? '📋 Overview' : tab === 'notes' ? '📝 Notes' : '📅 History'}
+              {tab === 'overview' ? '📋 Overview'
+                : tab === 'notes' ? '📝 Notes'
+                : tab === 'history' ? '📅 History'
+                : '✉ Email'}
             </button>
           ))}
         </div>
@@ -341,6 +400,80 @@ export default function CompanyDetail() {
             )}
           </div>
         )}
+
+        {/* EMAIL GENERATOR */}
+        {activeTab === 'email' && (
+          <div className="space-y-4">
+            {/* Tone selector */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-sm font-medium text-gray-700 mb-3">Email Tone</p>
+              <div className="flex gap-2 flex-wrap">
+                {['friendly', 'formal', 'brief', 'storytelling'].map(tone => (
+                  <button
+                    key={tone}
+                    onClick={() => setEmailTone(tone)}
+                    className={`text-xs px-4 py-2 rounded-lg border transition font-medium ${
+                      emailTone === tone
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                    }`}
+                  >
+                    {tone === 'friendly' ? '😊 Friendly'
+                      : tone === 'formal' ? '💼 Formal'
+                      : tone === 'brief' ? '⚡ Brief'
+                      : '📖 Storytelling'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={generateEmail}
+                disabled={generatingEmail}
+                className="w-full mt-4 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {generatingEmail ? '⏳ Generating...' : '✨ Generate Email'}
+              </button>
+            </div>
+
+            {/* Email Draft */}
+            {emailDraft && (
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="mb-3">
+                  <p className="text-xs text-gray-400 mb-1">Subject</p>
+                  <input
+                    value={emailDraft.subject}
+                    onChange={e => setEmailDraft({ ...emailDraft, subject: e.target.value })}
+                    className="w-full text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Body</p>
+                  <textarea
+                    value={emailDraft.body}
+                    onChange={e => setEmailDraft({ ...emailDraft, body: e.target.value })}
+                    rows={10}
+                    className="w-full text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={generateEmail}
+                    disabled={generatingEmail}
+                    className="flex-1 border border-gray-200 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    🔄 Regenerate
+                  </button>
+                  <button
+                    onClick={copyAndOpenGmail}
+                    className="flex-1 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    {copied ? '✅ Copied!' : '📋 Copy + Open Gmail'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   )

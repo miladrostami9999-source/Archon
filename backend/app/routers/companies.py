@@ -5,14 +5,13 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 
-from app.models.database import get_db, Company, History, Note
+from app.models.database import get_db, Company, History, Note, Campaign
+from app.services.claude import generate_email as claude_generate_email
+from app.services.claude import generate_summary as claude_generate_summary
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 
-# ─────────────────────────────────────────
-# HELPER
-# ─────────────────────────────────────────
 def to_dict(obj):
     result = {}
     for column in class_mapper(obj.__class__).columns:
@@ -23,9 +22,6 @@ def to_dict(obj):
     return result
 
 
-# ─────────────────────────────────────────
-# SCHEMAS
-# ─────────────────────────────────────────
 class CompanyCreate(BaseModel):
     name: str
     domain: Optional[str] = None
@@ -62,10 +58,10 @@ class NoteCreate(BaseModel):
 class NoteUpdate(BaseModel):
     pinned: bool
 
+class EmailRequest(BaseModel):
+    tone: str = "friendly"
 
-# ─────────────────────────────────────────
-# GET ALL
-# ─────────────────────────────────────────
+
 @router.get("/")
 def get_companies(
     skip: int = 0,
@@ -103,9 +99,6 @@ def get_companies(
     return {"total": total, "companies": [to_dict(c) for c in companies]}
 
 
-# ─────────────────────────────────────────
-# GET ONE
-# ─────────────────────────────────────────
 @router.get("/{company_id}")
 def get_company(company_id: int, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -114,9 +107,6 @@ def get_company(company_id: int, db: Session = Depends(get_db)):
     return to_dict(company)
 
 
-# ─────────────────────────────────────────
-# CREATE
-# ─────────────────────────────────────────
 @router.post("/")
 def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
     if data.domain:
@@ -140,9 +130,6 @@ def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
     return to_dict(company)
 
 
-# ─────────────────────────────────────────
-# UPDATE
-# ─────────────────────────────────────────
 @router.patch("/{company_id}")
 def update_company(company_id: int, data: CompanyUpdate, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -157,9 +144,6 @@ def update_company(company_id: int, data: CompanyUpdate, db: Session = Depends(g
     return to_dict(company)
 
 
-# ─────────────────────────────────────────
-# UPDATE STATUS
-# ─────────────────────────────────────────
 @router.patch("/{company_id}/status")
 def update_status(company_id: int, status: str, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -171,16 +155,13 @@ def update_status(company_id: int, status: str, db: Session = Depends(get_db)):
     history = History(
         company_id=company_id,
         event_type="status_changed",
-        description=f"Status: {old_status} → {status}"
+        description=f"Status: {old_status} -> {status}"
     )
     db.add(history)
     db.commit()
     return {"id": company_id, "status": status}
 
 
-# ─────────────────────────────────────────
-# TOGGLE FAVORITE
-# ─────────────────────────────────────────
 @router.patch("/{company_id}/favorite")
 def toggle_favorite(company_id: int, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -191,9 +172,6 @@ def toggle_favorite(company_id: int, db: Session = Depends(get_db)):
     return {"id": company_id, "is_favorite": company.is_favorite}
 
 
-# ─────────────────────────────────────────
-# DELETE
-# ─────────────────────────────────────────
 @router.delete("/{company_id}")
 def delete_company(company_id: int, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -204,15 +182,13 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     return {"message": f"Company {company_id} deleted"}
 
 
-# ─────────────────────────────────────────
-# NOTES
-# ─────────────────────────────────────────
 @router.get("/{company_id}/notes")
 def get_notes(company_id: int, db: Session = Depends(get_db)):
     notes = db.query(Note).filter(
         Note.company_id == company_id
     ).order_by(Note.pinned.desc(), Note.created_at.desc()).all()
     return [to_dict(n) for n in notes]
+
 
 @router.post("/{company_id}/notes")
 def add_note(company_id: int, data: NoteCreate, db: Session = Depends(get_db)):
@@ -221,6 +197,7 @@ def add_note(company_id: int, data: NoteCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(note)
     return to_dict(note)
+
 
 @router.patch("/{company_id}/notes/{note_id}")
 def update_note(company_id: int, note_id: int, data: NoteUpdate, db: Session = Depends(get_db)):
@@ -232,12 +209,56 @@ def update_note(company_id: int, note_id: int, data: NoteUpdate, db: Session = D
     return to_dict(note)
 
 
-# ─────────────────────────────────────────
-# HISTORY
-# ─────────────────────────────────────────
 @router.get("/{company_id}/history")
 def get_history(company_id: int, db: Session = Depends(get_db)):
     items = db.query(History).filter(
         History.company_id == company_id
     ).order_by(History.created_at.desc()).all()
     return [to_dict(h) for h in items]
+
+
+@router.post("/{company_id}/generate-email")
+def gen_email(company_id: int, data: EmailRequest, db: Session = Depends(get_db)):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    company_dict = to_dict(company)
+    try:
+        result = claude_generate_email(company_dict, data.tone)
+    except Exception as e:
+        import traceback
+        print("EMAIL ERROR:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+    campaign = Campaign(
+        company_id=company_id,
+        subject=result["subject"],
+        body=result["body"],
+        tone=data.tone,
+        status="draft"
+    )
+    db.add(campaign)
+    history = History(
+        company_id=company_id,
+        event_type="email_generated",
+        description=f"Email generated with tone: {data.tone}"
+    )
+    db.add(history)
+    db.commit()
+    return result
+
+
+@router.post("/{company_id}/generate-summary")
+def gen_summary(company_id: int, db: Session = Depends(get_db)):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    company_dict = to_dict(company)
+    try:
+        summary = claude_generate_summary(company_dict)
+    except Exception as e:
+        import traceback
+        print("SUMMARY ERROR:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+    company.ai_summary = summary
+    db.commit()
+    return {"summary": summary}
