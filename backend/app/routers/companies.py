@@ -583,3 +583,41 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db.delete(task)
     db.commit()
     return {"message": "Task deleted"}
+
+    # ─────────────────────────────────────────
+# EXPORT CSV
+# ─────────────────────────────────────────
+from fastapi.responses import StreamingResponse
+import csv
+import io
+
+@router.get("/export/csv")
+def export_csv(db: Session = Depends(get_db)):
+    companies = db.query(Company).order_by(Company.opportunity_score.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header
+    writer.writerow([
+        'Name', 'Domain', 'Website', 'Email', 'Country', 'City',
+        'Industry', 'Size', 'LinkedIn', 'Instagram', 'Status',
+        'Heat Level', 'Score', 'Tags', 'AI Summary', 'Updated At'
+    ])
+
+    # Rows
+    for c in companies:
+        writer.writerow([
+            c.name, c.domain, c.website, c.email, c.country, c.city,
+            c.industry, c.company_size, c.linkedin, c.instagram, c.status,
+            c.heat_level, c.opportunity_score, c.tags, c.ai_summary, c.updated_at
+        ])
+
+    output.seek(0)
+    filename = f"archon_export_{datetime.utcnow().strftime('%Y-%m-%d')}.csv"
+
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

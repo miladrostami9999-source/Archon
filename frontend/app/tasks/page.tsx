@@ -1,25 +1,22 @@
 'use client'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import Sidebar from '../components/Sidebar'
 
 const API = 'http://localhost:8000'
 
-const TASK_ICONS: Record<string, string> = {
-  email: '✉️',
-  review: '👁',
-  followup: '🔄',
-  research: '🔍',
-  update: '✏️',
-  personal: '⭐',
+const TASK_COLORS: Record<string, string> = {
+  email:    'border-blue-500/20 bg-blue-500/5',
+  review:   'border-violet-500/20 bg-violet-500/5',
+  followup: 'border-amber-500/20 bg-amber-500/5',
+  research: 'border-emerald-500/20 bg-emerald-500/5',
+  update:   'border-white/8 bg-white/3',
+  personal: 'border-pink-500/20 bg-pink-500/5',
 }
 
-const TASK_COLORS: Record<string, string> = {
-  email: 'bg-blue-50 border-blue-200',
-  review: 'bg-purple-50 border-purple-200',
-  followup: 'bg-amber-50 border-amber-200',
-  research: 'bg-green-50 border-green-200',
-  update: 'bg-gray-50 border-gray-200',
-  personal: 'bg-pink-50 border-pink-200',
+const TASK_ICONS: Record<string, string> = {
+  email: '✉', review: '👁', followup: '🔄',
+  research: '🔍', update: '✏', personal: '⭐',
 }
 
 interface Task {
@@ -45,11 +42,8 @@ export default function TasksPage() {
   const fetchTasks = async () => {
     try {
       const res = await axios.get(`${API}/companies/tasks/today`)
-      const data = res.data
-      setTasks(Array.isArray(data) ? data : [])
-    } catch {
-      setTasks([])
-    }
+      setTasks(Array.isArray(res.data) ? res.data : [])
+    } catch { setTasks([]) }
     setLoading(false)
   }
 
@@ -62,11 +56,8 @@ export default function TasksPage() {
     setGenerating(true)
     try {
       const res = await axios.post(`${API}/companies/tasks/generate`, { lang: taskLang })
-      const data = res.data
-      setTasks(prev => [...prev, ...(Array.isArray(data) ? data : [])])
-    } catch {
-      alert('Error generating tasks. Check API key.')
-    }
+      setTasks(prev => [...prev, ...(Array.isArray(res.data) ? res.data : [])])
+    } catch { alert('Error generating tasks.') }
     setGenerating(false)
   }
 
@@ -74,43 +65,32 @@ export default function TasksPage() {
     if (!newTaskTitle.trim()) return
     setSavingTask(true)
     try {
-      const res = await axios.post(`${API}/companies/tasks/personal`, {
-        title: newTaskTitle,
-        description: newTaskDesc,
-      })
+      const res = await axios.post(`${API}/companies/tasks/personal`, { title: newTaskTitle, description: newTaskDesc })
       setTasks(prev => [...prev, res.data])
-      setNewTaskTitle('')
-      setNewTaskDesc('')
-      setShowAddTask(false)
-    } catch {
-      alert('Error adding task.')
-    }
+      setNewTaskTitle(''); setNewTaskDesc(''); setShowAddTask(false)
+    } catch { alert('Error adding task.') }
     setSavingTask(false)
   }
 
-  const toggleDone = async (taskId: number) => {
-    try {
-      await axios.patch(`${API}/companies/tasks/${taskId}/done`)
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, is_done: !t.is_done } : t))
-    } catch {}
+  const toggleDone = async (id: number) => {
+    await axios.patch(`${API}/companies/tasks/${id}/done`)
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, is_done: !t.is_done } : t))
   }
 
-  const deleteTask = async (taskId: number) => {
-    try {
-      await axios.delete(`${API}/companies/tasks/${taskId}`)
-      setTasks(prev => prev.filter(t => t.id !== taskId))
-    } catch {}
+  const deleteTask = async (id: number) => {
+    await axios.delete(`${API}/companies/tasks/${id}`)
+    setTasks(prev => prev.filter(t => t.id !== id))
   }
 
   const doneTasks = tasks.filter(t => t.is_done).length
   const totalTasks = tasks.length
-  const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+  const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
-  const getTaskTitle = (task: Task) => {
+  const getTitle = (task: Task) => {
     if (task.title) return task.title
     if (task.description) {
-      const firstLine = task.description.split('.')[0]
-      if (firstLine.length < 80) return firstLine
+      const f = task.description.split('.')[0]
+      if (f.length < 80) return f
     }
     return task.task_type
   }
@@ -119,227 +99,183 @@ export default function TasksPage() {
   const personalTasks = tasks.filter(t => t.task_type === 'personal')
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-gray-600 transition">
-            ← Back
-          </button>
+    <div className="flex min-h-screen bg-[#0F1117]">
+      <Sidebar />
+      <div className="flex-1 ml-56">
+
+        {/* HEADER */}
+        <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 border-b border-white/5"
+          style={{ background: 'rgba(15,17,23,0.85)', backdropFilter: 'blur(12px)' }}>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Daily Tasks</h1>
-            <p className="text-xs text-gray-400">
+            <h1 className="text-lg font-semibold text-white/85">Daily Tasks</h1>
+            <p className="text-xs text-white/30">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAddTask(!showAddTask)}
-            className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
-          >
-            + Add Task
-          </button>
-          {alreadyGenerated && (
-            <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
-              ✅ AI tasks generated
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-6 py-6">
-
-        {/* ADD PERSONAL TASK */}
-        {showAddTask && (
-          <div className="bg-white rounded-xl border border-pink-200 p-4 mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">⭐ Add Personal Task</p>
-            <input
-              value={newTaskTitle}
-              onChange={e => setNewTaskTitle(e.target.value)}
-              placeholder="Task title *"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <textarea
-              value={newTaskDesc}
-              onChange={e => setNewTaskDesc(e.target.value)}
-              placeholder="Description (optional)"
-              rows={2}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowAddTask(false)}
-                className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button onClick={addPersonalTask} disabled={savingTask || !newTaskTitle.trim()}
-                className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40">
-                {savingTask ? 'Saving...' : 'Save Task'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* PROGRESS */}
-        {totalTasks > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Today's Progress</p>
-              <p className="text-sm font-medium text-gray-900">{doneTasks}/{totalTasks} · {progressPercent}%</p>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2.5">
-              <div
-                className="h-2.5 rounded-full transition-all"
-                style={{
-                  width: `${progressPercent}%`,
-                  background: progressPercent === 100 ? '#22c55e' : progressPercent >= 60 ? '#3b82f6' : '#f59e0b'
-                }}
-              />
-            </div>
-            {doneTasks === totalTasks && totalTasks > 0 && (
-              <p className="text-xs text-green-600 mt-2 text-center font-medium">🎉 All tasks completed!</p>
-            )}
-          </div>
-        )}
-
-        {/* TASKS */}
-        {loading ? (
-          <div className="text-center py-20 text-gray-400">Loading...</div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-4xl mb-4">☀️</p>
-            <p className="text-gray-500 font-medium mb-2">No tasks for today</p>
-            <p className="text-gray-400 text-sm mb-6">Select language and let Claude create today's priorities</p>
-            <div className="flex justify-center gap-2 mb-6">
-              <button onClick={() => setTaskLang('en')}
-                className={`text-sm px-5 py-2 rounded-lg border transition font-medium ${
-                  taskLang === 'en' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}>
-                English
-              </button>
-              <button onClick={() => setTaskLang('fa')}
-                className={`text-sm px-5 py-2 rounded-lg border transition font-medium ${
-                  taskLang === 'fa' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}>
-                فارسی
-              </button>
-            </div>
-            <button onClick={generateTasks} disabled={generating}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50">
-              {generating ? '⏳ Generating...' : '✨ Generate Tasks'}
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowAddTask(!showAddTask)}
+              className="px-3 py-2 rounded-lg text-sm border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/5 transition">
+              + Add Task
             </button>
+            {alreadyGenerated && (
+              <span className="text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg">
+                ✅ Generated
+              </span>
+            )}
           </div>
-        ) : (
-          <div className="space-y-3">
+        </div>
 
-            {/* AI TASKS */}
-            {aiTasks.length > 0 && (
-              <>
-                <p className="text-xs text-gray-400 font-medium px-1">✨ AI Generated</p>
-                {aiTasks.map((task, index) => (
-                  <div key={task.id}
-                    className={`rounded-xl border p-4 transition ${
-                      task.is_done ? 'opacity-50 bg-gray-50 border-gray-200' : TASK_COLORS[task.task_type] || 'bg-white border-gray-200'
-                    }`}>
-                    <div className="flex items-start gap-3">
-                      <button onClick={() => toggleDone(task.id)}
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
-                          task.is_done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-500'
-                        }`}>
-                        {task.is_done && <span className="text-xs">✓</span>}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm">{TASK_ICONS[task.task_type] || '📌'}</span>
-                          <p className={`text-sm font-medium flex-1 ${task.is_done ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                            {getTaskTitle(task)}
-                          </p>
-                          <span className="text-xs bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0">
-                            #{index + 1}
-                          </span>
-                        </div>
-                        <p className={`text-xs text-gray-500 leading-relaxed ${
-                          task.description && /[\u0600-\u06FF]/.test(task.description) ? 'text-right' : ''
-                        }`}>
-                          {task.description}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="text-gray-300 hover:text-red-400 transition text-sm flex-shrink-0 ml-1"
-                        title="Delete task"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
+        <div className="px-8 py-6 max-w-2xl">
 
-            {/* PERSONAL TASKS */}
-            {personalTasks.length > 0 && (
-              <>
-                <p className="text-xs text-gray-400 font-medium px-1 mt-2">⭐ Personal</p>
-                {personalTasks.map(task => (
-                  <div key={task.id}
-                    className={`rounded-xl border p-4 transition ${
-                      task.is_done ? 'opacity-50 bg-gray-50 border-gray-200' : 'bg-pink-50 border-pink-200'
-                    }`}>
-                    <div className="flex items-start gap-3">
-                      <button onClick={() => toggleDone(task.id)}
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
-                          task.is_done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-500'
-                        }`}>
-                        {task.is_done && <span className="text-xs">✓</span>}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${task.is_done ? 'line-through text-gray-400' : 'text-gray-900'}`}>
-                          ⭐ {getTaskTitle(task)}
-                        </p>
-                        {task.description && (
-                          <p className="text-xs text-gray-500 mt-1">{task.description}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="text-gray-300 hover:text-red-400 transition text-sm flex-shrink-0"
-                        title="Delete task"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* GENERATE AI TASKS — اگر هنوز generate نشده */}
-            {!alreadyGenerated && (
-              <div className="text-center pt-4 pb-2">
-                <div className="flex justify-center gap-2 mb-3">
-                  <button onClick={() => setTaskLang('en')}
-                    className={`text-xs px-4 py-1.5 rounded-lg border transition ${
-                      taskLang === 'en' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600'
-                    }`}>
-                    English
-                  </button>
-                  <button onClick={() => setTaskLang('fa')}
-                    className={`text-xs px-4 py-1.5 rounded-lg border transition ${
-                      taskLang === 'fa' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600'
-                    }`}>
-                    فارسی
-                  </button>
-                </div>
-                <button onClick={generateTasks} disabled={generating}
-                  className="text-sm bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
-                  {generating ? '⏳ Generating...' : '✨ Generate AI Tasks'}
+          {/* ADD TASK */}
+          {showAddTask && (
+            <div className="rounded-xl border border-pink-500/20 p-4 mb-4" style={{ background: 'rgba(236,72,153,0.05)' }}>
+              <p className="text-sm font-medium text-white/70 mb-3">⭐ New Personal Task</p>
+              <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
+                placeholder="Task title *"
+                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/25 mb-2 focus:outline-none focus:border-blue-500/40" />
+              <textarea value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)}
+                placeholder="Description (optional)" rows={2}
+                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/25 mb-3 resize-none focus:outline-none focus:border-blue-500/40" />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowAddTask(false)}
+                  className="text-xs px-3 py-1.5 border border-white/8 rounded-lg text-white/40 hover:text-white/60">
+                  Cancel
+                </button>
+                <button onClick={addPersonalTask} disabled={savingTask || !newTaskTitle.trim()}
+                  className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-40 transition"
+                  style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                  {savingTask ? 'Saving...' : 'Save'}
                 </button>
               </div>
-            )}
+            </div>
+          )}
 
-          </div>
-        )}
+          {/* PROGRESS */}
+          {totalTasks > 0 && (
+            <div className="rounded-xl border border-white/8 p-4 mb-4" style={{ background: 'rgba(30,36,54,0.6)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-white/60">Today's Progress</p>
+                <p className="text-sm font-medium text-white/80">{doneTasks}/{totalTasks} · {progress}%</p>
+              </div>
+              <div className="w-full bg-white/8 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full transition-all"
+                  style={{
+                    width: `${progress}%`,
+                    background: progress === 100 ? '#34D399' : progress >= 60 ? '#4F7BF7' : '#FBBF24'
+                  }} />
+              </div>
+              {progress === 100 && <p className="text-xs text-emerald-400 mt-2 text-center">🎉 All done!</p>}
+            </div>
+          )}
+
+          {/* TASKS */}
+          {loading ? (
+            <div className="text-center py-20 text-white/25">Loading...</div>
+          ) : tasks.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-3xl mb-3 opacity-20">☀️</p>
+              <p className="text-sm text-white/40 mb-6">No tasks for today</p>
+              <div className="flex justify-center gap-2 mb-4">
+                {(['en', 'fa'] as const).map(l => (
+                  <button key={l} onClick={() => setTaskLang(l)}
+                    className={`text-sm px-5 py-2 rounded-lg border transition ${
+                      taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40 hover:text-white/60'
+                    }`}>
+                    {l === 'en' ? 'English' : 'فارسی'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={generateTasks} disabled={generating}
+                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition"
+                style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                {generating ? '⏳ Generating...' : '✦ Generate Tasks'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {aiTasks.length > 0 && (
+                <>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mb-2">✦ AI Generated</p>
+                  {aiTasks.map((task, i) => (
+                    <div key={task.id}
+                      className={`rounded-xl border p-3.5 transition ${task.is_done ? 'opacity-40 border-white/5 bg-white/3' : TASK_COLORS[task.task_type] || 'border-white/8 bg-white/3'}`}>
+                      <div className="flex items-start gap-3">
+                        <button onClick={() => toggleDone(task.id)}
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
+                            task.is_done ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-blue-400'
+                          }`}>
+                          {task.is_done && <span className="text-[10px] text-white">✓</span>}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs opacity-50">{TASK_ICONS[task.task_type] || '📌'}</span>
+                            <p className={`text-sm font-medium flex-1 ${task.is_done ? 'line-through text-white/25' : 'text-white/75'}`}>
+                              {getTitle(task)}
+                            </p>
+                            <span className="text-[10px] text-white/20">#{i + 1}</span>
+                          </div>
+                          {task.description && (
+                            <p className={`text-xs mt-1 leading-relaxed ${task.is_done ? 'text-white/20' : 'text-white/35'} ${/[\u0600-\u06FF]/.test(task.description) ? 'text-right' : ''}`}>
+                              {task.description}
+                            </p>
+                          )}
+                        </div>
+                        <button onClick={() => deleteTask(task.id)} className="text-white/15 hover:text-red-400 transition text-xs flex-shrink-0">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {personalTasks.length > 0 && (
+                <>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mt-4 mb-2">⭐ Personal</p>
+                  {personalTasks.map(task => (
+                    <div key={task.id}
+                      className={`rounded-xl border p-3.5 transition ${task.is_done ? 'opacity-40 border-white/5 bg-white/3' : 'border-pink-500/20 bg-pink-500/5'}`}>
+                      <div className="flex items-start gap-3">
+                        <button onClick={() => toggleDone(task.id)}
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
+                            task.is_done ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-pink-400'
+                          }`}>
+                          {task.is_done && <span className="text-[10px] text-white">✓</span>}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium ${task.is_done ? 'line-through text-white/25' : 'text-white/75'}`}>
+                            {getTitle(task)}
+                          </p>
+                          {task.description && <p className="text-xs text-white/35 mt-1">{task.description}</p>}
+                        </div>
+                        <button onClick={() => deleteTask(task.id)} className="text-white/15 hover:text-red-400 transition text-xs">✕</button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {!alreadyGenerated && (
+                <div className="text-center pt-4">
+                  <div className="flex justify-center gap-2 mb-3">
+                    {(['en', 'fa'] as const).map(l => (
+                      <button key={l} onClick={() => setTaskLang(l)}
+                        className={`text-xs px-4 py-1.5 rounded-lg border transition ${
+                          taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40'
+                        }`}>
+                        {l === 'en' ? 'English' : 'فارسی'}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={generateTasks} disabled={generating}
+                    className="px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-40"
+                    style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                    {generating ? '⏳...' : '✦ Generate AI Tasks'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
