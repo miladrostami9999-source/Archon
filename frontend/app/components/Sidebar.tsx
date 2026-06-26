@@ -2,130 +2,206 @@
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
-const NAV = [
-  { label: 'Home', icon: '⬡', href: '/' },
-  { label: 'Tasks', icon: '✦', href: '/tasks' },
-  { label: 'Analytics', icon: '◈', href: '/analytics' },
-]
-
-const ADMIN = [
-  { label: 'Admin Panel', icon: '⚙', href: '/admin' },
-]
-
 export default function Sidebar() {
   const path = usePathname()
   const [dark, setDark] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--bg-main', dark ? '#0F1117' : '#F4F6FA')
-    document.documentElement.style.setProperty('--bg-sidebar', dark ? '#161B27' : '#FFFFFF')
-    document.documentElement.style.setProperty('--text-main', dark ? '#E2E8F0' : '#1A1A2E')
-  }, [dark])
+    const saved = localStorage.getItem('archon-theme')
+    if (saved === 'light') {
+      setDark(false)
+    }
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    localStorage.setItem('archon-theme', dark ? 'dark' : 'light')
+    if (dark) {
+      document.body.style.background = '#0F1117'
+      document.body.style.color = '#E2E8F0'
+    } else {
+      document.body.style.background = '#F4F6FA'
+      document.body.style.color = '#1A1A2E'
+    }
+  }, [dark, mounted])
+
+  const borderColor = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
+  const sidebarBg = dark ? '#161B27' : '#FFFFFF'
+  const textMain = dark ? '#E2E8F0' : '#1A1A2E'
+  const textMuted = dark ? 'rgba(255,255,255,0.5)' : '#6B7280'
+  const textDim = dark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'
+
+  const navItems = [
+    { label: 'Home', icon: '⬡', href: '/' },
+    { label: 'Tasks', icon: '✦', href: '/tasks' },
+    { label: 'Analytics', icon: '◈', href: '/analytics' },
+  ]
+
+  const adminItems = [
+    { label: 'Admin Panel', icon: '⚙', href: '/admin' },
+  ]
+
+  const NavLink = ({ href, label, icon, isAdmin }: { href: string; label: string; icon: string; isAdmin?: boolean }) => {
+    const active = path === href
+    const activeColor = isAdmin ? '#A78BFA' : '#60A5FA'
+    const activeBg = isAdmin ? 'rgba(139,92,246,0.15)' : 'rgba(79,123,247,0.15)'
+    const activeBarColor = isAdmin ? '#A78BFA' : '#60A5FA'
+
+    return (
+      
+        href={href}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '10px 12px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 500,
+          textDecoration: 'none',
+          background: active ? activeBg : 'transparent',
+          color: active ? activeColor : textMuted,
+          transition: 'all 0.15s',
+          marginBottom: '2px',
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'
+            e.currentTarget.style.color = dark ? 'rgba(255,255,255,0.8)' : '#1A1A2E'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = textMuted
+          }
+        }}
+      >
+        <span style={{ color: active ? activeColor : textDim, fontSize: '16px' }}>{icon}</span>
+        <span>{label}</span>
+        {active && (
+          <span style={{
+            marginLeft: 'auto',
+            width: '4px',
+            height: '16px',
+            borderRadius: '2px',
+            background: activeBarColor,
+            opacity: 0.8,
+          }} />
+        )}
+      </a>
+    )
+  }
 
   return (
-    <>
-      <aside className="fixed left-0 top-0 h-screen w-56 flex flex-col z-30"
-        style={{
-          background: dark
-            ? 'linear-gradient(180deg, #161B27 0%, #131720 100%)'
-            : 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
-          borderRight: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.08)'
-        }}>
+    <aside style={{
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      height: '100vh',
+      width: '224px',
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 30,
+      background: sidebarBg,
+      borderRight: `1px solid ${borderColor}`,
+    }}>
 
-        {/* LOGO */}
-        <div className="px-5 py-6" style={{ borderBottom: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)' }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
-              A
-            </div>
-            <div>
-              <p className={`text-sm font-semibold tracking-wide ${dark ? 'text-white' : 'text-gray-900'}`}>Archon</p>
-              <p className={`text-[10px] ${dark ? 'text-white/30' : 'text-gray-400'}`}>by Armila Design</p>
-            </div>
+      {/* LOGO */}
+      <div style={{ padding: '24px 20px', borderBottom: `1px solid ${borderColor}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '13px', fontWeight: 700, color: 'white',
+            background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)',
+          }}>
+            A
+          </div>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: textMain, letterSpacing: '0.02em', margin: 0 }}>Archon</p>
+            <p style={{ fontSize: '10px', color: textDim, margin: 0 }}>by Armila Design</p>
           </div>
         </div>
+      </div>
 
-        {/* MAIN NAV */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <p className={`text-[10px] font-medium tracking-widest uppercase px-2 mb-2 ${dark ? 'text-white/25' : 'text-gray-400'}`}>
-            Workspace
+      {/* NAV */}
+      <nav style={{ flex: 1, padding: '16px 12px' }}>
+        <p style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: textDim, padding: '0 4px', marginBottom: '8px' }}>
+          Workspace
+        </p>
+
+        {navItems.map(item => (
+          <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} />
+        ))}
+
+        <div style={{ paddingTop: '16px', marginTop: '16px', borderTop: `1px solid ${borderColor}` }}>
+          <p style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: textDim, padding: '0 4px', marginBottom: '8px' }}>
+            Admin
           </p>
-          {NAV.map(item => {
-            const active = path === item.href
-            return (
-              <a key={item.href} href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group ${
-                  active
-                    ? 'bg-blue-500/15 text-blue-400'
-                    : dark
-                      ? 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-                }`}>
-                <span className={`text-base transition-all ${active ? 'text-blue-400' : dark ? 'text-white/30 group-hover:text-white/60' : 'text-gray-400 group-hover:text-gray-600'}`}>
-                  {item.icon}
-                </span>
-                <span className="font-medium">{item.label}</span>
-                {active && <span className="ml-auto w-1 h-4 rounded-full bg-blue-400 opacity-80" />}
-              </a>
-            )
-          })}
+          {adminItems.map(item => (
+            <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} isAdmin />
+          ))}
+        </div>
+      </nav>
 
-          <div className="pt-4 mt-4" style={{ borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)' }}>
-            <p className={`text-[10px] font-medium tracking-widest uppercase px-2 mb-2 ${dark ? 'text-white/25' : 'text-gray-400'}`}>
-              Admin
-            </p>
-            {ADMIN.map(item => {
-              const active = path === item.href
-              return (
-                <a key={item.href} href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group ${
-                    active
-                      ? 'bg-purple-500/15 text-purple-400'
-                      : dark
-                        ? 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-                  }`}>
-                  <span className={`text-base ${active ? 'text-purple-400' : dark ? 'text-white/30 group-hover:text-white/60' : 'text-gray-400'}`}>
-                    {item.icon}
-                  </span>
-                  <span className="font-medium">{item.label}</span>
-                  {active && <span className="ml-auto w-1 h-4 rounded-full bg-purple-400 opacity-80" />}
-                </a>
-              )
-            })}
+      {/* BOTTOM */}
+      <div style={{ padding: '16px', borderTop: `1px solid ${borderColor}` }}>
+
+        {/* THEME TOGGLE */}
+        <button
+          onClick={() => setDark(!dark)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            marginBottom: '12px',
+            background: dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+        >
+          <span style={{ fontSize: '12px', fontWeight: 500, color: textMuted }}>
+            {dark ? '🌙 Dark' : '☀️ Light'}
+          </span>
+          <div style={{
+            width: '32px', height: '16px', borderRadius: '8px', position: 'relative',
+            background: dark ? 'rgba(79,123,247,0.4)' : '#D1D5DB',
+            transition: 'background 0.2s',
+          }}>
+            <div style={{
+              position: 'absolute', top: '2px',
+              left: dark ? '16px' : '2px',
+              width: '12px', height: '12px',
+              borderRadius: '50%',
+              background: dark ? '#60A5FA' : 'white',
+              transition: 'left 0.2s',
+            }} />
           </div>
-        </nav>
+        </button>
 
-        {/* BOTTOM */}
-        <div className="px-4 py-4" style={{ borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)' }}>
-          {/* THEME TOGGLE */}
-          <button
-            onClick={() => setDark(!dark)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg mb-3 transition-all ${
-              dark ? 'bg-white/5 hover:bg-white/8' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            <span className={`text-xs font-medium ${dark ? 'text-white/50' : 'text-gray-500'}`}>
-              {dark ? '🌙 Dark' : '☀️ Light'}
-            </span>
-            <div className={`w-8 h-4 rounded-full relative transition-all ${dark ? 'bg-blue-500/40' : 'bg-gray-300'}`}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${dark ? 'left-4 bg-blue-400' : 'left-0.5 bg-white'}`} />
-            </div>
-          </button>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
-              M
-            </div>
-            <div>
-              <p className={`text-xs font-medium ${dark ? 'text-white/70' : 'text-gray-700'}`}>Milad Rostami</p>
-              <p className={`text-[10px] ${dark ? 'text-white/30' : 'text-gray-400'}`}>Admin</p>
-            </div>
+        {/* USER */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '11px', fontWeight: 700, color: 'white',
+            background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)',
+          }}>
+            M
+          </div>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 500, color: textMain, margin: 0 }}>Milad Rostami</p>
+            <p style={{ fontSize: '10px', color: textDim, margin: 0 }}>Admin</p>
           </div>
         </div>
-      </aside>
-    </>
+      </div>
+    </aside>
   )
 }

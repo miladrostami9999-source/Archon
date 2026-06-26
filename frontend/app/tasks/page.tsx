@@ -38,6 +38,7 @@ export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskDesc, setNewTaskDesc] = useState('')
   const [savingTask, setSavingTask] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
   const fetchTasks = async () => {
     try {
@@ -80,6 +81,7 @@ export default function TasksPage() {
   const deleteTask = async (id: number) => {
     await axios.delete(`${API}/companies/tasks/${id}`)
     setTasks(prev => prev.filter(t => t.id !== id))
+    setDeleteConfirm(null)
   }
 
   const doneTasks = tasks.filter(t => t.is_done).length
@@ -99,16 +101,42 @@ export default function TasksPage() {
   const personalTasks = tasks.filter(t => t.task_type === 'personal')
 
   return (
-    <div className="flex min-h-screen bg-[#0F1117]">
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-main)' }}>
       <Sidebar />
-      <div className="flex-1 ml-56">
+
+      {/* DELETE CONFIRM MODAL */}
+      {deleteConfirm !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/10 p-6 w-80 shadow-2xl" style={{ background: '#1E2436' }}>
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl">🗑</span>
+              </div>
+              <p className="text-sm font-medium text-white/80">Delete this task?</p>
+              <p className="text-xs text-white/35 mt-1">This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2 rounded-xl text-sm text-white/50 border border-white/8 hover:bg-white/5 transition">
+                Cancel
+              </button>
+              <button onClick={() => deleteTask(deleteConfirm)}
+                className="flex-1 py-2 rounded-xl text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 transition">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 ml-56 flex flex-col">
 
         {/* HEADER */}
         <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 border-b border-white/5"
           style={{ background: 'rgba(15,17,23,0.85)', backdropFilter: 'blur(12px)' }}>
           <div>
-            <h1 className="text-lg font-semibold text-white/85">Daily Tasks</h1>
-            <p className="text-xs text-white/30">
+            <h1 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Daily Tasks</h1>
+            <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
@@ -125,7 +153,7 @@ export default function TasksPage() {
           </div>
         </div>
 
-        <div className="px-8 py-6 max-w-2xl">
+        <div className="flex-1 px-8 py-6 max-w-3xl w-full mx-auto">
 
           {/* ADD TASK */}
           {showAddTask && (
@@ -143,7 +171,7 @@ export default function TasksPage() {
                   Cancel
                 </button>
                 <button onClick={addPersonalTask} disabled={savingTask || !newTaskTitle.trim()}
-                  className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-40 transition"
+                  className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-40"
                   style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
                   {savingTask ? 'Saving...' : 'Save'}
                 </button>
@@ -153,7 +181,7 @@ export default function TasksPage() {
 
           {/* PROGRESS */}
           {totalTasks > 0 && (
-            <div className="rounded-xl border border-white/8 p-4 mb-4" style={{ background: 'rgba(30,36,54,0.6)' }}>
+            <div className="rounded-xl border border-white/8 p-4 mb-5" style={{ background: 'var(--bg-card)' }}>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-white/60">Today's Progress</p>
                 <p className="text-sm font-medium text-white/80">{doneTasks}/{totalTasks} · {progress}%</p>
@@ -180,14 +208,14 @@ export default function TasksPage() {
                 {(['en', 'fa'] as const).map(l => (
                   <button key={l} onClick={() => setTaskLang(l)}
                     className={`text-sm px-5 py-2 rounded-lg border transition ${
-                      taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40 hover:text-white/60'
+                      taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40'
                     }`}>
                     {l === 'en' ? 'English' : 'فارسی'}
                   </button>
                 ))}
               </div>
               <button onClick={generateTasks} disabled={generating}
-                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition"
+                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40"
                 style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
                 {generating ? '⏳ Generating...' : '✦ Generate Tasks'}
               </button>
@@ -196,10 +224,11 @@ export default function TasksPage() {
             <div className="space-y-2">
               {aiTasks.length > 0 && (
                 <>
-                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mb-2">✦ AI Generated</p>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mb-3">✦ AI Generated</p>
                   {aiTasks.map((task, i) => (
                     <div key={task.id}
-                      className={`rounded-xl border p-3.5 transition ${task.is_done ? 'opacity-40 border-white/5 bg-white/3' : TASK_COLORS[task.task_type] || 'border-white/8 bg-white/3'}`}>
+                      className={`rounded-xl border p-4 transition ${task.is_done ? 'opacity-40 border-white/5' : TASK_COLORS[task.task_type] || 'border-white/8'}`}
+                      style={{ background: task.is_done ? 'rgba(255,255,255,0.02)' : undefined }}>
                       <div className="flex items-start gap-3">
                         <button onClick={() => toggleDone(task.id)}
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
@@ -208,20 +237,23 @@ export default function TasksPage() {
                           {task.is_done && <span className="text-[10px] text-white">✓</span>}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs opacity-50">{TASK_ICONS[task.task_type] || '📌'}</span>
-                            <p className={`text-sm font-medium flex-1 ${task.is_done ? 'line-through text-white/25' : 'text-white/75'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs opacity-40">{TASK_ICONS[task.task_type]}</span>
+                            <p className={`text-sm font-medium flex-1 ${task.is_done ? 'line-through text-white/25' : 'text-white/80'}`}>
                               {getTitle(task)}
                             </p>
-                            <span className="text-[10px] text-white/20">#{i + 1}</span>
+                            <span className="text-[10px] text-white/20 flex-shrink-0">#{i + 1}</span>
                           </div>
                           {task.description && (
-                            <p className={`text-xs mt-1 leading-relaxed ${task.is_done ? 'text-white/20' : 'text-white/35'} ${/[\u0600-\u06FF]/.test(task.description) ? 'text-right' : ''}`}>
+                            <p className={`text-xs leading-relaxed ${task.is_done ? 'text-white/20' : 'text-white/40'} ${/[\u0600-\u06FF]/.test(task.description) ? 'text-right' : ''}`}>
                               {task.description}
                             </p>
                           )}
                         </div>
-                        <button onClick={() => deleteTask(task.id)} className="text-white/15 hover:text-red-400 transition text-xs flex-shrink-0">✕</button>
+                        <button onClick={() => setDeleteConfirm(task.id)}
+                          className="text-white/15 hover:text-red-400 transition text-xs flex-shrink-0 ml-1 p-1">
+                          ✕
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -230,10 +262,10 @@ export default function TasksPage() {
 
               {personalTasks.length > 0 && (
                 <>
-                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mt-4 mb-2">⭐ Personal</p>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mt-5 mb-3">⭐ Personal</p>
                   {personalTasks.map(task => (
                     <div key={task.id}
-                      className={`rounded-xl border p-3.5 transition ${task.is_done ? 'opacity-40 border-white/5 bg-white/3' : 'border-pink-500/20 bg-pink-500/5'}`}>
+                      className={`rounded-xl border p-4 transition ${task.is_done ? 'opacity-40 border-white/5' : 'border-pink-500/20 bg-pink-500/5'}`}>
                       <div className="flex items-start gap-3">
                         <button onClick={() => toggleDone(task.id)}
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
@@ -242,12 +274,13 @@ export default function TasksPage() {
                           {task.is_done && <span className="text-[10px] text-white">✓</span>}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${task.is_done ? 'line-through text-white/25' : 'text-white/75'}`}>
+                          <p className={`text-sm font-medium ${task.is_done ? 'line-through text-white/25' : 'text-white/80'}`}>
                             {getTitle(task)}
                           </p>
                           {task.description && <p className="text-xs text-white/35 mt-1">{task.description}</p>}
                         </div>
-                        <button onClick={() => deleteTask(task.id)} className="text-white/15 hover:text-red-400 transition text-xs">✕</button>
+                        <button onClick={() => setDeleteConfirm(task.id)}
+                          className="text-white/15 hover:text-red-400 transition text-xs p-1">✕</button>
                       </div>
                     </div>
                   ))}
@@ -255,7 +288,7 @@ export default function TasksPage() {
               )}
 
               {!alreadyGenerated && (
-                <div className="text-center pt-4">
+                <div className="text-center pt-6">
                   <div className="flex justify-center gap-2 mb-3">
                     {(['en', 'fa'] as const).map(l => (
                       <button key={l} onClick={() => setTaskLang(l)}

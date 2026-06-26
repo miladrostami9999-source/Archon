@@ -1,3 +1,40 @@
+:root {
+  --bg-main: #0F1117;
+  --bg-card: rgba(30,36,54,0.6);
+  --bg-sidebar: #161B27;
+  --border: rgba(255,255,255,0.06);
+  --text: #E2E8F0;
+  --text-muted: rgba(255,255,255,0.4);
+  --text-dim: rgba(255,255,255,0.25);
+}
+
+html.light-theme {
+  --bg-main: #F4F6FA;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --text: #1A1A2E;
+  --text-muted: rgba(0,0,0,0.5);
+  --text-dim: rgba(0,0,0,0.3);
+}
+
+body {
+  background: var(--bg-main) !important;
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Fix select dropdown colors */
+select option {
+  background: #1E2436;
+  color: #E2E8F0;
+}
+
+html.light-theme select option {
+  background: #ffffff;
+  color: #1A1A2E;
+}
+
 @import "tailwindcss";
 
 :root {

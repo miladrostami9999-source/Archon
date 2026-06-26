@@ -254,7 +254,7 @@ export default function Dashboard() {
             <div className="relative" ref={sortRef}>
               <button onClick={e => { e.stopPropagation(); setSortMenuOpen(p => !p) }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/8 text-white/50 hover:text-white/70 hover:bg-white/8 transition-all">
-                ↕ {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
+                ↕ Sort: {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
               </button>
               {sortMenuOpen && (
                 <div className="absolute right-0 top-11 w-44 rounded-xl border border-white/10 py-1 z-30"
@@ -470,7 +470,8 @@ export default function Dashboard() {
                       <select value={c.status}
                         onChange={e => updateStatus(e, c.id)}
                         onClick={e => e.stopPropagation()}
-                        className={`text-[11px] px-2.5 py-1 rounded-full font-medium cursor-pointer border-0 ${sc.bg} ${sc.text}`}>
+                        className={`text-[11px] px-2.5 py-1 rounded-full font-medium cursor-pointer border-0 ${sc.bg} ${sc.text}`}
+                        style={{ colorScheme: 'dark' }}>
                         {Object.keys(STATUS_COLORS).map(s => (
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
@@ -478,7 +479,7 @@ export default function Dashboard() {
 
                       {/* FAVORITE */}
                       <button onClick={e => toggleFavorite(e, c.id)}
-                        className={`text-base transition-all ${c.is_favorite ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}>
+                        className={`text-xl transition-all ${c.is_favorite ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}>
                         ★
                       </button>
                     </div>
