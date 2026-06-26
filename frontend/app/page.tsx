@@ -64,7 +64,10 @@ export default function Dashboard() {
   const [smartSearching, setSmartSearching] = useState(false)
   const [isSmartMode, setIsSmartMode] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [todayTasks, setTodayTasks] = useState<{ total: number; done: number }>({ total: 0, done: 0 })
   const sortRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
 
   const fetchCompanies = async () => {
     setLoading(true)
@@ -94,6 +97,17 @@ export default function Dashboard() {
       setError('Cannot connect to server. Make sure the backend is running.')
     }
     setLoading(false)
+  }
+
+  const fetchTodayTasks = async () => {
+    try {
+      const res = await axios.get(`${API}/companies/tasks/today`)
+      const tasks = Array.isArray(res.data) ? res.data : []
+      setTodayTasks({
+        total: tasks.length,
+        done: tasks.filter((t: any) => t.is_done).length
+      })
+    } catch {}
   }
 
   const runSmartSearch = async () => {
@@ -129,14 +143,16 @@ export default function Dashboard() {
 
   const hasActiveFilters = search || filterStatus || filterIndustry || filterHeat || filterFavorite
 
-  useEffect(() => { fetchCompanies() }, [search, filterStatus, filterIndustry, filterHeat, filterFavorite, sortBy, sortDir])
+  useEffect(() => {
+    fetchCompanies()
+    fetchTodayTasks()
+  }, [search, filterStatus, filterIndustry, filterHeat, filterFavorite, sortBy, sortDir])
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       setContextMenu(null)
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setSortMenuOpen(false)
-      }
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortMenuOpen(false)
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
     }
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
@@ -196,6 +212,8 @@ export default function Dashboard() {
   })
 
   const sortLabel = sortBy === 'score' ? '🏆 Score' : sortBy === 'name' ? '🔤 Name' : sortBy === 'date' ? '📅 Date' : '🌍 Country'
+
+  const hasNotif = (todayTasks.total > 0 && todayTasks.done < todayTasks.total) || followUpReminders.length > 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,6 +278,94 @@ export default function Dashboard() {
             className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg hover:bg-gray-50 transition">
             📥 Import
           </button>
+
+          {/* NOTIFICATION BELL */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={e => { e.stopPropagation(); setNotifOpen(!notifOpen) }}
+              className="relative text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition text-lg"
+            >
+              🔔
+              {hasNotif && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-xl shadow-xl w-72 z-40"
+                onClick={e => e.stopPropagation()}>
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-800">Notifications</p>
+                  <span className="text-xs text-gray-400">{new Date().toLocaleDateString()}</span>
+                </div>
+                <div className="py-1">
+                  {/* Tasks */}
+                  <button className="w-full text-left px-4 py-3 hover:bg-gray-50 transition"
+                    onClick={() => { window.location.href = '/tasks'; setNotifOpen(false) }}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">✅</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Daily Tasks</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {todayTasks.total === 0
+                            ? 'No tasks generated yet — click to generate'
+                            : `${todayTasks.done}/${todayTasks.total} completed · ${Math.round((todayTasks.done / todayTasks.total) * 100)}%`}
+                        </p>
+                        {todayTasks.total > 0 && (
+                          <div className="w-full bg-gray-100 rounded-full h-1 mt-1.5">
+                            <div
+                              className="h-1 rounded-full bg-blue-500"
+                              style={{ width: `${Math.round((todayTasks.done / todayTasks.total) * 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Companies */}
+                  <button className="w-full text-left px-4 py-3 hover:bg-gray-50 transition border-t border-gray-50"
+                    onClick={() => setNotifOpen(false)}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">🏢</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">CRM Overview</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{total} companies · {companies.filter(c => c.status === 'new').length} new</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Follow-ups */}
+                  {followUpReminders.length > 0 && (
+                    <button className="w-full text-left px-4 py-3 hover:bg-amber-50 transition border-t border-gray-50 bg-amber-50"
+                      onClick={() => setNotifOpen(false)}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">⏰</span>
+                        <div>
+                          <p className="text-sm font-medium text-amber-700">Follow-up Needed</p>
+                          <p className="text-xs text-amber-500 mt-0.5">
+                            {followUpReminders.map(c => c.name).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Analytics */}
+                  <button className="w-full text-left px-4 py-3 hover:bg-gray-50 transition border-t border-gray-50"
+                    onClick={() => { window.location.href = '/analytics'; setNotifOpen(false) }}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">📊</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Analytics</p>
+                        <p className="text-xs text-gray-400 mt-0.5">View full performance report</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={() => window.location.href = '/add'}
             className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition">
             + Add Company
@@ -323,8 +429,7 @@ export default function Dashboard() {
             <option value="warm">🌤 Warm</option>
             <option value="cold">❄️ Cold</option>
           </select>
-          <button
-            onClick={() => setFilterFavorite(!filterFavorite)}
+          <button onClick={() => setFilterFavorite(!filterFavorite)}
             className={`text-sm px-3 py-2 rounded-lg border transition ${
               filterFavorite ? 'bg-yellow-50 border-yellow-300 text-yellow-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'
             }`}>
@@ -335,7 +440,6 @@ export default function Dashboard() {
               ✕ Clear
             </button>
           )}
-
           <div className="ml-auto flex items-center gap-2">
             <button onClick={e => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
               className={`text-xs px-3 py-2 rounded-lg border transition font-medium ${
@@ -343,13 +447,9 @@ export default function Dashboard() {
               }`}>
               ✨ AI Search
             </button>
-
-            {/* SORT DROPDOWN */}
             <div className="relative" ref={sortRef}>
-              <button
-                onClick={e => { e.stopPropagation(); setSortMenuOpen(prev => !prev) }}
-                className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center gap-1.5 font-medium"
-              >
+              <button onClick={e => { e.stopPropagation(); setSortMenuOpen(prev => !prev) }}
+                className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center gap-1.5 font-medium">
                 ↕ {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
               </button>
               {sortMenuOpen && (
@@ -361,8 +461,7 @@ export default function Dashboard() {
                     { key: 'date', label: '📅 Last Updated' },
                     { key: 'country', label: '🌍 Country' },
                   ].map(s => (
-                    <button key={s.key}
-                      onClick={e => { e.stopPropagation(); toggleSort(s.key) }}
+                    <button key={s.key} onClick={e => { e.stopPropagation(); toggleSort(s.key) }}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition ${
                         sortBy === s.key ? 'text-blue-600 font-medium' : 'text-gray-600'
                       }`}>
@@ -371,10 +470,8 @@ export default function Dashboard() {
                     </button>
                   ))}
                   <div className="border-t border-gray-100 mx-2 my-1" />
-                  <button
-                    onClick={e => { e.stopPropagation(); setSortDir(d => d === 'desc' ? 'asc' : 'desc'); setSortMenuOpen(false) }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition"
-                  >
+                  <button onClick={e => { e.stopPropagation(); setSortDir(d => d === 'desc' ? 'asc' : 'desc'); setSortMenuOpen(false) }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
                     {sortDir === 'desc' ? '↑ Ascending' : '↓ Descending'}
                   </button>
                 </div>

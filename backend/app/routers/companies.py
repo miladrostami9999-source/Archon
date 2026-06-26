@@ -551,3 +551,35 @@ def mark_task_done(task_id: int, db: Session = Depends(get_db)):
     task.is_done = not task.is_done
     db.commit()
     return to_dict(task)
+
+class PersonalTaskCreate(BaseModel):
+    title: str
+    description: str = ""
+
+@router.post("/tasks/personal")
+def add_personal_task(data: PersonalTaskCreate, db: Session = Depends(get_db)):
+    task = DailyTask(
+        task_type="personal",
+        description=data.description,
+        priority=99,
+        is_done=False,
+        date=datetime.utcnow()
+    )
+    db.add(task)
+    db.flush()
+
+    result = to_dict(task)
+    result['title'] = data.title
+    result['description'] = data.description
+
+    db.commit()
+    return result
+
+@router.delete("/tasks/{task_id}")
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(DailyTask).filter(DailyTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(task)
+    db.commit()
+    return {"message": "Task deleted"}
