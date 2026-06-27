@@ -187,3 +187,91 @@ Return ONLY this JSON array, no markdown, no extra text:
     )
 
     return parse_json_response(message.content[0].text)
+
+def generate_weekly_report(data: dict, lang: str = "en") -> dict:
+    is_fa = lang == "fa"
+
+    # Build company details for top leads
+    top_leads = sorted(
+        [c for c in data['companies'] if c.get('status') not in ['archive', 'client']],
+        key=lambda x: x.get('opportunity_score', 0),
+        reverse=True
+    )[:8]
+
+    leads_text = "\n".join([
+        f"- {c.get('name')} | {c.get('country')} | {c.get('industry')} | score:{c.get('opportunity_score')} | status:{c.get('status')} | heat:{c.get('heat_level')}"
+        for c in top_leads
+    ])
+
+    # Follow-up needed
+    import datetime
+    now = datetime.datetime.utcnow()
+    follow_ups = []
+    for c in data['companies']:
+        if c.get('status') == 'sent' and c.get('updated_at'):
+            try:
+                updated = datetime.datetime.fromisoformat(str(c['updated_at']).replace('Z',''))
+                days = (now - updated).days
+                if days >= 14:
+                    follow_ups.append(f"- {c.get('name')} ({days} days ago)")
+            except:
+                pass
+
+    follow_up_text = "\n".join(follow_ups) if follow_ups else ("هیچ موردی نیست" if is_fa else "None")
+
+    status_summary = "\n".join([f"  {k}: {v}" for k, v in data['status_counts'].items() if v > 0])
+
+    lang_instruction = (
+        "IMPORTANT: Write the ENTIRE report in Persian (Farsi). Use professional business Persian."
+        if is_fa else
+        "Write the entire report in English."
+    )
+
+    date_str = now.strftime("%B %d, %Y")
+
+    prompt = f"""
+{ARMILA_DNA}
+
+You are generating a weekly business development report for Milad Rostami at Armila Design.
+
+{lang_instruction}
+
+Current date: {date_str}
+
+CRM DATA:
+- Total companies: {data['total']}
+- Favorites: {data['favorites']}
+- Emails sent: {data['emails_sent']} | Replied: {data['emails_replied']}
+- Reply rate: {data['reply_rate']}%
+
+Pipeline status:
+{status_summary}
+
+Top leads by score:
+{leads_text}
+
+Follow-up needed (sent 14+ days ago):
+{follow_up_text}
+
+Generate a structured weekly report with these EXACT sections.
+Return ONLY a JSON object with these fields (no markdown, no extra text):
+
+{{
+  "title": "Weekly Report - {date_str}",
+  "summary": "2-3 sentence executive summary of the week",
+  "pipeline_insight": "2-3 sentences analyzing the pipeline health and trends",
+  "top_leads": "Highlight 2-3 specific companies worth focusing on this week and why",
+  "follow_up_action": "Specific follow-up recommendations for overdue contacts",
+  "email_performance": "Analysis of email campaign performance",
+  "weekly_goals": "3-4 specific actionable goals for next week as a bulleted list",
+  "motivation": "One short motivational sentence for Milad"
+}}
+"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return parse_json_response(message.content[0].text)

@@ -621,3 +621,40 @@ def export_csv(db: Session = Depends(get_db)):
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# ─────────────────────────────────────────
+# WEEKLY AI REPORT
+# ─────────────────────────────────────────
+class ReportRequest(BaseModel):
+    lang: str = "en"
+
+@router.post("/report/weekly")
+def generate_weekly_report(request: ReportRequest, db: Session = Depends(get_db)):
+    from app.services.claude import generate_weekly_report as gen_report
+
+    companies = db.query(Company).all()
+    companies_list = [to_dict(c) for c in companies]
+
+    status_counts = {}
+    for c in companies_list:
+        s = c.get('status', 'new')
+        status_counts[s] = status_counts.get(s, 0) + 1
+
+    campaigns = db.query(Campaign).all()
+    emails_sent = len([c for c in campaigns if c.status in ['sent', 'replied']])
+    emails_replied = len([c for c in campaigns if c.status == 'replied'])
+    reply_rate = round((emails_replied / emails_sent * 100)) if emails_sent > 0 else 0
+    favorites = len([c for c in companies_list if c.get('is_favorite')])
+
+    data = {
+        "total": len(companies_list),
+        "favorites": favorites,
+        "status_counts": status_counts,
+        "emails_sent": emails_sent,
+        "emails_replied": emails_replied,
+        "reply_rate": reply_rate,
+        "companies": companies_list,
+    }
+
+    report = gen_report(data, lang=request.lang)
+    return report

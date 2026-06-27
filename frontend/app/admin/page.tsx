@@ -12,8 +12,7 @@ export default function AdminPanel() {
   const [backMsg, setBackMsg] = useState('')
 
   const recalcScores = async () => {
-    setRecalculating(true)
-    setRecalcMsg('')
+    setRecalculating(true); setRecalcMsg('')
     try {
       const res = await axios.post(`${API}/companies/recalculate-scores`)
       setRecalcMsg(res.data.message)
@@ -22,10 +21,8 @@ export default function AdminPanel() {
   }
 
   const card: React.CSSProperties = {
-    borderRadius: '12px',
-    border: '1px solid var(--border)',
-    background: 'var(--bg-card)',
-    padding: '20px',
+    borderRadius: '12px', border: '1px solid var(--border)',
+    background: 'var(--bg-card)', padding: '20px',
     transition: 'background 0.25s, border-color 0.25s',
   }
 
@@ -52,11 +49,15 @@ export default function AdminPanel() {
       msg: backMsg, msgColor: 'var(--text-muted)',
     },
     {
+      icon: '📊', title: 'Weekly AI Report', desc: 'AI-powered weekly business summary',
+      button: { label: 'Generate Report', color: '#60A5FA', bg: 'rgba(79,123,247,0.1)', border: 'rgba(79,123,247,0.2)', action: () => window.location.href = '/report' },
+    },
+    {
       icon: '📖', title: 'API Documentation', desc: 'FastAPI Swagger UI',
       button: { label: 'Open Docs', color: 'var(--text-muted)', bg: 'var(--bg-input)', border: 'var(--border)', action: () => window.open('http://localhost:8000/docs', '_blank') },
     },
     {
-      icon: '📊', title: 'Analytics', desc: 'Full performance report',
+      icon: '📈', title: 'Analytics', desc: 'Full performance report',
       button: { label: 'View Analytics', color: '#60A5FA', bg: 'rgba(79,123,247,0.1)', border: 'rgba(79,123,247,0.2)', action: () => window.location.href = '/analytics' },
     },
   ]
@@ -67,10 +68,7 @@ export default function AdminPanel() {
       <div style={{ flex: 1, marginLeft: '224px' }}>
 
         {/* HEADER */}
-        <div style={{
-          padding: '24px 32px', borderBottom: '1px solid var(--border)',
-          transition: 'border-color 0.25s',
-        }}>
+        <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', transition: 'border-color 0.25s' }}>
           <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
           <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: '4px 0 0' }}>System management and tools</p>
         </div>
@@ -87,19 +85,20 @@ export default function AdminPanel() {
               </div>
               <button
                 onClick={tool.button.action}
-                disabled={tool.title === 'Recalculate Scores' ? recalculating : tool.title === 'Manual Backup' ? backing : false}
+                disabled={
+                  (tool.title === 'Recalculate Scores' && recalculating) ||
+                  (tool.title === 'Manual Backup' && backing)
+                }
                 style={{
                   width: '100%', padding: '8px', borderRadius: '8px',
                   fontSize: '14px', fontWeight: 500, cursor: 'pointer',
-                  color: tool.button.color,
-                  background: tool.button.bg,
+                  color: tool.button.color, background: tool.button.bg,
                   border: `1px solid ${tool.button.border}`,
                   transition: 'all 0.15s',
-                  opacity: (tool.title === 'Recalculate Scores' && recalculating) || (tool.title === 'Manual Backup' && backing) ? 0.5 : 1,
+                  opacity: ((tool.title === 'Recalculate Scores' && recalculating) || (tool.title === 'Manual Backup' && backing)) ? 0.5 : 1,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '0.8' }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
-              >
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
                 {tool.button.label}
               </button>
               {'msg' in tool && tool.msg && (
