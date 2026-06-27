@@ -1,63 +1,76 @@
+@import "tailwindcss";
+
+/* ── Theme Variables ───────────────────────────────────────── */
 :root {
-  --bg-main: #0F1117;
-  --bg-card: rgba(30,36,54,0.6);
+  --bg-main:    #0F1117;
+  --bg-card:    rgba(30,36,54,0.6);
   --bg-sidebar: #161B27;
-  --border: rgba(255,255,255,0.06);
-  --text: #E2E8F0;
-  --text-muted: rgba(255,255,255,0.4);
-  --text-dim: rgba(255,255,255,0.25);
+  --bg-input:   rgba(255,255,255,0.05);
+  --bg-hover:   rgba(255,255,255,0.05);
+  --bg-tag:     rgba(255,255,255,0.08);
+  --border:     rgba(255,255,255,0.06);
+  --border-mid: rgba(255,255,255,0.10);
+  --text:       #E2E8F0;
+  --text-muted: rgba(255,255,255,0.5);
+  --text-dim:   rgba(255,255,255,0.25);
+  --accent:     #4F7BF7;
+  --accent-dim: rgba(79,123,247,0.15);
 }
 
 html.light-theme {
-  --bg-main: #F4F6FA;
-  --bg-card: #FFFFFF;
+  --bg-main:    #F4F6FA;
+  --bg-card:    #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --border: rgba(0,0,0,0.08);
-  --text: #1A1A2E;
+  --bg-input:   #F9FAFB;
+  --bg-hover:   #F3F4F6;
+  --bg-tag:     #F3F4F6;
+  --border:     rgba(0,0,0,0.08);
+  --border-mid: rgba(0,0,0,0.12);
+  --text:       #1A1A2E;
   --text-muted: rgba(0,0,0,0.5);
-  --text-dim: rgba(0,0,0,0.3);
+  --text-dim:   rgba(0,0,0,0.3);
+  --accent:     #4F7BF7;
+  --accent-dim: rgba(79,123,247,0.12);
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
   background: var(--bg-main) !important;
   color: var(--text);
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
-/* Fix select dropdown colors */
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+/* ── Select / Option ────────────────────────────────────────── */
+select {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border);
+}
 select option {
-  background: #1E2436;
-  color: #E2E8F0;
+  background: var(--bg-sidebar);
+  color: var(--text);
 }
 
-html.light-theme select option {
-  background: #ffffff;
-  color: #1A1A2E;
+/* ── Input / Textarea ───────────────────────────────────────── */
+input, textarea {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border);
 }
-
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+input::placeholder, textarea::placeholder {
+  color: var(--text-dim);
 }

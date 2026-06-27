@@ -21,114 +21,94 @@ export default function AdminPanel() {
     setRecalculating(false)
   }
 
+  const card: React.CSSProperties = {
+    borderRadius: '12px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-card)',
+    padding: '20px',
+    transition: 'background 0.25s, border-color 0.25s',
+  }
+
+  const tools = [
+    {
+      icon: '📥', title: 'Import CSV', desc: 'Bulk import companies',
+      button: { label: 'Open Import', color: '#60A5FA', bg: 'rgba(79,123,247,0.1)', border: 'rgba(79,123,247,0.2)', action: () => window.location.href = '/import' },
+    },
+    {
+      icon: '📤', title: 'Export CSV', desc: 'Download all companies',
+      button: { label: 'Download CSV', color: '#34D399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)', action: () => window.open(`${API}/companies/export/csv`, '_blank') },
+    },
+    {
+      icon: '🔄', title: 'Recalculate Scores', desc: 'Update opportunity scores',
+      button: { label: recalculating ? 'Recalculating...' : 'Recalculate All', color: '#FBBF24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)', action: recalcScores },
+      msg: recalcMsg, msgColor: '#34D399',
+    },
+    {
+      icon: '💾', title: 'Manual Backup', desc: 'Auto backup runs daily at 10:00',
+      button: {
+        label: backing ? 'Running...' : 'Run Backup', color: '#A78BFA', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)',
+        action: () => { setBacking(true); setTimeout(() => { setBackMsg('Run backup.py manually from terminal'); setBacking(false) }, 1000) }
+      },
+      msg: backMsg, msgColor: 'var(--text-muted)',
+    },
+    {
+      icon: '📖', title: 'API Documentation', desc: 'FastAPI Swagger UI',
+      button: { label: 'Open Docs', color: 'var(--text-muted)', bg: 'var(--bg-input)', border: 'var(--border)', action: () => window.open('http://localhost:8000/docs', '_blank') },
+    },
+    {
+      icon: '📊', title: 'Analytics', desc: 'Full performance report',
+      button: { label: 'View Analytics', color: '#60A5FA', bg: 'rgba(79,123,247,0.1)', border: 'rgba(79,123,247,0.2)', action: () => window.location.href = '/analytics' },
+    },
+  ]
+
   return (
-    <div className="flex min-h-screen bg-[#0F1117]">
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div className="flex-1 ml-56">
+      <div style={{ flex: 1, marginLeft: '224px' }}>
 
         {/* HEADER */}
-        <div className="px-8 py-6 border-b border-white/5">
-          <h1 className="text-xl font-semibold text-white/85">Admin Panel</h1>
-          <p className="text-sm text-white/30 mt-0.5">System management and tools</p>
+        <div style={{
+          padding: '24px 32px', borderBottom: '1px solid var(--border)',
+          transition: 'border-color 0.25s',
+        }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
+          <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: '4px 0 0' }}>System management and tools</p>
         </div>
 
-        <div className="px-8 py-6 grid grid-cols-2 gap-4 max-w-4xl">
-
-          {/* IMPORT */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">📥</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">Import CSV</p>
-                <p className="text-xs text-white/30">Bulk import companies</p>
+        <div style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '900px' }}>
+          {tools.map((tool) => (
+            <div key={tool.title} style={card}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '24px' }}>{tool.icon}</span>
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{tool.title}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{tool.desc}</p>
+                </div>
               </div>
+              <button
+                onClick={tool.button.action}
+                disabled={tool.title === 'Recalculate Scores' ? recalculating : tool.title === 'Manual Backup' ? backing : false}
+                style={{
+                  width: '100%', padding: '8px', borderRadius: '8px',
+                  fontSize: '14px', fontWeight: 500, cursor: 'pointer',
+                  color: tool.button.color,
+                  background: tool.button.bg,
+                  border: `1px solid ${tool.button.border}`,
+                  transition: 'all 0.15s',
+                  opacity: (tool.title === 'Recalculate Scores' && recalculating) || (tool.title === 'Manual Backup' && backing) ? 0.5 : 1,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.8' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+              >
+                {tool.button.label}
+              </button>
+              {'msg' in tool && tool.msg && (
+                <p style={{ fontSize: '12px', color: tool.msgColor, marginTop: '8px', marginBottom: 0 }}>{tool.msg}</p>
+              )}
             </div>
-            <button onClick={() => window.location.href = '/import'}
-              className="w-full py-2 rounded-lg text-sm font-medium text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/15 transition">
-              Open Import
-            </button>
-          </div>
-
-          {/* EXPORT */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">📤</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">Export CSV</p>
-                <p className="text-xs text-white/30">Download all companies</p>
-              </div>
-            </div>
-            <button onClick={() => window.open(`${API}/companies/export/csv`, '_blank')}
-              className="w-full py-2 rounded-lg text-sm font-medium text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/15 transition">
-              Download CSV
-            </button>
-          </div>
-
-          {/* RECALCULATE SCORES */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">🔄</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">Recalculate Scores</p>
-                <p className="text-xs text-white/30">Update opportunity scores</p>
-              </div>
-            </div>
-            <button onClick={recalcScores} disabled={recalculating}
-              className="w-full py-2 rounded-lg text-sm font-medium text-amber-400 border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/15 transition disabled:opacity-40">
-              {recalculating ? 'Recalculating...' : 'Recalculate All'}
-            </button>
-            {recalcMsg && <p className="text-xs text-emerald-400 mt-2">{recalcMsg}</p>}
-          </div>
-
-          {/* BACKUP */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">💾</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">Manual Backup</p>
-                <p className="text-xs text-white/30">Auto backup runs daily at 10:00</p>
-              </div>
-            </div>
-            <button
-              onClick={() => { setBacking(true); setTimeout(() => { setBackMsg('Run backup.py manually from terminal'); setBacking(false) }, 1000) }}
-              disabled={backing}
-              className="w-full py-2 rounded-lg text-sm font-medium text-violet-400 border border-violet-500/20 bg-violet-500/10 hover:bg-violet-500/15 transition disabled:opacity-40">
-              {backing ? 'Running...' : 'Run Backup'}
-            </button>
-            {backMsg && <p className="text-xs text-white/40 mt-2">{backMsg}</p>}
-          </div>
-
-          {/* API DOCS */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">📖</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">API Documentation</p>
-                <p className="text-xs text-white/30">FastAPI Swagger UI</p>
-              </div>
-            </div>
-            <button onClick={() => window.open('http://localhost:8000/docs', '_blank')}
-              className="w-full py-2 rounded-lg text-sm font-medium text-gray-400 border border-white/10 bg-white/5 hover:bg-white/8 transition">
-              Open Docs
-            </button>
-          </div>
-
-          {/* ANALYTICS */}
-          <div className="rounded-xl border border-white/8 p-5" style={{ background: 'rgba(30,36,54,0.6)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">📊</span>
-              <div>
-                <p className="text-sm font-medium text-white/80">Analytics</p>
-                <p className="text-xs text-white/30">Full performance report</p>
-              </div>
-            </div>
-            <button onClick={() => window.location.href = '/analytics'}
-              className="w-full py-2 rounded-lg text-sm font-medium text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/15 transition">
-              View Analytics
-            </button>
-          </div>
-
+          ))}
         </div>
+
       </div>
     </div>
   )

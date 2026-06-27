@@ -5,13 +5,13 @@ import Sidebar from '../components/Sidebar'
 
 const API = 'http://localhost:8000'
 
-const TASK_COLORS: Record<string, string> = {
-  email:    'border-blue-500/20 bg-blue-500/5',
-  review:   'border-violet-500/20 bg-violet-500/5',
-  followup: 'border-amber-500/20 bg-amber-500/5',
-  research: 'border-emerald-500/20 bg-emerald-500/5',
-  update:   'border-white/8 bg-white/3',
-  personal: 'border-pink-500/20 bg-pink-500/5',
+const TASK_COLORS: Record<string, { border: string; bg: string }> = {
+  email:    { border: 'rgba(79,123,247,0.2)',  bg: 'rgba(79,123,247,0.05)' },
+  review:   { border: 'rgba(139,92,246,0.2)',  bg: 'rgba(139,92,246,0.05)' },
+  followup: { border: 'rgba(245,158,11,0.2)',  bg: 'rgba(245,158,11,0.05)' },
+  research: { border: 'rgba(52,211,153,0.2)',  bg: 'rgba(52,211,153,0.05)' },
+  update:   { border: 'var(--border)',          bg: 'transparent' },
+  personal: { border: 'rgba(236,72,153,0.2)',  bg: 'rgba(236,72,153,0.05)' },
 }
 
 const TASK_ICONS: Record<string, string> = {
@@ -101,27 +101,27 @@ export default function TasksPage() {
   const personalTasks = tasks.filter(t => t.task_type === 'personal')
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--bg-main)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
       {/* DELETE CONFIRM MODAL */}
       {deleteConfirm !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="rounded-2xl border border-white/10 p-6 w-80 shadow-2xl" style={{ background: '#1E2436' }}>
-            <div className="text-center mb-5">
-              <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">🗑</span>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', width: '320px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <span style={{ fontSize: '24px' }}>🗑</span>
               </div>
-              <p className="text-sm font-medium text-white/80">Delete this task?</p>
-              <p className="text-xs text-white/35 mt-1">This action cannot be undone.</p>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Delete this task?</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0' }}>This action cannot be undone.</p>
             </div>
-            <div className="flex gap-3">
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2 rounded-xl text-sm text-white/50 border border-white/8 hover:bg-white/5 transition">
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', fontSize: '14px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button onClick={() => deleteTask(deleteConfirm)}
-                className="flex-1 py-2 rounded-xl text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 transition">
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'rgba(239,68,68,0.8)', border: 'none', cursor: 'pointer' }}>
                 Delete
               </button>
             </div>
@@ -129,50 +129,54 @@ export default function TasksPage() {
         </div>
       )}
 
-      <div className="flex-1 ml-56 flex flex-col">
+      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column' }}>
 
         {/* HEADER */}
-        <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 border-b border-white/5"
-          style={{ background: 'rgba(15,17,23,0.85)', backdropFilter: 'blur(12px)' }}>
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 32px', borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-main)', backdropFilter: 'blur(12px)',
+          transition: 'background 0.25s, border-color 0.25s',
+        }}>
           <div>
-            <h1 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Daily Tasks</h1>
-            <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Daily Tasks</h1>
+            <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={() => setShowAddTask(!showAddTask)}
-              className="px-3 py-2 rounded-lg text-sm border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/5 transition">
+              style={{ padding: '8px 12px', borderRadius: '8px', fontSize: '14px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
               + Add Task
             </button>
             {alreadyGenerated && (
-              <span className="text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg">
+              <span style={{ fontSize: '12px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', padding: '6px 12px', borderRadius: '8px' }}>
                 ✅ Generated
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex-1 px-8 py-6 max-w-3xl w-full mx-auto">
+        <div style={{ flex: 1, padding: '24px 32px', maxWidth: '768px', width: '100%', margin: '0 auto' }}>
 
           {/* ADD TASK */}
           {showAddTask && (
-            <div className="rounded-xl border border-pink-500/20 p-4 mb-4" style={{ background: 'rgba(236,72,153,0.05)' }}>
-              <p className="text-sm font-medium text-white/70 mb-3">⭐ New Personal Task</p>
+            <div style={{ borderRadius: '12px', border: '1px solid rgba(236,72,153,0.2)', background: 'rgba(236,72,153,0.04)', padding: '16px', marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '12px', marginTop: 0 }}>⭐ New Personal Task</p>
               <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
                 placeholder="Task title *"
-                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/25 mb-2 focus:outline-none focus:border-blue-500/40" />
+                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: 'var(--text)', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
               <textarea value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)}
                 placeholder="Description (optional)" rows={2}
-                className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/25 mb-3 resize-none focus:outline-none focus:border-blue-500/40" />
-              <div className="flex gap-2 justify-end">
+                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: 'var(--text)', outline: 'none', marginBottom: '12px', resize: 'none', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button onClick={() => setShowAddTask(false)}
-                  className="text-xs px-3 py-1.5 border border-white/8 rounded-lg text-white/40 hover:text-white/60">
+                  style={{ fontSize: '12px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer' }}>
                   Cancel
                 </button>
                 <button onClick={addPersonalTask} disabled={savingTask || !newTaskTitle.trim()}
-                  className="text-xs px-3 py-1.5 rounded-lg text-white font-medium disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                  style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'white', fontWeight: 500, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: (savingTask || !newTaskTitle.trim()) ? 0.4 : 1 }}>
                   {savingTask ? 'Saving...' : 'Save'}
                 </button>
               </div>
@@ -181,77 +185,121 @@ export default function TasksPage() {
 
           {/* PROGRESS */}
           {totalTasks > 0 && (
-            <div className="rounded-xl border border-white/8 p-4 mb-5" style={{ background: 'var(--bg-card)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-white/60">Today's Progress</p>
-                <p className="text-sm font-medium text-white/80">{doneTasks}/{totalTasks} · {progress}%</p>
+            <div style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', margin: 0 }}>Today's Progress</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{doneTasks}/{totalTasks} · {progress}%</p>
               </div>
-              <div className="w-full bg-white/8 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full transition-all"
-                  style={{
-                    width: `${progress}%`,
-                    background: progress === 100 ? '#34D399' : progress >= 60 ? '#4F7BF7' : '#FBBF24'
-                  }} />
+              <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
+                <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? '#34D399' : progress >= 60 ? '#4F7BF7' : '#FBBF24' }} />
               </div>
-              {progress === 100 && <p className="text-xs text-emerald-400 mt-2 text-center">🎉 All done!</p>}
+              {progress === 100 && <p style={{ fontSize: '12px', color: '#34D399', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}>🎉 All done!</p>}
             </div>
           )}
 
           {/* TASKS */}
           {loading ? (
-            <div className="text-center py-20 text-white/25">Loading...</div>
+            <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-dim)' }}>Loading...</div>
           ) : tasks.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-3xl mb-3 opacity-20">☀️</p>
-              <p className="text-sm text-white/40 mb-6">No tasks for today</p>
-              <div className="flex justify-center gap-2 mb-4">
+            <div style={{ textAlign: 'center', padding: '80px 0' }}>
+              <p style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.2 }}>☀️</p>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>No tasks for today</p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
                 {(['en', 'fa'] as const).map(l => (
                   <button key={l} onClick={() => setTaskLang(l)}
-                    className={`text-sm px-5 py-2 rounded-lg border transition ${
-                      taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40'
-                    }`}>
+                    style={{
+                      fontSize: '14px', padding: '8px 20px', borderRadius: '8px',
+                      border: taskLang === l ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)',
+                      background: taskLang === l ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)',
+                      color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
                     {l === 'en' ? 'English' : 'فارسی'}
                   </button>
                 ))}
               </div>
               <button onClick={generateTasks} disabled={generating}
-                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: generating ? 0.4 : 1 }}>
                 {generating ? '⏳ Generating...' : '✦ Generate Tasks'}
               </button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {aiTasks.length > 0 && (
                 <>
-                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mb-3">✦ AI Generated</p>
-                  {aiTasks.map((task, i) => (
-                    <div key={task.id}
-                      className={`rounded-xl border p-4 transition ${task.is_done ? 'opacity-40 border-white/5' : TASK_COLORS[task.task_type] || 'border-white/8'}`}
-                      style={{ background: task.is_done ? 'rgba(255,255,255,0.02)' : undefined }}>
-                      <div className="flex items-start gap-3">
-                        <button onClick={() => toggleDone(task.id)}
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
-                            task.is_done ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-blue-400'
-                          }`}>
-                          {task.is_done && <span className="text-[10px] text-white">✓</span>}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs opacity-40">{TASK_ICONS[task.task_type]}</span>
-                            <p className={`text-sm font-medium flex-1 ${task.is_done ? 'line-through text-white/25' : 'text-white/80'}`}>
-                              {getTitle(task)}
-                            </p>
-                            <span className="text-[10px] text-white/20 flex-shrink-0">#{i + 1}</span>
+                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginBottom: '8px', marginTop: 0 }}>✦ AI Generated</p>
+                  {aiTasks.map((task, i) => {
+                    const colors = TASK_COLORS[task.task_type] || TASK_COLORS.update
+                    return (
+                      <div key={task.id} style={{
+                        borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : colors.border}`,
+                        background: task.is_done ? 'transparent' : colors.bg,
+                        padding: '16px', opacity: task.is_done ? 0.5 : 1, transition: 'all 0.15s',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                          <button onClick={() => toggleDone(task.id)}
+                            style={{
+                              width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? '#34D399' : 'var(--border-mid)'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
+                              background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
+                            }}>
+                            {task.is_done && <span style={{ fontSize: '10px', color: 'white' }}>✓</span>}
+                          </button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '12px', opacity: 0.4 }}>{TASK_ICONS[task.task_type]}</span>
+                              <p style={{ fontSize: '14px', fontWeight: 500, flex: 1, margin: 0, color: task.is_done ? 'var(--text-dim)' : 'var(--text)', textDecoration: task.is_done ? 'line-through' : 'none' }}>
+                                {getTitle(task)}
+                              </p>
+                              <span style={{ fontSize: '10px', color: 'var(--text-dim)', flexShrink: 0 }}>#{i + 1}</span>
+                            </div>
+                            {task.description && (
+                              <p style={{ fontSize: '12px', lineHeight: 1.5, color: task.is_done ? 'var(--text-dim)' : 'var(--text-muted)', margin: 0, textAlign: /[\u0600-\u06FF]/.test(task.description) ? 'right' : 'left' }}>
+                                {task.description}
+                              </p>
+                            )}
                           </div>
-                          {task.description && (
-                            <p className={`text-xs leading-relaxed ${task.is_done ? 'text-white/20' : 'text-white/40'} ${/[\u0600-\u06FF]/.test(task.description) ? 'text-right' : ''}`}>
-                              {task.description}
-                            </p>
-                          )}
+                          <button onClick={() => setDeleteConfirm(task.id)}
+                            style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', flexShrink: 0, padding: '4px', transition: 'color 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+
+              {personalTasks.length > 0 && (
+                <>
+                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginTop: '16px', marginBottom: '8px' }}>⭐ Personal</p>
+                  {personalTasks.map(task => (
+                    <div key={task.id} style={{
+                      borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : 'rgba(236,72,153,0.2)'}`,
+                      background: task.is_done ? 'transparent' : 'rgba(236,72,153,0.05)',
+                      padding: '16px', opacity: task.is_done ? 0.5 : 1, transition: 'all 0.15s',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                        <button onClick={() => toggleDone(task.id)}
+                          style={{
+                            width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? '#34D399' : 'rgba(236,72,153,0.4)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
+                            background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
+                          }}>
+                          {task.is_done && <span style={{ fontSize: '10px', color: 'white' }}>✓</span>}
+                        </button>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '14px', fontWeight: 500, margin: 0, color: task.is_done ? 'var(--text-dim)' : 'var(--text)', textDecoration: task.is_done ? 'line-through' : 'none' }}>
+                            {getTitle(task)}
+                          </p>
+                          {task.description && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{task.description}</p>}
                         </div>
                         <button onClick={() => setDeleteConfirm(task.id)}
-                          className="text-white/15 hover:text-red-400 transition text-xs flex-shrink-0 ml-1 p-1">
+                          style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '4px', transition: 'color 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
                           ✕
                         </button>
                       </div>
@@ -260,48 +308,24 @@ export default function TasksPage() {
                 </>
               )}
 
-              {personalTasks.length > 0 && (
-                <>
-                  <p className="text-[10px] text-white/25 uppercase tracking-widest px-1 mt-5 mb-3">⭐ Personal</p>
-                  {personalTasks.map(task => (
-                    <div key={task.id}
-                      className={`rounded-xl border p-4 transition ${task.is_done ? 'opacity-40 border-white/5' : 'border-pink-500/20 bg-pink-500/5'}`}>
-                      <div className="flex items-start gap-3">
-                        <button onClick={() => toggleDone(task.id)}
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition ${
-                            task.is_done ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-pink-400'
-                          }`}>
-                          {task.is_done && <span className="text-[10px] text-white">✓</span>}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${task.is_done ? 'line-through text-white/25' : 'text-white/80'}`}>
-                            {getTitle(task)}
-                          </p>
-                          {task.description && <p className="text-xs text-white/35 mt-1">{task.description}</p>}
-                        </div>
-                        <button onClick={() => setDeleteConfirm(task.id)}
-                          className="text-white/15 hover:text-red-400 transition text-xs p-1">✕</button>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
               {!alreadyGenerated && (
-                <div className="text-center pt-6">
-                  <div className="flex justify-center gap-2 mb-3">
+                <div style={{ textAlign: 'center', paddingTop: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
                     {(['en', 'fa'] as const).map(l => (
                       <button key={l} onClick={() => setTaskLang(l)}
-                        className={`text-xs px-4 py-1.5 rounded-lg border transition ${
-                          taskLang === l ? 'border-blue-500/40 bg-blue-500/15 text-blue-400' : 'border-white/8 text-white/40'
-                        }`}>
+                        style={{
+                          fontSize: '12px', padding: '6px 16px', borderRadius: '8px',
+                          border: taskLang === l ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)',
+                          background: taskLang === l ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)',
+                          color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                        }}>
                         {l === 'en' ? 'English' : 'فارسی'}
                       </button>
                     ))}
                   </div>
                   <button onClick={generateTasks} disabled={generating}
-                    className="px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-40"
-                    style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                    style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: generating ? 0.4 : 1 }}>
                     {generating ? '⏳...' : '✦ Generate AI Tasks'}
                   </button>
                 </div>

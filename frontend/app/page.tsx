@@ -6,15 +6,15 @@ import Sidebar from './components/Sidebar'
 const API = 'http://localhost:8000'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  new:      { bg: 'bg-blue-500/10',    text: 'text-blue-400',   dot: 'bg-blue-400' },
-  reviewed: { bg: 'bg-violet-500/10',  text: 'text-violet-400', dot: 'bg-violet-400' },
-  ready:    { bg: 'bg-amber-500/10',   text: 'text-amber-400',  dot: 'bg-amber-400' },
-  sent:     { bg: 'bg-orange-500/10',  text: 'text-orange-400', dot: 'bg-orange-400' },
-  waiting:  { bg: 'bg-gray-500/10',    text: 'text-gray-400',   dot: 'bg-gray-400' },
-  replied:  { bg: 'bg-emerald-500/10', text: 'text-emerald-400',dot: 'bg-emerald-400' },
-  meeting:  { bg: 'bg-teal-500/10',    text: 'text-teal-400',   dot: 'bg-teal-400' },
-  client:   { bg: 'bg-green-500/10',   text: 'text-green-400',  dot: 'bg-green-400' },
-  archive:  { bg: 'bg-red-500/10',     text: 'text-red-400',    dot: 'bg-red-400' },
+  new:      { bg: '#3B82F620', text: '#60A5FA', dot: '#60A5FA' },
+  reviewed: { bg: '#8B5CF620', text: '#A78BFA', dot: '#A78BFA' },
+  ready:    { bg: '#F59E0B20', text: '#FCD34D', dot: '#FCD34D' },
+  sent:     { bg: '#F9731620', text: '#FB923C', dot: '#FB923C' },
+  waiting:  { bg: '#6B728020', text: '#9CA3AF', dot: '#9CA3AF' },
+  replied:  { bg: '#10B98120', text: '#34D399', dot: '#34D399' },
+  meeting:  { bg: '#14B8A620', text: '#2DD4BF', dot: '#2DD4BF' },
+  client:   { bg: '#22C55E20', text: '#4ADE80', dot: '#4ADE80' },
+  archive:  { bg: '#EF444420', text: '#F87171', dot: '#F87171' },
 }
 
 const HEAT_ICON: Record<string, string> = { hot: '🔥', warm: '🌤', cold: '❄️' }
@@ -131,10 +131,7 @@ export default function Dashboard() {
   }
 
   const goToCompany = (id: number) => { window.location.href = `/company/${id}` }
-
-  const getInitials = (name: string) =>
-    name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-
+  const getInitials = (name: string) => name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
   const getScoreColor = (s: number) => s >= 80 ? '#34D399' : s >= 60 ? '#FBBF24' : '#64748B'
 
   const runSmartSearch = async () => {
@@ -150,7 +147,11 @@ export default function Dashboard() {
   const clearSmartSearch = () => { setSmartQuery(''); setIsSmartMode(false); setShowAdvanced(false); fetchCompanies() }
   const clearFilters = () => { setFilterStatus(''); setFilterIndustry(''); setFilterHeat(''); setFilterFavorite(false) }
   const hasFilters = filterStatus || filterIndustry || filterHeat || filterFavorite
-  const toggleSort = (f: string) => { if (sortBy === f) setSortDir(d => d === 'desc' ? 'asc' : 'desc'); else { setSortBy(f); setSortDir('desc') }; setSortMenuOpen(false) }
+  const toggleSort = (f: string) => {
+    if (sortBy === f) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortBy(f); setSortDir('desc') }
+    setSortMenuOpen(false)
+  }
 
   const followUps = companies.filter(c => {
     if (c.status !== 'sent') return false
@@ -161,79 +162,112 @@ export default function Dashboard() {
   const sortLabel = { score: 'Score', name: 'Name', date: 'Date', country: 'Country' }[sortBy] || 'Score'
 
   return (
-    <div className="flex min-h-screen bg-[#0F1117]">
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
       {/* MAIN */}
-      <div className="flex-1 ml-56 flex flex-col min-h-screen">
+      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
 
         {/* TOP BAR */}
-        <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5"
-          style={{ background: 'rgba(15,17,23,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', height: '56px',
+          background: 'var(--bg-main)', opacity: 1,
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border)',
+          transition: 'background 0.25s, border-color 0.25s',
+        }}>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* SEARCH */}
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 text-sm">⌕</span>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
               <input
                 type="text" placeholder="Search companies..."
                 value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
-                className="bg-white/5 border border-white/8 rounded-lg pl-8 pr-3 py-2 text-sm text-white/80 placeholder-white/25 focus:outline-none focus:border-blue-500/50 focus:bg-white/8 w-52 transition-all"
+                style={{
+                  background: 'var(--bg-input)', border: '1px solid var(--border)',
+                  borderRadius: '8px', paddingLeft: '32px', paddingRight: '12px',
+                  paddingTop: '8px', paddingBottom: '8px',
+                  fontSize: '14px', color: 'var(--text)', width: '208px',
+                  outline: 'none', transition: 'all 0.15s',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
 
             {/* FILTERS DROPDOWN */}
-            <div className="relative" ref={filterRef}>
+            <div style={{ position: 'relative' }} ref={filterRef}>
               <button onClick={e => { e.stopPropagation(); setFilterMenuOpen(p => !p) }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-all ${
-                  hasFilters
-                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                    : 'bg-white/5 border-white/8 text-white/50 hover:text-white/70 hover:bg-white/8'
-                }`}>
-                <span>⊟</span> Filters {hasFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', borderRadius: '8px', fontSize: '14px',
+                  border: hasFilters ? '1px solid rgba(79,123,247,0.3)' : '1px solid var(--border)',
+                  background: hasFilters ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)',
+                  color: hasFilters ? '#60A5FA' : 'var(--text-muted)',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                <span>⊟</span> Filters {hasFilters && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#60A5FA', display: 'inline-block' }} />}
               </button>
+
               {filterMenuOpen && (
-                <div className="absolute left-0 top-11 w-64 rounded-xl border border-white/10 p-4 z-30 space-y-3"
-                  style={{ background: '#1A2030' }} onClick={e => e.stopPropagation()}>
+                <div style={{
+                  position: 'absolute', left: 0, top: '44px', width: '256px',
+                  borderRadius: '12px', border: '1px solid var(--border)',
+                  background: 'var(--bg-card)', backdropFilter: 'blur(12px)',
+                  padding: '16px', zIndex: 30, display: 'flex', flexDirection: 'column', gap: '12px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                }} onClick={e => e.stopPropagation()}>
                   <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5">Status</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Status</p>
                     <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                      className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/70 focus:outline-none focus:border-blue-500/40">
+                      style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: 'var(--text)', outline: 'none' }}>
                       <option value="">All Status</option>
                       {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5">Industry</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Industry</p>
                     <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)}
-                      className="w-full bg-white/5 border border-white/8 rounded-lg px-3 py-2 text-sm text-white/70 focus:outline-none focus:border-blue-500/40">
+                      style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: 'var(--text)', outline: 'none' }}>
                       <option value="">All Industries</option>
                       <option>Architecture</option><option>CGI</option>
                       <option>Interior Design</option><option>Real Estate</option><option>Visualization</option>
                     </select>
                   </div>
                   <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5">Heat</p>
-                    <div className="flex gap-2">
+                    <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Heat</p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       {['hot', 'warm', 'cold'].map(h => (
                         <button key={h} onClick={() => setFilterHeat(filterHeat === h ? '' : h)}
-                          className={`flex-1 py-1.5 rounded-lg text-xs border transition-all ${
-                            filterHeat === h ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-white/5 border-white/8 text-white/40 hover:text-white/60'
-                          }`}>
+                          style={{
+                            flex: 1, padding: '6px', borderRadius: '8px', fontSize: '12px',
+                            border: filterHeat === h ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)',
+                            background: filterHeat === h ? 'rgba(79,123,247,0.2)' : 'var(--bg-input)',
+                            color: filterHeat === h ? '#93C5FD' : 'var(--text-muted)',
+                            cursor: 'pointer', transition: 'all 0.15s',
+                          }}>
                           {HEAT_ICON[h]} {h}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
                     <button onClick={() => setFilterFavorite(!filterFavorite)}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                        filterFavorite ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/8 text-white/40'
-                      }`}>
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        fontSize: '12px', padding: '6px 12px', borderRadius: '8px',
+                        border: filterFavorite ? '1px solid rgba(245,158,11,0.3)' : '1px solid var(--border)',
+                        background: filterFavorite ? 'rgba(245,158,11,0.15)' : 'var(--bg-input)',
+                        color: filterFavorite ? '#FBBF24' : 'var(--text-muted)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}>
                       ★ Favorites only
                     </button>
                     {hasFilters && (
-                      <button onClick={clearFilters} className="text-xs text-white/30 hover:text-white/50">Clear all</button>
+                      <button onClick={clearFilters} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear all</button>
                     )}
                   </div>
                 </div>
@@ -242,28 +276,50 @@ export default function Dashboard() {
 
             {/* AI SEARCH */}
             <button onClick={e => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-all ${
-                showAdvanced ? 'bg-violet-500/15 border-violet-500/30 text-violet-400' : 'bg-white/5 border-white/8 text-white/50 hover:text-white/70 hover:bg-white/8'
-              }`}>
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 12px', borderRadius: '8px', fontSize: '14px',
+                border: showAdvanced ? '1px solid rgba(139,92,246,0.3)' : '1px solid var(--border)',
+                background: showAdvanced ? 'rgba(139,92,246,0.15)' : 'var(--bg-input)',
+                color: showAdvanced ? '#A78BFA' : 'var(--text-muted)',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>
               ✦ AI Search
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* SORT */}
-            <div className="relative" ref={sortRef}>
+            <div style={{ position: 'relative' }} ref={sortRef}>
               <button onClick={e => { e.stopPropagation(); setSortMenuOpen(p => !p) }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/8 text-white/50 hover:text-white/70 hover:bg-white/8 transition-all">
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', borderRadius: '8px', fontSize: '14px',
+                  border: '1px solid var(--border)', background: 'var(--bg-input)',
+                  color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s',
+                }}>
                 ↕ Sort: {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
               </button>
               {sortMenuOpen && (
-                <div className="absolute right-0 top-11 w-44 rounded-xl border border-white/10 py-1 z-30"
-                  style={{ background: '#1A2030' }}>
+                <div style={{
+                  position: 'absolute', right: 0, top: '44px', width: '176px',
+                  borderRadius: '12px', border: '1px solid var(--border)',
+                  background: 'var(--bg-card)', backdropFilter: 'blur(12px)',
+                  padding: '4px', zIndex: 30,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                }}>
                   {[['score','🏆 Score'],['name','🔤 Name'],['date','📅 Date'],['country','🌍 Country']].map(([k, l]) => (
                     <button key={k} onClick={e => { e.stopPropagation(); toggleSort(k) }}
-                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-white/5 transition ${
-                        sortBy === k ? 'text-blue-400' : 'text-white/50'
-                      }`}>
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '8px 12px',
+                        fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px',
+                        color: sortBy === k ? '#60A5FA' : 'var(--text-muted)',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                    >
                       {l} {sortBy === k && <span>{sortDir === 'desc' ? '↓' : '↑'}</span>}
                     </button>
                   ))}
@@ -272,57 +328,66 @@ export default function Dashboard() {
             </div>
 
             {/* NOTIF */}
-            <div className="relative" ref={notifRef}>
+            <div style={{ position: 'relative' }} ref={notifRef}>
               <button onClick={e => { e.stopPropagation(); setNotifOpen(p => !p) }}
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/8 text-white/50 hover:text-white/70 hover:bg-white/8 transition-all text-base">
+                style={{
+                  position: 'relative', width: '36px', height: '36px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px',
+                  transition: 'all 0.15s',
+                }}>
                 🔔
-                {hasNotif && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-400 rounded-full" />}
+                {hasNotif && <span style={{ position: 'absolute', top: '6px', right: '6px', width: '6px', height: '6px', background: '#F87171', borderRadius: '50%' }} />}
               </button>
+
               {notifOpen && (
-                <div className="absolute right-0 top-11 w-72 rounded-xl border border-white/10 overflow-hidden z-40"
-                  style={{ background: '#1A2030' }} onClick={e => e.stopPropagation()}>
-                  <div className="px-4 py-3 border-b border-white/5">
-                    <p className="text-sm font-medium text-white/80">Notifications</p>
+                <div style={{
+                  position: 'absolute', right: 0, top: '44px', width: '288px',
+                  borderRadius: '12px', border: '1px solid var(--border)',
+                  background: 'var(--bg-card)', backdropFilter: 'blur(12px)',
+                  overflow: 'hidden', zIndex: 40,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Notifications</p>
                   </div>
                   <div>
-                    <button className="w-full text-left px-4 py-3 hover:bg-white/5 transition"
-                      onClick={() => { window.location.href = '/tasks'; setNotifOpen(false) }}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">✅</span>
-                        <div className="flex-1">
-                          <p className="text-sm text-white/70 font-medium">Daily Tasks</p>
-                          <p className="text-xs text-white/30 mt-0.5">
+                    <button style={{ width: '100%', textAlign: 'left', padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onClick={() => { window.location.href = '/tasks'; setNotifOpen(false) }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '18px' }}>✅</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, margin: 0 }}>Daily Tasks</p>
+                          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>
                             {todayTasks.total === 0 ? 'No tasks yet' : `${todayTasks.done}/${todayTasks.total} done`}
                           </p>
                           {todayTasks.total > 0 && (
-                            <div className="w-full bg-white/10 rounded-full h-1 mt-1.5">
-                              <div className="h-1 rounded-full bg-blue-400"
-                                style={{ width: `${Math.round((todayTasks.done/todayTasks.total)*100)}%` }} />
+                            <div style={{ width: '100%', background: 'var(--border)', borderRadius: '4px', height: '4px', marginTop: '6px' }}>
+                              <div style={{ height: '4px', borderRadius: '4px', background: '#60A5FA', width: `${Math.round((todayTasks.done/todayTasks.total)*100)}%` }} />
                             </div>
                           )}
                         </div>
                       </div>
                     </button>
-                    <div className="border-t border-white/5">
-                      <div className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">🏢</span>
-                          <div>
-                            <p className="text-sm text-white/70 font-medium">CRM</p>
-                            <p className="text-xs text-white/30">{total} companies · {companies.filter(c=>c.status==='new').length} new</p>
-                          </div>
+                    <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '18px' }}>🏢</span>
+                        <div>
+                          <p style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, margin: 0 }}>CRM</p>
+                          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{total} companies · {companies.filter(c=>c.status==='new').length} new</p>
                         </div>
                       </div>
                     </div>
                     {followUps.length > 0 && (
-                      <div className="border-t border-white/5 bg-amber-500/5">
-                        <div className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg">⏰</span>
-                            <div>
-                              <p className="text-sm text-amber-400 font-medium">Follow-up Needed</p>
-                              <p className="text-xs text-amber-400/60">{followUps.map(c=>c.name).join(', ')}</p>
-                            </div>
+                      <div style={{ borderTop: '1px solid var(--border)', background: 'rgba(245,158,11,0.05)', padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '18px' }}>⏰</span>
+                          <div>
+                            <p style={{ fontSize: '14px', color: '#FBBF24', fontWeight: 500, margin: 0 }}>Follow-up Needed</p>
+                            <p style={{ fontSize: '12px', color: 'rgba(251,191,36,0.6)', margin: '2px 0 0' }}>{followUps.map(c=>c.name).join(', ')}</p>
                           </div>
                         </div>
                       </div>
@@ -334,8 +399,14 @@ export default function Dashboard() {
 
             {/* ADD */}
             <button onClick={() => window.location.href = '/add'}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all"
-              style={{ background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500,
+                background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', color: 'white',
+                border: 'none', cursor: 'pointer', transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
               + Add
             </button>
           </div>
@@ -343,37 +414,55 @@ export default function Dashboard() {
 
         {/* AI SEARCH BAR */}
         {showAdvanced && (
-          <div className="px-6 py-3 border-b border-white/5" style={{ background: 'rgba(124,58,237,0.05)' }}>
-            <div className="flex gap-2">
+          <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(124,58,237,0.04)' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <input type="text"
                 placeholder="e.g. 'hot architecture firms not contacted yet'"
                 value={smartQuery} onChange={e => setSmartQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && runSmartSearch()}
-                className="flex-1 bg-white/5 border border-violet-500/20 rounded-lg px-4 py-2 text-sm text-white/80 placeholder-white/25 focus:outline-none focus:border-violet-500/40" />
+                style={{
+                  flex: 1, background: 'var(--bg-input)', border: '1px solid rgba(139,92,246,0.2)',
+                  borderRadius: '8px', padding: '8px 16px', fontSize: '14px',
+                  color: 'var(--text)', outline: 'none',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)' }}
+              />
               <button onClick={runSmartSearch} disabled={smartSearching || !smartQuery.trim()}
-                className="bg-violet-500/20 border border-violet-500/30 text-violet-400 text-sm px-4 py-2 rounded-lg hover:bg-violet-500/30 transition disabled:opacity-40">
+                style={{
+                  background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)',
+                  color: '#A78BFA', fontSize: '14px', padding: '8px 16px', borderRadius: '8px',
+                  cursor: 'pointer', transition: 'all 0.15s', opacity: (smartSearching || !smartQuery.trim()) ? 0.4 : 1,
+                }}>
                 {smartSearching ? '⏳' : '✦ Search'}
               </button>
               {isSmartMode && (
                 <button onClick={clearSmartSearch}
-                  className="text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white/40 hover:text-white/60">
-                  ✕
-                </button>
+                  style={{
+                    fontSize: '14px', padding: '8px 12px', borderRadius: '8px',
+                    background: 'var(--bg-input)', border: '1px solid var(--border)',
+                    color: 'var(--text-muted)', cursor: 'pointer',
+                  }}>✕</button>
               )}
             </div>
-            {isSmartMode && <p className="text-xs text-violet-400/60 mt-1.5">AI results for: "{smartQuery}" — {total} found</p>}
+            {isSmartMode && <p style={{ fontSize: '12px', color: 'rgba(167,139,250,0.6)', marginTop: '6px', marginBottom: 0 }}>AI results for: "{smartQuery}" — {total} found</p>}
           </div>
         )}
 
         {/* FOLLOW-UP */}
         {followUps.length > 0 && !isSmartMode && (
-          <div className="px-6 py-2.5 border-b border-amber-500/10" style={{ background: 'rgba(245,158,11,0.04)' }}>
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-amber-400/70 font-medium">⏰ Follow-up:</p>
-              <div className="flex gap-2 flex-wrap">
+          <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(245,158,11,0.1)', background: 'rgba(245,158,11,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <p style={{ fontSize: '12px', color: 'rgba(251,191,36,0.7)', fontWeight: 500, margin: 0 }}>⏰ Follow-up:</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {followUps.map(c => (
                   <button key={c.id} onClick={() => goToCompany(c.id)}
-                    className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg hover:bg-amber-500/15 transition">
+                    style={{
+                      fontSize: '12px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+                      color: '#FBBF24', padding: '4px 10px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.15)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.1)' }}>
                     {c.name}
                   </button>
                 ))}
@@ -384,75 +473,90 @@ export default function Dashboard() {
 
         {/* ERROR */}
         {error && (
-          <div className="px-6 py-2.5 border-b border-red-500/10 bg-red-500/5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-red-400">⚠ {error}</p>
-              <button onClick={fetchCompanies} className="text-xs text-red-400/60 border border-red-400/20 px-3 py-1 rounded-lg hover:bg-red-400/10">Retry</button>
+          <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(239,68,68,0.1)', background: 'rgba(239,68,68,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: '14px', color: '#F87171', margin: 0 }}>⚠ {error}</p>
+              <button onClick={fetchCompanies} style={{ fontSize: '12px', color: 'rgba(248,113,113,0.6)', border: '1px solid rgba(248,113,113,0.2)', padding: '4px 12px', borderRadius: '8px', background: 'none', cursor: 'pointer' }}>Retry</button>
             </div>
           </div>
         )}
 
         {/* STATS BAR */}
-        <div className="px-6 py-2 border-b border-white/5 flex items-center gap-4">
-          <p className="text-xs text-white/30">{total} companies</p>
-          {isSmartMode && <span className="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">AI filtered</span>}
-          {hasFilters && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full">Filtered</span>}
+        <div style={{ padding: '8px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>{total} companies</p>
+          {isSmartMode && <span style={{ fontSize: '12px', background: 'rgba(139,92,246,0.15)', color: '#A78BFA', padding: '2px 8px', borderRadius: '999px' }}>AI filtered</span>}
+          {hasFilters && <span style={{ fontSize: '12px', background: 'rgba(79,123,247,0.15)', color: '#60A5FA', padding: '2px 8px', borderRadius: '999px' }}>Filtered</span>}
         </div>
 
         {/* COMPANY LIST */}
-        <div className="flex-1 px-6 py-4 space-y-2">
+        <div style={{ flex: 1, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {loading || smartSearching ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="text-center">
-                <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm text-white/30">{smartSearching ? 'AI searching...' : 'Loading...'}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: 0 }}>{smartSearching ? 'AI searching...' : 'Loading...'}</p>
               </div>
             </div>
           ) : companies.length === 0 ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="text-center">
-                <p className="text-3xl mb-3 opacity-30">⬡</p>
-                <p className="text-sm text-white/30">No companies found</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }}>⬡</p>
+                <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: 0 }}>No companies found</p>
               </div>
             </div>
           ) : (
             companies.map(c => {
               const sc = STATUS_COLORS[c.status] || STATUS_COLORS.new
               return (
-                <div key={c.id} onClick={() => goToCompany(c.id)}
+                <div key={c.id}
+                  onClick={() => goToCompany(c.id)}
                   onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, company: c }) }}
-                  className="group rounded-xl border border-white/6 p-4 cursor-pointer transition-all duration-150 hover:border-blue-500/25"
-                  style={{ background: 'rgba(30,36,54,0.6)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,36,54,0.9)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,36,54,0.6)')}
+                  style={{
+                    borderRadius: '12px', border: '1px solid var(--border)',
+                    padding: '16px', cursor: 'pointer', transition: 'all 0.15s',
+                    background: 'var(--bg-card)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(79,123,247,0.25)'
+                    e.currentTarget.style.background = 'var(--bg-hover)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.background = 'var(--bg-card)'
+                  }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {/* AVATAR */}
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, rgba(79,123,247,0.2), rgba(124,58,237,0.2))', border: '1px solid rgba(79,123,247,0.15)', color: '#7BAEF7' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 700, flexShrink: 0,
+                      background: 'linear-gradient(135deg, rgba(79,123,247,0.2), rgba(124,58,237,0.2))',
+                      border: '1px solid rgba(79,123,247,0.15)', color: '#7BAEF7',
+                    }}>
                       {getInitials(c.name)}
                     </div>
 
                     {/* INFO */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-medium text-white/85 truncate">{c.name}</h3>
-                        <span className="text-xs opacity-60">{HEAT_ICON[c.heat_level]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</h3>
+                        <span style={{ fontSize: '12px', opacity: 0.6 }}>{HEAT_ICON[c.heat_level]}</span>
                         {c.tags && c.tags.split(',').slice(0,2).map(tag => (
-                          <span key={tag} className="text-[10px] bg-white/5 text-white/35 px-1.5 py-0.5 rounded-md">{tag.trim()}</span>
+                          <span key={tag} style={{ fontSize: '10px', background: 'var(--bg-tag)', color: 'var(--text-dim)', padding: '2px 6px', borderRadius: '4px' }}>{tag.trim()}</span>
                         ))}
                       </div>
-                      <p className="text-xs text-white/30 mt-0.5 truncate">
+                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {[c.country, c.city, c.industry].filter(Boolean).join(' · ')}
                       </p>
                     </div>
 
                     {/* RIGHT */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                       {/* SCORE */}
-                      <div className="relative w-8 h-8">
-                        <svg width="32" height="32" viewBox="0 0 32 32" className="-rotate-90">
-                          <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5"/>
+                      <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+                        <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="16" cy="16" r="13" fill="none" stroke="var(--border)" strokeWidth="2.5"/>
                           <circle cx="16" cy="16" r="13" fill="none"
                             stroke={getScoreColor(c.opportunity_score)} strokeWidth="2.5"
                             strokeDasharray={`${c.opportunity_score * 0.816} 100`}
@@ -460,8 +564,10 @@ export default function Dashboard() {
                             style={{ filter: `drop-shadow(0 0 4px ${getScoreColor(c.opportunity_score)}60)` }}
                           />
                         </svg>
-                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold"
-                          style={{ color: getScoreColor(c.opportunity_score) }}>
+                        <span style={{
+                          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '10px', fontWeight: 700, color: getScoreColor(c.opportunity_score),
+                        }}>
                           {Math.round(c.opportunity_score)}
                         </span>
                       </div>
@@ -470,8 +576,11 @@ export default function Dashboard() {
                       <select value={c.status}
                         onChange={e => updateStatus(e, c.id)}
                         onClick={e => e.stopPropagation()}
-                        className={`text-[11px] px-2.5 py-1 rounded-full font-medium cursor-pointer border-0 ${sc.bg} ${sc.text}`}
-                        style={{ colorScheme: 'dark' }}>
+                        style={{
+                          fontSize: '11px', padding: '4px 10px', borderRadius: '999px',
+                          fontWeight: 500, cursor: 'pointer', border: 'none', outline: 'none',
+                          background: sc.bg, color: sc.text,
+                        }}>
                         {Object.keys(STATUS_COLORS).map(s => (
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
@@ -479,7 +588,11 @@ export default function Dashboard() {
 
                       {/* FAVORITE */}
                       <button onClick={e => toggleFavorite(e, c.id)}
-                        className={`text-xl transition-all ${c.is_favorite ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}>
+                        style={{
+                          fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer',
+                          color: c.is_favorite ? '#FBBF24' : 'var(--text-dim)',
+                          transition: 'color 0.15s',
+                        }}>
                         ★
                       </button>
                     </div>
@@ -487,7 +600,9 @@ export default function Dashboard() {
 
                   {/* SUMMARY */}
                   {c.ai_summary && (
-                    <p className="text-xs text-white/25 mt-2 line-clamp-1 pl-12">{c.ai_summary}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '8px 0 0', paddingLeft: '48px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
+                      {c.ai_summary}
+                    </p>
                   )}
                 </div>
               )
@@ -498,11 +613,15 @@ export default function Dashboard() {
 
       {/* CONTEXT MENU */}
       {contextMenu && (
-        <div className="fixed z-50 rounded-xl border border-white/10 py-1 w-48 shadow-2xl"
-          style={{ left: contextMenu.x, top: contextMenu.y, background: '#1E2436' }}
-          onClick={e => e.stopPropagation()}>
-          <div className="px-3 py-2 border-b border-white/5">
-            <p className="text-xs text-white/50 truncate">{contextMenu.company.name}</p>
+        <div style={{
+          position: 'fixed', zIndex: 50, borderRadius: '12px',
+          border: '1px solid var(--border)', padding: '4px', width: '192px',
+          background: 'var(--bg-card)', backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          left: contextMenu.x, top: contextMenu.y,
+        }} onClick={e => e.stopPropagation()}>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contextMenu.company.name}</p>
           </div>
           {[
             { label: '👁 View', action: () => { goToCompany(contextMenu.company.id); setContextMenu(null) } },
@@ -510,22 +629,36 @@ export default function Dashboard() {
             { label: '✉ Generate Email', action: () => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) } },
           ].map(item => (
             <button key={item.label} onClick={item.action}
-              className="w-full text-left px-3 py-2 text-sm text-white/60 hover:text-white/80 hover:bg-white/5 transition">
+              style={{
+                width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px',
+                color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer',
+                borderRadius: '8px', transition: 'all 0.15s', display: 'block',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}>
               {item.label}
             </button>
           ))}
-          <div className="border-t border-white/5 my-1" />
-          <p className="px-3 py-1 text-[10px] text-white/25 uppercase tracking-wider">Status</p>
+          <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+          <p style={{ padding: '4px 12px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Status</p>
           {['reviewed','ready','sent','replied','archive'].map(s => (
             <button key={s} onClick={() => quickUpdateStatus(contextMenu.company.id, s)}
-              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 transition ${
-                contextMenu.company.status === s ? 'text-blue-400' : 'text-white/40'
-              }`}>
+              style={{
+                width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: '12px',
+                color: contextMenu.company.status === s ? '#60A5FA' : 'var(--text-dim)',
+                background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
               {contextMenu.company.status === s ? '✓ ' : '○ '}{s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }
