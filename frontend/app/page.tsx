@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from './components/Sidebar'
 import {
+import { useIsMobile } from 'hooks/useIsMobile'
   DndContext,
   DragEndEvent,
   DragOverEvent,
@@ -192,6 +193,8 @@ function KanbanColumn({ status, companies, onFavorite, onClick, isOver }: {
 
 // ─── MAIN DASHBOARD ────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const isMobile = useIsMobile()
+
   const [companies, setCompanies] = useState<Company[]>([])
   const [allCompanies, setAllCompanies] = useState<Company[]>([])
   const [total, setTotal] = useState(0)
@@ -403,13 +406,13 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, minHeight: '100vh', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* TOP BAR */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', height: '56px',
+          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', backdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border)', transition: 'background 0.25s, border-color 0.25s',
         }}>
@@ -419,7 +422,7 @@ export default function Dashboard() {
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
               <input type="text" placeholder="Search companies..."
                 value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', paddingLeft: '32px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', color: 'var(--text)', width: '208px', outline: 'none', transition: 'all 0.15s' }}
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', paddingLeft: '32px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', color: 'var(--text)', width: isMobile ? '140px' : '208px', outline: 'none', transition: 'all 0.15s' }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
@@ -492,7 +495,7 @@ export default function Dashboard() {
               <div style={{ position: 'relative' }} ref={sortRef}>
                 <button onClick={e => { e.stopPropagation(); setSortMenuOpen(p => !p) }}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', fontSize: '14px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                  ↕ Sort: {sortLabel} {sortDir === 'desc' ? '↓' : '↑'}
+                  isMobile ? '↕' : `↕ Sort: ${sortLabel} ${sortDir === 'desc' ? '↓' : '↑'}`
                 </button>
                 {sortMenuOpen && (
                   <div style={{ position: 'absolute', right: 0, top: '44px', width: '176px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', padding: '4px', zIndex: 30, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
@@ -740,7 +743,7 @@ export default function Dashboard() {
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: '16px', paddingBottom: '16px', overflowX: isMobile ? 'auto' : 'visible' }}>
                   {/* ROW 1 */}
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                     {KANBAN_ROW1.map(status => (

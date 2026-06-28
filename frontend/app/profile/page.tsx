@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -45,6 +46,8 @@ const defaultProfile: LocalProfile = {
 }
 
 export default function ProfilePage() {
+  const isMobile = useIsMobile()
+
   const [user, setUser] = useState<UserProfile | null>(null)
   const [profile, setProfile] = useState<LocalProfile>(defaultProfile)
   const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'portfolio' | 'security'>('info')
@@ -275,13 +278,13 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: '224px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 40px' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
 
           {/* PROFILE HERO */}
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '28px', marginBottom: '20px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(135deg, rgba(79,123,247,0.08), rgba(124,58,237,0.08))', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
 
               {/* AVATAR */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -339,7 +342,7 @@ export default function ProfilePage() {
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', marginBottom: '20px' }}>
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s', background: activeTab === tab.id ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--text-muted)' }}>
+                style={{ flex: 1, padding: '9px', fontSize: isMobile ? '11px' : '13px', fontWeight: 500, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? '4px' : '6px', transition: 'all 0.15s', background: activeTab === tab.id ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--text-muted)' }}>
                 <span>{tab.icon}</span> {tab.label}
               </button>
             ))}
@@ -349,7 +352,7 @@ export default function ProfilePage() {
           {activeTab === 'info' && (
             <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px' }}>Personal Information</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Full Name</label>
                   <input value={user?.name || ''} disabled style={{ ...inputStyle, opacity: 0.5 }} />
@@ -458,7 +461,7 @@ export default function ProfilePage() {
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   🖼 Add New Project
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div>
                     <label style={labelStyle}>Project Title *</label>
                     <input value={newPortfolio.title} onChange={e => setNewPortfolio(p => ({ ...p, title: e.target.value }))}
@@ -517,7 +520,7 @@ export default function ProfilePage() {
                   <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Create a project and upload your architectural visualizations</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '14px' }}>
                   {profile.portfolio.map(item => {
                     const cover = item.images[0]
                     return (

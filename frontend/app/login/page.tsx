@@ -48,7 +48,7 @@ export default function LoginPage() {
       {/* BG glow */}
       <div style={{ position: 'absolute', top: '-200px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(79,123,247,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: '380px', padding: '0 24px' }}>
+      <div style={{ width: '100%', maxWidth: '380px', padding: '0 16px' }}>
 
         {/* LOGO */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>

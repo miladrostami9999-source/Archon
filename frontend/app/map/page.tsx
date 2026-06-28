@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import {
+import { useIsMobile } from '../hooks/useIsMobile'
   ComposableMap,
   Geographies,
   Geography,
@@ -56,6 +57,8 @@ interface CountryData {
 }
 
 export default function MapPage() {
+  const isMobile = useIsMobile()
+
   const [mapData, setMapData] = useState<CountryData[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<CountryData | null>(null)
@@ -111,7 +114,7 @@ export default function MapPage() {
   if (loading) return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -139,13 +142,13 @@ export default function MapPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* HEADER */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', height: '56px',
+          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
@@ -274,7 +277,7 @@ export default function MapPage() {
                 </div>
 
                 {/* STATS */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                   {[
                     { label: 'Avg Score', value: selected.avg_score, color: selected.avg_score >= 70 ? '#34D399' : '#FBBF24' },
                     { label: 'Hot Leads', value: selected.hot, color: '#FB923C' },

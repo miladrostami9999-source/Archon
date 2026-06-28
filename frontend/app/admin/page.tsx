@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 
@@ -18,6 +19,8 @@ interface Stats {
 }
 
 export default function AdminPanel() {
+  const isMobile = useIsMobile()
+
   const [recalculating, setRecalculating] = useState(false)
   const [recalcMsg, setRecalcMsg] = useState('')
   const [backing, setBacking] = useState(false)
@@ -112,25 +115,24 @@ export default function AdminPanel() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '224px' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
 
-        {/* STICKY HEADER */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
-          <div>
-            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Platform management and system tools</p>
+        {/* HEADER */}
+        <div style={{ padding: '32px 40px 0', maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '32px' }}>
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>System</p>
+              <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>Admin Panel</h1>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0' }}>Platform management and system tools</p>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'right' }}>
+              <p style={{ margin: 0 }}>Archon v0.2.0</p>
+              <p style={{ margin: '2px 0 0', color: '#34D399' }}>● System Online</p>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Archon v0.2.0</span>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399', boxShadow: '0 0 6px #34D39980' }} />
-          </div>
-        </div>
-
-        <div style={{ padding: '0 40px 0', maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ marginBottom: '0' }}>
 
           {/* KPI CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px', marginTop: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
             {kpiCards.map(k => (
               <div key={k.label} style={{
                 borderRadius: '16px', border: `1px solid ${k.border}`,
@@ -149,11 +151,9 @@ export default function AdminPanel() {
             ))}
           </div>
 
-          </div>
-
           {/* TOOLS GRID */}
-          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '16px', marginTop: '0' }}>Tools & Actions</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', paddingBottom: '40px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '16px' }}>Tools & Actions</p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '14px', paddingBottom: '40px' }}>
             {tools.map((tool) => (
               <div key={tool.title} style={{
                 borderRadius: '16px', border: `1px solid ${tool.border}`,

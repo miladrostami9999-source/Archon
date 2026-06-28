@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 
@@ -21,6 +22,8 @@ const labelStyle: React.CSSProperties = {
 function EditForm() {
   const searchParams = useSearchParams()
   const companyId = searchParams.get('id')
+  const isMobile = useIsMobile()
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -68,7 +71,7 @@ function EditForm() {
   if (loading) return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -79,13 +82,13 @@ function EditForm() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* HEADER */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: '16px',
-          padding: '0 24px', height: '56px',
+          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
@@ -102,7 +105,7 @@ function EditForm() {
         </div>
 
         {/* FORM */}
-        <div style={{ flex: 1, padding: '32px 24px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '32px 24px', display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '640px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {error && (
@@ -121,7 +124,7 @@ function EditForm() {
             </div>
 
             {/* Domain + Website */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Domain</label>
                 <input name="domain" value={form.domain} onChange={handleChange} placeholder="e.g. big.dk"
@@ -148,7 +151,7 @@ function EditForm() {
             </div>
 
             {/* Country + City */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Country</label>
                 <input name="country" value={form.country} onChange={handleChange}
@@ -166,7 +169,7 @@ function EditForm() {
             </div>
 
             {/* Industry + Size */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Industry</label>
                 <select name="industry" value={form.industry} onChange={handleChange} style={inputStyle}>
@@ -193,7 +196,7 @@ function EditForm() {
             </div>
 
             {/* LinkedIn + Instagram */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>LinkedIn</label>
                 <input name="linkedin" value={form.linkedin} onChange={handleChange}
@@ -222,7 +225,7 @@ function EditForm() {
             </div>
 
             {/* Heat + Score */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Heat Level</label>
                 <select name="heat_level" value={form.heat_level} onChange={handleChange} style={inputStyle}>

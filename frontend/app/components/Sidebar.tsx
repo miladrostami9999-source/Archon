@@ -9,16 +9,31 @@ const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> =
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.15)' },
 }
 
-// SVG Icons — proper icons for each page
 const ICONS: Record<string, JSX.Element> = {
-  home: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
-  tasks: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
+  home:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
+  tasks:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
   analytics: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
-  map: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
-  admin: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
-  report: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>,
-  users: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  map:       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+  admin:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
+  report:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  users:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
 }
+
+// Hamburger icon
+const HamburgerIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+)
+
+const CloseIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
 
 export default function Sidebar() {
   const path = usePathname()
@@ -26,24 +41,31 @@ export default function Sidebar() {
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [avatar, setAvatar] = useState<string>('')
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => { setMobileOpen(false) }, [path])
 
   useEffect(() => {
     const saved = localStorage.getItem('archon-theme')
     setDark(saved !== 'light')
     const stored = localStorage.getItem('archon-user')
     if (stored) { try { setUser(JSON.parse(stored)) } catch {} }
-    // Load avatar from profile
     const prof = localStorage.getItem('archon-profile')
     if (prof) { try { const p = JSON.parse(prof); if (p.avatar) setAvatar(p.avatar) } catch {} }
     setMounted(true)
 
-    // Listen for profile updates
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'archon-profile' && e.newValue) {
         try { const p = JSON.parse(e.newValue); if (p.avatar !== undefined) setAvatar(p.avatar) } catch {}
-      }
-      if (e.key === 'archon-user' && e.newValue) {
-        try { setUser(JSON.parse(e.newValue)) } catch {}
       }
     }
     window.addEventListener('storage', onStorage)
@@ -55,6 +77,13 @@ export default function Sidebar() {
     if (dark) { document.documentElement.classList.remove('light-theme'); localStorage.setItem('archon-theme', 'dark') }
     else { document.documentElement.classList.add('light-theme'); localStorage.setItem('archon-theme', 'light') }
   }, [dark, mounted])
+
+  // Prevent body scroll when mobile sidebar open
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   const logout = () => { localStorage.removeItem('archon-token'); localStorage.removeItem('archon-user'); window.location.href = '/login' }
 
@@ -82,13 +111,16 @@ export default function Sidebar() {
   }) => {
     const active = path === item.href
     return (
-      <a href={item.href} style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '9px 12px', borderRadius: '8px', fontSize: '13px',
-        fontWeight: 500, textDecoration: 'none', marginBottom: '2px',
-        background: active ? activeBg : 'transparent',
-        color: active ? accentColor : ts, transition: 'all 0.18s',
-      }}
+      <a href={item.href}
+        onClick={() => setMobileOpen(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: isMobile ? '12px 14px' : '9px 12px',
+          borderRadius: '8px', fontSize: '13px',
+          fontWeight: 500, textDecoration: 'none', marginBottom: '2px',
+          background: active ? activeBg : 'transparent',
+          color: active ? accentColor : ts, transition: 'all 0.18s',
+        }}
         onMouseEnter={e => { if (!active) { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'; e.currentTarget.style.color = tm } }}
         onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = ts } }}>
         <span style={{ color: active ? accentColor : td, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -102,90 +134,125 @@ export default function Sidebar() {
 
   const planBadge = user ? PLAN_BADGE[user.plan] || PLAN_BADGE.basic : null
 
+  const SidebarContent = () => (
+    <aside style={{
+      position: 'fixed', left: 0, top: 0, height: '100vh', width: '224px',
+      display: 'flex', flexDirection: 'column', zIndex: 30,
+      background: sbg, borderRight: `1px solid ${b}`,
+      transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.25s ease',
+      transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+    }}>
+      {/* LOGO */}
+      <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', boxShadow: '0 2px 8px rgba(79,123,247,0.35)', flexShrink: 0 }}>A</div>
+          <div>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0 }}>Archon</p>
+            <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
+          </div>
+        </div>
+        {/* Close button on mobile */}
+        {isMobile && (
+          <button onClick={() => setMobileOpen(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+            <CloseIcon />
+          </button>
+        )}
+      </div>
+
+      {/* NAV */}
+      <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
+        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Workspace</p>
+        {workspaceItems.map(item => <NavItem key={item.href} item={item} />)}
+
+        <div style={{ paddingTop: '12px', marginTop: '12px', borderTop: `1px solid ${b}` }}>
+          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Admin</p>
+          {adminItems.map(item => (
+            <NavItem key={item.href} item={item} accentColor='#A78BFA' activeBg='rgba(139,92,246,0.12)' />
+          ))}
+        </div>
+      </nav>
+
+      {/* FOOTER */}
+      <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}` }}>
+        <button onClick={() => setDark(!dark)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '10px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
+          <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
+          <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(79,123,247,0.4)' : '#D1D5DB' }}>
+            <div style={{ position: 'absolute', top: '1.5px', left: dark ? '15px' : '1.5px', width: '12px', height: '12px', borderRadius: '50%', background: dark ? '#60A5FA' : 'white', transition: 'left 0.2s' }} />
+          </div>
+        </button>
+
+        {user && (
+          <div onClick={() => { window.location.href = '/profile'; setMobileOpen(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: '10px', margin: '-2px -4px', transition: 'background 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(79,123,247,0.3)' }}>
+              {avatar ? (
+                <img src={avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: tm, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
+              <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                {planBadge && <span style={{ fontSize: '9px', fontWeight: 700, color: planBadge.color, background: planBadge.bg, padding: '1px 5px', borderRadius: '999px', textTransform: 'uppercase' }}>{planBadge.label}</span>}
+                {user.role === 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '1px 5px', borderRadius: '999px' }}>Admin</span>}
+              </div>
+            </div>
+            <button onClick={e => { e.stopPropagation(); logout() }}
+              style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '3px', borderRadius: '5px', transition: 'color 0.15s', flexShrink: 0 }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+              onMouseLeave={e => { e.currentTarget.style.color = td }}>⏻</button>
+          </div>
+        )}
+      </div>
+    </aside>
+  )
+
   return (
     <>
-      {/* Page transition overlay */}
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .page-fade { animation: fadeIn 0.3s ease forwards; }
-      `}</style>
-
-      <aside style={{
-        position: 'fixed', left: 0, top: 0, height: '100vh', width: '224px',
-        display: 'flex', flexDirection: 'column', zIndex: 30,
-        background: sbg, borderRight: `1px solid ${b}`,
-        transition: 'background 0.25s ease, border-color 0.25s ease',
-      }}>
-
-        {/* LOGO */}
-        <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', boxShadow: '0 2px 8px rgba(79,123,247,0.35)' }}>A</div>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0, letterSpacing: '-0.01em' }}>Archon</p>
-              <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
-            </div>
-          </div>
-        </div>
-
-        {/* NAV */}
-        <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Workspace</p>
-          {workspaceItems.map(item => <NavItem key={item.href} item={item} />)}
-
-          <div style={{ paddingTop: '12px', marginTop: '12px', borderTop: `1px solid ${b}` }}>
-            <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Admin</p>
-            {adminItems.map(item => (
-              <NavItem key={item.href} item={item} accentColor='#A78BFA' activeBg='rgba(139,92,246,0.12)' />
-            ))}
-          </div>
-        </nav>
-
-        {/* FOOTER */}
-        <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}` }}>
-          {/* THEME */}
-          <button onClick={() => setDark(!dark)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '10px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}>
-            <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
-            <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(79,123,247,0.4)' : '#D1D5DB', transition: 'background 0.2s' }}>
-              <div style={{ position: 'absolute', top: '1.5px', left: dark ? '15px' : '1.5px', width: '12px', height: '12px', borderRadius: '50%', background: dark ? '#60A5FA' : 'white', transition: 'left 0.2s' }} />
-            </div>
+      {/* MOBILE TOP BAR */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: '52px',
+          background: sbg, borderBottom: `1px solid ${b}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', zIndex: 20,
+        }}>
+          <button onClick={() => setMobileOpen(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: tm, padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+            <HamburgerIcon />
           </button>
-
-          {/* USER */}
-          {user && (
-            <div onClick={() => window.location.href = '/profile'}
-              style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: '10px', margin: '-2px -4px', transition: 'background 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-
-              {/* AVATAR — shows photo if uploaded */}
-              <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(79,123,247,0.3)' }}>
-                {avatar ? (
-                  <img src={avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
+          </div>
+          <div onClick={() => { window.location.href = '/profile' }}
+            style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(79,123,247,0.3)' }}>
+            {avatar ? (
+              <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                {user?.name.charAt(0).toUpperCase() || 'A'}
               </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: tm, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
-                <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
-                  {planBadge && <span style={{ fontSize: '9px', fontWeight: 700, color: planBadge.color, background: planBadge.bg, padding: '1px 5px', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{planBadge.label}</span>}
-                  {user.role === 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '1px 5px', borderRadius: '999px' }}>Admin</span>}
-                </div>
-              </div>
-
-              <button onClick={e => { e.stopPropagation(); logout() }}
-                style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '3px', borderRadius: '5px', transition: 'color 0.15s', flexShrink: 0 }}
-                title="Logout"
-                onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
-                onMouseLeave={e => { e.currentTarget.style.color = td }}>⏻</button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </aside>
+      )}
+
+      {/* OVERLAY */}
+      {isMobile && mobileOpen && (
+        <div onClick={() => setMobileOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 25 }} />
+      )}
+
+      {/* SIDEBAR */}
+      <SidebarContent />
     </>
   )
 }

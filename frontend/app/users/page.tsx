@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -20,6 +21,8 @@ interface User {
 }
 
 export default function UsersPage() {
+  const isMobile = useIsMobile()
+
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -107,25 +110,26 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: '224px' }}>
-        {/* STICKY HEADER */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
-          <div>
-            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>User Management</h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{users.length} registered users</p>
-          </div>
-          <button onClick={() => setShowAdd(!showAdd)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-            + Add User
-          </button>
-        </div>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
 
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 32px' }}>
+          {/* HEADER */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <div>
+              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>Admin</p>
+              <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>User Management</h1>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{users.length} registered users</p>
+            </div>
+            <button onClick={() => setShowAdd(!showAdd)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
+              + Add User
+            </button>
+          </div>
 
           {/* PLAN STATS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
             {(['basic', 'pro', 'agency'] as const).map(plan => {
               const pm = PLAN_META[plan]
               return (
@@ -160,7 +164,7 @@ export default function UsersPage() {
                 <span style={{ fontSize: '18px' }}>➕</span> Create New User
               </h3>
               {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 {[
                   { label: 'Full Name', key: 'name', placeholder: 'John Doe', type: 'text' },
                   { label: 'Email', key: 'email', placeholder: 'john@studio.com', type: 'email' },
@@ -219,7 +223,7 @@ export default function UsersPage() {
           {/* USERS TABLE */}
           <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden' }}>
             {/* TABLE HEADER */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr 1fr 160px', gap: '0', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-input)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '2fr 1fr 120px' : '2.5fr 1fr 1fr 1.2fr 1fr 160px', gap: '0', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-input)' }}>
               {['User', 'Plan', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
                 <p key={h} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{h}</p>
               ))}
@@ -241,7 +245,7 @@ export default function UsersPage() {
               const initials = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
               return (
                 <div key={u.id} style={{
-                  display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr 1fr 160px',
+                  display: 'grid', gridTemplateColumns: isMobile ? '2fr 1fr 120px' : '2.5fr 1fr 1fr 1.2fr 1fr 160px',
                   gap: '0', padding: '14px 20px',
                   borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                   alignItems: 'center', transition: 'background 0.15s',

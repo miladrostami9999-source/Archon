@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 
@@ -47,6 +48,8 @@ const card: React.CSSProperties = {
 
 export default function CompanyDetail() {
   const { id } = useParams()
+  const isMobile = useIsMobile()
+
   const [company, setCompany] = useState<Company | null>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [notes, setNotes] = useState<Note[]>([])
@@ -132,7 +135,7 @@ export default function CompanyDetail() {
   if (loading) return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     </div>
@@ -173,13 +176,13 @@ export default function CompanyDetail() {
       )}
 
       {/* MAIN */}
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* TOP BAR */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '0 24px', height: '56px',
+          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
@@ -274,7 +277,7 @@ export default function CompanyDetail() {
             </div>
 
             {/* CONTACT INFO */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
               {company.email && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   <span>✉</span>
@@ -365,7 +368,7 @@ export default function CompanyDetail() {
 
               {showAddContact && (
                 <div style={{ background: 'var(--bg-input)', borderRadius: '10px', padding: '16px', marginBottom: '16px', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <input placeholder="Full Name *" value={newContact.full_name}
                       onChange={e => setNewContact({ ...newContact, full_name: e.target.value })}
                       style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 
@@ -20,6 +21,8 @@ const labelStyle: React.CSSProperties = {
 
 export default function AddCompany() {
   const router = useRouter()
+  const isMobile = useIsMobile()
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -48,13 +51,13 @@ export default function AddCompany() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
-      <div style={{ flex: 1, marginLeft: '224px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* HEADER */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: '16px',
-          padding: '0 24px', height: '56px',
+          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
@@ -71,7 +74,7 @@ export default function AddCompany() {
         </div>
 
         {/* FORM */}
-        <div style={{ flex: 1, padding: '32px 24px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '32px 24px', display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: '640px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {error && (
@@ -91,7 +94,7 @@ export default function AddCompany() {
             </div>
 
             {/* Domain + Website */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Domain</label>
                 <input name="domain" value={form.domain} onChange={handleChange} placeholder="e.g. big.dk"
@@ -118,7 +121,7 @@ export default function AddCompany() {
             </div>
 
             {/* Country + City */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Country</label>
                 <input name="country" value={form.country} onChange={handleChange} placeholder="e.g. Denmark"
@@ -136,7 +139,7 @@ export default function AddCompany() {
             </div>
 
             {/* Industry + Size */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>Industry</label>
                 <select name="industry" value={form.industry} onChange={handleChange}
@@ -165,7 +168,7 @@ export default function AddCompany() {
             </div>
 
             {/* LinkedIn + Instagram */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={labelStyle}>LinkedIn</label>
                 <input name="linkedin" value={form.linkedin} onChange={handleChange} placeholder="linkedin.com/company/..."
