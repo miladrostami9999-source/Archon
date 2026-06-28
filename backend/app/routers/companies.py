@@ -505,9 +505,9 @@ def generate_tasks(data: TaskGenerateRequest, db: Session = Depends(get_db)):
         print("TASK ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-    today = datetime.utcnow().date()
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     db.query(DailyTask).filter(
-        DailyTask.date >= datetime.combine(today, datetime.min.time())
+        DailyTask.date >= today_start
     ).delete()
 
     saved = []
@@ -536,9 +536,9 @@ def generate_tasks(data: TaskGenerateRequest, db: Session = Depends(get_db)):
 
 @router.get("/tasks/today")
 def get_today_tasks(db: Session = Depends(get_db)):
-    today = datetime.utcnow().date()
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     tasks = db.query(DailyTask).filter(
-        DailyTask.date >= datetime.combine(today, datetime.min.time())
+        DailyTask.date >= today_start
     ).order_by(DailyTask.priority).all()
     return [to_dict(t) for t in tasks]
 

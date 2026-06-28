@@ -108,22 +108,21 @@ export default function UsersPage() {
       )}
 
       <div style={{ flex: 1, marginLeft: '224px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 40px' }}>
-
-          {/* HEADER */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '28px' }}>
-            <div>
-              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>Admin</p>
-              <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>User Management</h1>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{users.length} registered users</p>
-            </div>
-            <button onClick={() => setShowAdd(!showAdd)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-              + Add User
-            </button>
+        {/* STICKY HEADER */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
+          <div>
+            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>User Management</h1>
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{users.length} registered users</p>
           </div>
+          <button onClick={() => setShowAdd(!showAdd)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
+            + Add User
+          </button>
+        </div>
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 32px' }}>
 
           {/* PLAN STATS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>

@@ -55,6 +55,8 @@ export default function ProfilePage() {
   const [pwdSuccess, setPwdSuccess] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [newPortfolio, setNewPortfolio] = useState({ title: '', desc: '', url: '' })
+  const [newPortfolioImages, setNewPortfolioImages] = useState<{id:string;data:string;name:string}[]>([])
+  const newProjectImgRef = useRef<HTMLInputElement>(null)
   const [selectedProject, setSelectedProject] = useState<PortfolioItem | null>(null)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const avatarRef = useRef<HTMLInputElement>(null)
@@ -71,7 +73,10 @@ export default function ProfilePage() {
 
   const saveProfile = (p = profile) => {
     setSaving(true)
-    localStorage.setItem('archon-profile', JSON.stringify(p))
+    const json = JSON.stringify(p)
+    localStorage.setItem('archon-profile', json)
+    // Dispatch storage event so Sidebar updates avatar
+    window.dispatchEvent(new StorageEvent('storage', { key: 'archon-profile', newValue: json }))
     setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500) }, 300)
   }
 
@@ -152,9 +157,23 @@ export default function ProfilePage() {
 
   const addPortfolio = () => {
     if (!newPortfolio.title) return
-    const updated = { ...profile, portfolio: [...profile.portfolio, { ...newPortfolio, id: Date.now().toString(), images: [] }] }
+    const updated = { ...profile, portfolio: [...profile.portfolio, { ...newPortfolio, id: Date.now().toString(), images: newPortfolioImages }] }
     setProfile(updated)
+    saveProfile(updated)
     setNewPortfolio({ title: '', desc: '', url: '' })
+    setNewPortfolioImages([])
+  }
+
+  const handleNewProjectImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const readers = files.map(file => new Promise<{id:string;data:string;name:string}>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => resolve({ id: Date.now() + Math.random().toString(), data: ev.target?.result as string, name: file.name })
+      reader.readAsDataURL(file)
+    }))
+    Promise.all(readers).then(images => setNewPortfolioImages(prev => [...prev, ...images]))
+    e.target.value = ''
   }
 
   const removePortfolio = (id: string) => {
@@ -189,7 +208,7 @@ export default function ProfilePage() {
   ] as const
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
+    <div className="page-enter" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
       {/* LIGHTBOX */}
@@ -461,6 +480,28 @@ export default function ProfilePage() {
                       onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
+                </div>
+                {/* PHOTO UPLOAD for new project */}
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={labelStyle}>Photos (optional)</label>
+                  <input ref={newProjectImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleNewProjectImages} />
+                  <button onClick={() => newProjectImgRef.current?.click()}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(79,123,247,0.4)', background: 'rgba(79,123,247,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s', width: '100%', justifyContent: 'center' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(79,123,247,0.08)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(79,123,247,0.04)' }}>
+                    📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#4F7BF7', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
+                  </button>
+                  {newPortfolioImages.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                      {newPortfolioImages.map(img => (
+                        <div key={img.id} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                          <img src={img.data} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button onClick={() => setNewPortfolioImages(prev => prev.filter(i => i.id !== img.id))}
+                            style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button onClick={addPortfolio} disabled={!newPortfolio.title}
                   style={{ padding: '9px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', opacity: !newPortfolio.title ? 0.4 : 1 }}>
