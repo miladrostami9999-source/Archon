@@ -22,7 +22,22 @@ def get_db():
         db.close()
 
 # ─────────────────────────────────────────
-# TABLE 1 — COMPANIES
+# TABLE 1 — USERS
+# ─────────────────────────────────────────
+class User(Base):
+    __tablename__ = "users"
+    id            = Column(Integer, primary_key=True, index=True)
+    name          = Column(String, nullable=False)
+    email         = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role          = Column(String, default="member")   # admin | member
+    plan          = Column(String, default="basic")    # basic | pro | agency
+    is_active     = Column(Boolean, default=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    last_login    = Column(DateTime)
+
+# ─────────────────────────────────────────
+# TABLE 2 — COMPANIES
 # ─────────────────────────────────────────
 class Company(Base):
     __tablename__ = "companies"
@@ -54,7 +69,7 @@ class Company(Base):
     tasks     = relationship("DailyTask", back_populates="company")
 
 # ─────────────────────────────────────────
-# TABLE 2 — CONTACTS
+# TABLE 3 — CONTACTS
 # ─────────────────────────────────────────
 class Contact(Base):
     __tablename__ = "contacts"
@@ -69,7 +84,7 @@ class Contact(Base):
     company = relationship("Company", back_populates="contacts")
 
 # ─────────────────────────────────────────
-# TABLE 3 — NOTES
+# TABLE 4 — NOTES
 # ─────────────────────────────────────────
 class Note(Base):
     __tablename__ = "notes"
@@ -82,7 +97,7 @@ class Note(Base):
     company = relationship("Company", back_populates="notes")
 
 # ─────────────────────────────────────────
-# TABLE 4 — CAMPAIGNS
+# TABLE 5 — CAMPAIGNS
 # ─────────────────────────────────────────
 class Campaign(Base):
     __tablename__ = "campaigns"
@@ -98,7 +113,7 @@ class Campaign(Base):
     company = relationship("Company", back_populates="campaigns")
 
 # ─────────────────────────────────────────
-# TABLE 5 — HISTORY
+# TABLE 6 — HISTORY
 # ─────────────────────────────────────────
 class History(Base):
     __tablename__ = "history"
@@ -110,13 +125,14 @@ class History(Base):
     company = relationship("Company", back_populates="history")
 
 # ─────────────────────────────────────────
-# TABLE 6 — DAILY TASKS
+# TABLE 7 — DAILY TASKS
 # ─────────────────────────────────────────
 class DailyTask(Base):
     __tablename__ = "daily_tasks"
     id          = Column(Integer, primary_key=True, index=True)
     company_id  = Column(Integer, ForeignKey("companies.id"), nullable=True)
     task_type   = Column(String)
+    title       = Column(String)
     description = Column(Text)
     priority    = Column(Integer, default=3)
     is_done     = Column(Boolean, default=False)
@@ -124,11 +140,32 @@ class DailyTask(Base):
     company = relationship("Company", back_populates="tasks")
 
 # ─────────────────────────────────────────
-# INIT
+# INIT + SEED ADMIN
 # ─────────────────────────────────────────
 def init_db():
     Base.metadata.create_all(bind=engine)
-    print("✅ Archon Database initialized successfully")
+
+    # Create admin user if not exists
+    db = SessionLocal()
+    try:
+        import bcrypt as _bcrypt
+        existing = db.query(User).filter(User.email == "milad@armiladesign.com").first()
+        if not existing:
+            _hash = _bcrypt.hashpw("archon2024".encode(), _bcrypt.gensalt()).decode()
+            admin = User(
+                name="Milad Rostami",
+                email="milad@armiladesign.com",
+                password_hash=_hash,
+                role="admin",
+                plan="agency",
+                is_active=True,
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Admin user created: milad@armiladesign.com / archon2024")
+        print("✅ Archon Database initialized successfully")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     init_db()
