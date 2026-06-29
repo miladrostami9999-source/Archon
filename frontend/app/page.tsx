@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from './components/Sidebar'
 import {
-import { useIsMobile } from 'hooks/useIsMobile'
   DndContext,
   DragEndEvent,
   DragOverEvent,
@@ -15,6 +14,7 @@ import { useIsMobile } from 'hooks/useIsMobile'
   useDroppable,
   useDraggable,
 } from '@dnd-kit/core'
+import { useIsMobile } from './hooks/useIsMobile'
 
 const API = 'http://localhost:8000'
 const PAGE_SIZE = 20
@@ -215,6 +215,7 @@ export default function Dashboard() {
   const [smartQuery, setSmartQuery] = useState('')
   const [smartSearching, setSmartSearching] = useState(false)
   const [isSmartMode, setIsSmartMode] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
   const [notifOpen, setNotifOpen] = useState(false)
   const [todayTasks, setTodayTasks] = useState<{ total: number; done: number }>({ total: 0, done: 0 })
@@ -406,32 +407,43 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, minHeight: '100vh', paddingTop: isMobile ? '52px' : 0 }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, minHeight: '100vh', overflowX: 'hidden' }}>
 
         {/* TOP BAR */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: isMobile ? '0 16px' : '0 24px', height: '56px',
+          padding: isMobile ? '0 10px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', backdropFilter: 'blur(12px)',
           borderBottom: '1px solid var(--border)', transition: 'background 0.25s, border-color 0.25s',
+          gap: isMobile ? '6px' : '0',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', flex: isMobile ? 1 : 'auto', minWidth: 0 }}>
             {/* SEARCH */}
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
-              <input type="text" placeholder="Search companies..."
-                value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', paddingLeft: '32px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '14px', color: 'var(--text)', width: isMobile ? '140px' : '208px', outline: 'none', transition: 'all 0.15s' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-            </div>
+            {isMobile ? (
+              <button onClick={() => setSearchOpen(p => !p)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '8px', border: search ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)', background: search ? 'rgba(79,123,247,0.12)' : 'var(--bg-input)', color: search ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0, fontSize: '16px', position: 'relative' }}>
+                ⌕
+                {search && <span style={{ position: 'absolute', top: '4px', right: '4px', width: '5px', height: '5px', borderRadius: '50%', background: '#60A5FA' }} />}
+              </button>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '13px' }}>⌕</span>
+                <input type="text" placeholder="Search companies..."
+                  value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', paddingLeft: '28px', paddingRight: '8px', paddingTop: '7px', paddingBottom: '7px', fontSize: '14px', color: 'var(--text)', width: '208px', outline: 'none', transition: 'all 0.15s' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+              </div>
+            )}
 
-            {/* FILTERS */}
-            <div style={{ position: 'relative' }} ref={filterRef}>
+            {/* FILTERS — icon only on mobile */}
+            <div style={{ position: 'relative', flexShrink: 0 }} ref={filterRef}>
               <button onClick={e => { e.stopPropagation(); setFilterMenuOpen(p => !p) }}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', fontSize: '14px', border: hasFilters ? '1px solid rgba(79,123,247,0.3)' : '1px solid var(--border)', background: hasFilters ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)', color: hasFilters ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                <span>⊟</span> Filters {hasFilters && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#60A5FA', display: 'inline-block' }} />}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 9px' : '8px 12px', borderRadius: '8px', fontSize: isMobile ? '16px' : '14px', border: hasFilters ? '1px solid rgba(79,123,247,0.3)' : '1px solid var(--border)', background: hasFilters ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)', color: hasFilters ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', position: 'relative' }}>
+                <span>⊟</span>
+                {!isMobile && <> Filters</>}
+                {hasFilters && <span style={{ position: 'absolute', top: '5px', right: '5px', width: '5px', height: '5px', borderRadius: '50%', background: '#60A5FA', display: 'block' }} />}
               </button>
               {filterMenuOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '44px', width: '256px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', padding: '16px', zIndex: 30, display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
@@ -479,23 +491,23 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', flexShrink: 0 }}>
             {/* VIEW TOGGLE */}
-            <div style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
-              {([['list','☰ List'],['board','⊞ Board']] as const).map(([v, label]) => (
+            <div style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '2px', flexShrink: 0 }}>
+              {([['list','☰'],['board','⊞']] as const).map(([v, icon]) => (
                 <button key={v} onClick={() => setView(v)}
-                  style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: view === v ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: view === v ? 'white' : 'var(--text-muted)' }}>
-                  {label}
+                  style={{ padding: isMobile ? '6px 8px' : '5px 10px', borderRadius: '6px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: view === v ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: view === v ? 'white' : 'var(--text-muted)' }}>
+                  {isMobile ? icon : (v === 'list' ? `${icon} List` : `${icon} Board`)}
                 </button>
               ))}
             </div>
 
             {/* SORT — only in list */}
             {view === 'list' && (
-              <div style={{ position: 'relative' }} ref={sortRef}>
+              <div style={{ position: 'relative', flexShrink: 0 }} ref={sortRef}>
                 <button onClick={e => { e.stopPropagation(); setSortMenuOpen(p => !p) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', fontSize: '14px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                  isMobile ? '↕' : `↕ Sort: ${sortLabel} ${sortDir === 'desc' ? '↓' : '↑'}`
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '7px 9px' : '8px 12px', borderRadius: '8px', fontSize: isMobile ? '14px' : '14px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  {isMobile ? '↕' : `↕ ${sortLabel} ${sortDir === 'desc' ? '↓' : '↑'}`}
                 </button>
                 {sortMenuOpen && (
                   <div style={{ position: 'absolute', right: 0, top: '44px', width: '176px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', padding: '4px', zIndex: 30, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
@@ -528,7 +540,7 @@ export default function Dashboard() {
                     onClick={() => { window.location.href = '/tasks'; setNotifOpen(false) }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                       <span style={{ fontSize: '18px' }}>✅</span>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, margin: 0 }}>Daily Tasks</p>
@@ -567,13 +579,33 @@ export default function Dashboard() {
 
             {/* ADD */}
             <button onClick={() => window.location.href = '/add'}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', color: 'white', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-              + Add
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 10px' : '8px 16px', borderRadius: '8px', fontSize: isMobile ? '14px' : '14px', fontWeight: 600, background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              {isMobile ? '+' : '+ Add'}
             </button>
           </div>
         </div>
+
+        {/* MOBILE SEARCH BAR */}
+        {isMobile && searchOpen && (
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-main)' }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search companies..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
+                onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)}
+                style={{ width: '100%', boxSizing: 'border-box' as const, background: 'var(--bg-input)', border: '1px solid rgba(79,123,247,0.4)', borderRadius: '8px', paddingLeft: '32px', paddingRight: search ? '36px' : '12px', paddingTop: '9px', paddingBottom: '9px', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+              />
+              {search && (
+                <button onClick={() => { setSearch(''); setIsSmartMode(false) }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '14px', padding: '2px' }}>✕</button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* AI SEARCH BAR */}
         {showAdvanced && (
@@ -731,7 +763,7 @@ export default function Dashboard() {
 
         {/* ═══ BOARD VIEW ═══ */}
         {view === 'board' && (
-          <div style={{ flex: 1, padding: '16px 24px', overflowY: 'auto' }}>
+          <div style={{ flex: 1, padding: isMobile ? '8px' : '16px 24px', overflowY: 'auto', overflowX: 'hidden' }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
                 <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -743,9 +775,9 @@ export default function Dashboard() {
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
               >
-                <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: '16px', paddingBottom: '16px', overflowX: isMobile ? 'auto' : 'visible' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '16px' }}>
                   {/* ROW 1 */}
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: isMobile ? 'flex-start' : 'center', overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? '8px' : 0 }}>
                     {KANBAN_ROW1.map(status => (
                       <KanbanColumn
                         key={status}
@@ -760,7 +792,7 @@ export default function Dashboard() {
                   {/* DIVIDER */}
                   <div style={{ width: '100%', height: '1px', background: 'linear-gradient(90deg, transparent, var(--border-mid), transparent)', margin: '4px 0' }} />
                   {/* ROW 2 — centered */}
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: isMobile ? 'flex-start' : 'center', overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? '8px' : 0 }}>
                     {KANBAN_ROW2.map(status => (
                       <KanbanColumn
                         key={status}

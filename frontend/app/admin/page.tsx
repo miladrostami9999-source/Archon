@@ -115,7 +115,7 @@ export default function AdminPanel() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0, maxWidth: isMobile ? '100vw' : 'auto', overflowX: 'hidden' }}>
 
         {/* HEADER */}
         <div style={{ padding: '32px 40px 0', maxWidth: '1100px', margin: '0 auto' }}>
@@ -136,7 +136,7 @@ export default function AdminPanel() {
             {kpiCards.map(k => (
               <div key={k.label} style={{
                 borderRadius: '16px', border: `1px solid ${k.border}`,
-                background: k.bg, padding: '20px 24px',
+                background: k.bg, padding: isMobile ? '14px' : '20px 24px',
                 position: 'relative', overflow: 'hidden',
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 cursor: 'default',
@@ -145,7 +145,7 @@ export default function AdminPanel() {
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
                 <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: k.color, opacity: 0.06 }} />
                 <p style={{ fontSize: '28px', margin: '0 0 12px' }}>{k.icon}</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: k.color, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
+                <p style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 800, color: k.color, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>{k.label}</p>
               </div>
             ))}
@@ -153,11 +153,11 @@ export default function AdminPanel() {
 
           {/* TOOLS GRID */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '16px' }}>Tools & Actions</p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '14px', paddingBottom: '40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px', paddingBottom: isMobile ? '20px' : '40px' }}>
             {tools.map((tool) => (
               <div key={tool.title} style={{
-                borderRadius: '16px', border: `1px solid ${tool.border}`,
-                background: 'var(--bg-card)', padding: '20px',
+                borderRadius: '12px', border: `1px solid ${tool.border}`,
+                background: 'var(--bg-card)', padding: isMobile ? '14px' : '20px',
                 display: 'flex', flexDirection: 'column',
                 transition: 'all 0.2s', cursor: 'default',
               }}

@@ -102,12 +102,7 @@ ${report.motivation}`
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => window.location.href = '/admin'}
-              style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
-              ← Back
-            </button>
+            
             <div>
               <h1 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Weekly AI Report</h1>
               <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Business development summary</p>

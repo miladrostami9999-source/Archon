@@ -42,7 +42,7 @@ interface Campaign { id: number; subject: string; body: string; tone: string; st
 
 const card: React.CSSProperties = {
   borderRadius: '12px', border: '1px solid var(--border)',
-  background: 'var(--bg-card)', padding: '20px',
+  background: 'var(--bg-card)', padding: '16px',
   transition: 'background 0.25s, border-color 0.25s',
 }
 
@@ -193,37 +193,37 @@ export default function CompanyDetail() {
             ← Back
           </button>
           <div style={{ flex: 1 }} />
-          <button onClick={() => setShowDeleteModal(true)}
-            style={{ fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '6px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer', transition: 'all 0.15s' }}>
+          {!isMobile && <button onClick={() => setShowDeleteModal(true)}
+            style={{ fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '6px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
             🗑 Delete
-          </button>
+          </button>}
           <button onClick={toggleFavorite}
             style={{ fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer', color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}>
             ★
           </button>
           <select value={company.status} onChange={e => updateStatus(e.target.value)}
-            style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '999px', fontWeight: 500, cursor: 'pointer', border: 'none', outline: 'none', background: sc.bg, color: sc.text }}>
+            style={{ fontSize: isMobile ? '11px' : '12px', padding: isMobile ? '5px 8px' : '6px 12px', borderRadius: '999px', fontWeight: 500, cursor: 'pointer', border: 'none', outline: 'none', background: sc.bg, color: sc.text, maxWidth: isMobile ? '90px' : 'none' }}>
             {Object.keys(STATUS_COLORS).map(s => (
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
           <button onClick={() => setActiveTab('email')}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer' }}>
-            ✉ Generate Email
+            {isMobile ? '✉' : '✉ Generate Email'}
           </button>
         </div>
 
         {/* CONTENT */}
-        <div style={{ flex: 1, padding: '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box' }}>
+        <div style={{ flex: 1, padding: isMobile ? '12px' : '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box', overflowX: 'hidden' }}>
 
           {/* COMPANY CARD */}
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
               {/* AVATAR */}
               <div style={{
-                width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0,
+                width: isMobile ? '40px' : '56px', height: isMobile ? '40px' : '56px', borderRadius: '10px', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px', fontWeight: 700, color: '#7BAEF7',
+                fontSize: isMobile ? '12px' : '16px', fontWeight: 700, color: '#7BAEF7',
                 background: 'linear-gradient(135deg, rgba(79,123,247,0.2), rgba(124,58,237,0.2))',
                 border: '1px solid rgba(79,123,247,0.15)',
               }}>
@@ -232,7 +232,7 @@ export default function CompanyDetail() {
 
               {/* INFO */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h1 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{company.name}</h1>
+                <h1 style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{company.name}</h1>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 8px' }}>
                   {[company.country, company.city, company.industry, company.company_size].filter(Boolean).join(' · ')}
                 </p>
@@ -256,8 +256,8 @@ export default function CompanyDetail() {
 
               {/* SCORE + EDIT */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <div style={{ position: 'relative', width: '56px', height: '56px' }}>
-                  <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform: 'rotate(-90deg)' }}>
+                <div style={{ position: 'relative', width: isMobile ? '42px' : '56px', height: isMobile ? '42px' : '56px' }}>
+                  <svg width={isMobile ? 42 : 56} height={isMobile ? 42 : 56} viewBox="0 0 56 56" style={{ transform: 'rotate(-90deg)' }}>
                     <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" strokeWidth="4"/>
                     <circle cx="28" cy="28" r="22" fill="none" stroke={getScoreColor(company.opportunity_score)} strokeWidth="4"
                       strokeDasharray={`${company.opportunity_score} 100`} strokeLinecap="round"
@@ -268,7 +268,7 @@ export default function CompanyDetail() {
                   </span>
                 </div>
                 <button onClick={() => window.location.href = `/edit?id=${id}`}
-                  style={{ fontSize: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}
+                  style={{ fontSize: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: isMobile ? '3px 8px' : '4px 10px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(79,123,247,0.4)' }}
                   onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                   ✏️ Edit
@@ -333,6 +333,20 @@ export default function CompanyDetail() {
             </div>
           </div>
 
+          {/* MOBILE ACTIONS */}
+          {isMobile && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowDeleteModal(true)}
+                style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
+                🗑 Delete
+              </button>
+              <button onClick={() => window.location.href = `/edit?id=${id}`}
+                style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(79,123,247,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(79,123,247,0.08)', cursor: 'pointer' }}>
+                ✏️ Edit
+              </button>
+            </div>
+          )}
+
           {/* TABS */}
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', overflowX: 'auto' }}>
             {(['overview', 'notes', 'history', 'email', 'emails'] as const).map(tab => (
@@ -346,11 +360,11 @@ export default function CompanyDetail() {
                 }}
                 onMouseEnter={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text)' }}
                 onMouseLeave={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text-muted)' }}>
-                {tab === 'overview' ? '📋 Overview'
+                {isMobile ? (tab === 'overview' ? '📋' : tab === 'notes' ? '📝' : tab === 'history' ? '📅' : tab === 'email' ? '✉' : '📧') : (tab === 'overview' ? '📋 Overview'
                   : tab === 'notes' ? `📝 Notes${notes.length > 0 ? ` (${notes.length})` : ''}`
                   : tab === 'history' ? '📅 History'
                   : tab === 'email' ? '✉ Generate'
-                  : `📧 Emails (${campaigns.length})`}
+                  : `📧 Emails (${campaigns.length})`)}
               </button>
             ))}
           </div>

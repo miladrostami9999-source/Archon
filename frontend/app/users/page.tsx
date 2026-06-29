@@ -22,7 +22,6 @@ interface User {
 
 export default function UsersPage() {
   const isMobile = useIsMobile()
-
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -31,8 +30,6 @@ export default function UsersPage() {
   const [error, setError] = useState('')
   const [editUser, setEditUser] = useState<User | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
-  const [filterPlan, setFilterPlan] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
   const [search, setSearch] = useState('')
 
   const fetchUsers = async () => {
@@ -44,7 +41,6 @@ export default function UsersPage() {
     }
     setLoading(false)
   }
-
   useEffect(() => { fetchUsers() }, [])
 
   const createUser = async () => {
@@ -68,90 +64,71 @@ export default function UsersPage() {
     catch (e: any) { alert(e.response?.data?.detail || 'Error') }
   }
 
-  const filtered = users.filter(u => {
-    if (filterPlan && u.plan !== filterPlan) return false
-    if (filterStatus === 'active' && !u.is_active) return false
-    if (filterStatus === 'inactive' && u.is_active) return false
-    if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
+  const filtered = users.filter(u =>
+    !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+  )
 
   const planCounts = { basic: 0, pro: 0, agency: 0 }
   users.forEach(u => { if (u.is_active && u.plan in planCounts) (planCounts as any)[u.plan]++ })
 
   const formatDate = (d: string | null) => {
     if (!d) return 'Never'
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inp: React.CSSProperties = {
     background: 'var(--bg-input)', border: '1px solid var(--border)',
-    borderRadius: '8px', padding: '9px 12px',
-    fontSize: '13px', color: 'var(--text)', outline: 'none',
-    width: '100%', boxSizing: 'border-box',
+    borderRadius: '8px', padding: '9px 12px', fontSize: '13px',
+    color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' as const,
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)' }}>
       <Sidebar />
 
       {/* DELETE MODAL */}
       {deleteConfirm !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '28px 24px', maxWidth: '340px', width: '100%', margin: '0 16px', textAlign: 'center' }}>
-            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🗑</div>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>Delete User?</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 24px' }}>This action cannot be undone. All user data will be permanently removed.</p>
+          <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '28px 24px', maxWidth: '320px', width: 'calc(100% - 32px)', textAlign: 'center' }}>
+            <div style={{ fontSize: '36px', marginBottom: '12px' }}>🗑</div>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>Delete User?</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 20px' }}>This cannot be undone.</p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => deleteUser(deleteConfirm)} style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #EF4444, #DC2626)', border: 'none', cursor: 'pointer' }}>Delete</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '9px', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => deleteUser(deleteConfirm)} style={{ flex: 1, padding: '9px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#EF4444', border: 'none', cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0, overflowX: 'hidden' }}>
 
-          {/* HEADER */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '28px' }}>
-            <div>
-              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>Admin</p>
-              <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>User Management</h1>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{users.length} registered users</p>
-            </div>
-            <button onClick={() => setShowAdd(!showAdd)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}>
-              + Add User
-            </button>
+        {/* HEADER */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
+          <div>
+            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>User Management</h1>
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{users.length} users</p>
           </div>
+          <button onClick={() => setShowAdd(!showAdd)}
+            style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer' }}>
+            + {isMobile ? 'Add' : 'Add User'}
+          </button>
+        </div>
+
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '14px' : '24px 32px' }}>
 
           {/* PLAN STATS */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: isMobile ? '8px' : '14px', marginBottom: '20px' }}>
             {(['basic', 'pro', 'agency'] as const).map(plan => {
               const pm = PLAN_META[plan]
+              const count = (planCounts as any)[plan]
               return (
-                <div key={plan} style={{
-                  borderRadius: '14px', border: `1px solid ${pm.border}`,
-                  background: pm.bg, padding: '18px 20px',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  outline: filterPlan === plan ? `2px solid ${pm.color}` : 'none',
-                }}
-                  onClick={() => setFilterPlan(filterPlan === plan ? '' : plan)}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <p style={{ fontSize: '28px', fontWeight: 800, color: pm.color, margin: '0 0 4px' }}>{(planCounts as any)[plan]}</p>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', margin: 0, textTransform: 'capitalize' }}>{plan} Plan</p>
-                    </div>
-                    <div style={{ fontSize: '28px', opacity: 0.4 }}>{pm.icon}</div>
+                <div key={plan} style={{ borderRadius: '12px', border: `1px solid ${pm.border}`, background: pm.bg, padding: isMobile ? '12px' : '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <p style={{ fontSize: isMobile ? '24px' : '30px', fontWeight: 800, color: pm.color, margin: 0, lineHeight: 1 }}>{count}</p>
+                    <p style={{ fontSize: isMobile ? '10px' : '12px', color: 'var(--text-muted)', margin: '4px 0 0', textTransform: 'capitalize', fontWeight: 500 }}>{plan}</p>
                   </div>
-                  <div style={{ marginTop: '12px', height: '4px', background: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: pm.color, borderRadius: '999px', width: `${users.length > 0 ? ((planCounts as any)[plan] / users.length) * 100 : 0}%`, transition: 'width 0.5s' }} />
-                  </div>
+                  <span style={{ fontSize: isMobile ? '22px' : '26px', opacity: 0.5 }}>{pm.icon}</span>
                 </div>
               )
             })}
@@ -159,28 +136,23 @@ export default function UsersPage() {
 
           {/* ADD FORM */}
           {showAdd && (
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(79,123,247,0.2)', background: 'rgba(79,123,247,0.04)', padding: '24px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>➕</span> Create New User
-              </h3>
-              {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ borderRadius: '14px', border: '1px solid rgba(79,123,247,0.2)', background: 'rgba(79,123,247,0.04)', padding: '18px', marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px' }}>➕ New User</p>
+              {error && <div style={{ background: 'rgba(239,68,68,0.1)', color: '#F87171', fontSize: '12px', padding: '8px 12px', borderRadius: '8px', marginBottom: '12px' }}>{error}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                 {[
-                  { label: 'Full Name', key: 'name', placeholder: 'John Doe', type: 'text' },
-                  { label: 'Email', key: 'email', placeholder: 'john@studio.com', type: 'email' },
-                  { label: 'Password', key: 'password', placeholder: 'Min 8 chars', type: 'password' },
+                  { label: 'Name', key: 'name', ph: 'Full name', type: 'text' },
+                  { label: 'Email', key: 'email', ph: 'email@studio.com', type: 'email' },
+                  { label: 'Password', key: 'password', ph: 'Min 8 chars', type: 'password' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.label}</label>
-                    <input value={(addForm as any)[f.key]} onChange={e => setAddForm({ ...addForm, [f.key]: e.target.value })}
-                      placeholder={f.placeholder} type={f.type} style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{f.label}</label>
+                    <input value={(addForm as any)[f.key]} onChange={e => setAddForm({ ...addForm, [f.key]: e.target.value })} placeholder={f.ph} type={f.type} style={inp} />
                   </div>
                 ))}
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Plan</label>
-                  <select value={addForm.plan} onChange={e => setAddForm({ ...addForm, plan: e.target.value })} style={inputStyle}>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Plan</label>
+                  <select value={addForm.plan} onChange={e => setAddForm({ ...addForm, plan: e.target.value })} style={inp}>
                     <option value="basic">Basic</option>
                     <option value="pro">Pro</option>
                     <option value="agency">Agency</option>
@@ -188,55 +160,34 @@ export default function UsersPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button onClick={() => { setShowAdd(false); setError('') }} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={createUser} disabled={saving} style={{ padding: '9px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
-                  {saving ? 'Creating...' : 'Create User'}
+                <button onClick={() => { setShowAdd(false); setError('') }} style={{ padding: '7px 16px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={createUser} disabled={saving} style={{ padding: '7px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: '#4F7BF7', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+                  {saving ? 'Creating...' : 'Create'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* FILTERS */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '280px' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
+          {/* SEARCH */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '13px' }}>⌕</span>
               <input placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ ...inputStyle, paddingLeft: '32px' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.4)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+                style={{ ...inp, paddingLeft: '28px' }} />
             </div>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              style={{ ...inputStyle, width: 'auto', paddingRight: '32px' }}>
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            {(filterPlan || filterStatus || search) && (
-              <button onClick={() => { setFilterPlan(''); setFilterStatus(''); setSearch('') }}
-                style={{ padding: '9px 14px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer' }}>
-                Clear ✕
-              </button>
-            )}
-            <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: 'auto' }}>{filtered.length} of {users.length}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: 'auto' }}>{filtered.length}/{users.length}</p>
           </div>
 
-          {/* USERS TABLE */}
-          <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden' }}>
-            {/* TABLE HEADER */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '2fr 1fr 120px' : '2.5fr 1fr 1fr 1.2fr 1fr 160px', gap: '0', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-input)' }}>
-              {['User', 'Plan', 'Role', 'Status', 'Last Login', 'Actions'].map(h => (
-                <p key={h} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{h}</p>
-              ))}
-            </div>
+          {/* USER LIST */}
+          <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden' }}>
 
             {loading ? (
-              <div style={{ padding: '48px', textAlign: 'center' }}>
-                <div style={{ width: '24px', height: '24px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Loading users...</p>
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <div style={{ width: '20px', height: '20px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 8px' }} />
+                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Loading...</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: '48px', textAlign: 'center' }}>
-                <p style={{ fontSize: '32px', opacity: 0.2, margin: '0 0 8px' }}>👥</p>
+              <div style={{ padding: '40px', textAlign: 'center' }}>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No users found</p>
               </div>
             ) : filtered.map((u, i) => {
@@ -244,94 +195,82 @@ export default function UsersPage() {
               const isEditing = editUser?.id === u.id
               const initials = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
               return (
-                <div key={u.id} style={{
-                  display: 'grid', gridTemplateColumns: isMobile ? '2fr 1fr 120px' : '2.5fr 1fr 1fr 1.2fr 1fr 160px',
-                  gap: '0', padding: '14px 20px',
-                  borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
-                  alignItems: 'center', transition: 'background 0.15s',
-                }}
+                <div key={u.id} style={{ padding: isMobile ? '12px 14px' : '14px 20px', borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', transition: 'background 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
 
-                  {/* USER */}
+                  {/* ROW */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+
+                    {/* AVATAR */}
+                    <div style={{ width: isMobile ? '32px' : '38px', height: isMobile ? '32px' : '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '11px' : '13px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
                       {initials}
                     </div>
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{u.name}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{u.email}</p>
-                    </div>
-                  </div>
 
-                  {/* PLAN */}
-                  {isEditing ? (
-                    <select value={editUser.plan} onChange={e => setEditUser({ ...editUser, plan: e.target.value })}
-                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', fontSize: '12px', color: 'var(--text)', outline: 'none', width: '90px' }}>
-                      <option value="basic">Basic</option>
-                      <option value="pro">Pro</option>
-                      <option value="agency">Agency</option>
-                    </select>
-                  ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '3px 10px', borderRadius: '999px', textTransform: 'capitalize' }}>
-                      {pm.icon} {u.plan}
-                    </span>
-                  )}
-
-                  {/* ROLE */}
-                  {isEditing ? (
-                    <select value={editUser.role} onChange={e => setEditUser({ ...editUser, role: e.target.value })}
-                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', fontSize: '12px', color: 'var(--text)', outline: 'none', width: '90px' }}>
-                      <option value="member">Member</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  ) : (
-                    <span style={{ fontSize: '12px', fontWeight: 500, color: u.role === 'admin' ? '#FBBF24' : 'var(--text-muted)', background: u.role === 'admin' ? 'rgba(251,191,36,0.1)' : 'transparent', padding: u.role === 'admin' ? '2px 8px' : '0', borderRadius: '999px', textTransform: 'capitalize' }}>
-                      {u.role === 'admin' ? '👑 Admin' : 'Member'}
-                    </span>
-                  )}
-
-                  {/* STATUS */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: u.is_active ? '#34D399' : '#F87171', boxShadow: u.is_active ? '0 0 6px #34D39980' : 'none' }} />
-                    <span style={{ fontSize: '12px', color: u.is_active ? '#34D399' : '#F87171', fontWeight: 500 }}>{u.is_active ? 'Active' : 'Inactive'}</span>
-                  </div>
-
-                  {/* LAST LOGIN */}
-                  <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>{formatDate(u.last_login)}</p>
-
-                  {/* ACTIONS */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {isEditing ? (
-                      <>
-                        <button onClick={() => updateUser(u.id, { plan: editUser.plan, role: editUser.role })}
-                          style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', cursor: 'pointer', fontWeight: 600 }}>
-                          Save
-                        </button>
-                        <button onClick={() => setEditUser(null)}
-                          style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => setEditUser(u)}
-                          style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', cursor: 'pointer', fontWeight: 500 }}>
-                          Edit
-                        </button>
-                        <button onClick={() => updateUser(u.id, { is_active: !u.is_active })}
-                          style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: u.is_active ? '#F87171' : '#34D399', background: u.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)', border: `1px solid ${u.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(52,211,153,0.15)'}`, cursor: 'pointer', fontWeight: 500 }}>
-                          {u.is_active ? 'Disable' : 'Enable'}
-                        </button>
-                        {u.role !== 'admin' && (
-                          <button onClick={() => setDeleteConfirm(u.id)}
-                            style={{ fontSize: '11px', padding: '5px 8px', borderRadius: '6px', color: '#F87171', background: 'none', border: 'none', cursor: 'pointer' }}
-                            title="Delete user">
-                            🗑
-                          </button>
+                    {/* INFO */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{u.name}</p>
+                        {/* PLAN BADGE */}
+                        {isEditing ? (
+                          <select value={editUser.plan} onChange={e => setEditUser({ ...editUser, plan: e.target.value })}
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
+                            <option value="basic">Basic</option>
+                            <option value="pro">Pro</option>
+                            <option value="agency">Agency</option>
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 7px', borderRadius: '999px', textTransform: 'capitalize' }}>
+                            {pm.icon} {u.plan}
+                          </span>
                         )}
-                      </>
-                    )}
+                        {/* ROLE */}
+                        {isEditing ? (
+                          <select value={editUser.role} onChange={e => setEditUser({ ...editUser, role: e.target.value })}
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        ) : u.role === 'admin' ? (
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '2px 7px', borderRadius: '999px' }}>👑 Admin</span>
+                        ) : null}
+                        {/* STATUS DOT */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.is_active ? '#34D399' : '#F87171', boxShadow: u.is_active ? '0 0 5px #34D39960' : 'none' }} />
+                          <span style={{ fontSize: '10px', color: u.is_active ? '#34D399' : '#F87171', fontWeight: 500 }}>{u.is_active ? 'Active' : 'Inactive'}</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>
+                        {u.email}{!isMobile && u.last_login ? ` · Last: ${formatDate(u.last_login)}` : ''}
+                      </p>
+                    </div>
+
+                    {/* ACTIONS */}
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                      {isEditing ? (
+                        <>
+                          <button onClick={() => updateUser(u.id, { plan: editUser.plan, role: editUser.role })}
+                            style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', cursor: 'pointer', fontWeight: 600 }}>Save</button>
+                          <button onClick={() => setEditUser(null)}
+                            style={{ fontSize: '11px', padding: '5px 8px', borderRadius: '6px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>✕</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => setEditUser(u)}
+                            style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', cursor: 'pointer' }}>Edit</button>
+                          <button onClick={() => updateUser(u.id, { is_active: !u.is_active })}
+                            style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '6px', color: u.is_active ? '#F87171' : '#34D399', background: u.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)', border: `1px solid ${u.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(52,211,153,0.15)'}`, cursor: 'pointer' }}>
+                            {u.is_active ? (isMobile ? 'Off' : 'Disable') : (isMobile ? 'On' : 'Enable')}
+                          </button>
+                          {u.role !== 'admin' && (
+                            <button onClick={() => setDeleteConfirm(u.id)}
+                              style={{ fontSize: '13px', padding: '4px 6px', borderRadius: '6px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}
+                              onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>🗑</button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
