@@ -65,6 +65,8 @@ export default function CompanyDetail() {
   const [generatingEmail, setGeneratingEmail] = useState(false)
   const [generatingSummary, setGeneratingSummary] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ok: boolean; msg: string} | null>(null)
   const [expandedCampaign, setExpandedCampaign] = useState<number | null>(null)
   const [showAddContact, setShowAddContact] = useState(false)
   const [newContact, setNewContact] = useState({ full_name: '', role: '', email: '', linkedin: '', is_primary: false })
@@ -124,6 +126,27 @@ export default function CompanyDetail() {
     navigator.clipboard.writeText(`Subject: ${emailDraft.subject}\n\n${emailDraft.body}`)
     setCopied(true); setTimeout(() => setCopied(false), 2000)
     window.open('https://mail.google.com/mail/u/0/#compose', '_blank')
+  }
+  const sendEmailDirectly = async () => {
+    if (!emailDraft || !company?.email) return
+    setSending(true); setSendResult(null)
+    try {
+      await axios.post(`${API}/companies/send-email`, {
+        to_email: company.email,
+        subject: emailDraft.subject,
+        body: emailDraft.body,
+      })
+      setSendResult({ ok: true, msg: `Sent to ${company.email}` })
+      // Update company status to 'sent' automatically
+      if (company.status === 'new' || company.status === 'reviewed' || company.status === 'ready') {
+        await axios.patch(`${API}/companies/${id}/status?status=sent`)
+        setCompany(prev => prev ? { ...prev, status: 'sent' } : prev)
+      }
+      setTimeout(() => setSendResult(null), 4000)
+    } catch (e: any) {
+      setSendResult({ ok: false, msg: e.response?.data?.detail || 'Failed to send' })
+    }
+    setSending(false)
   }
   const updateCampaignStatus = async (campaignId: number, status: string) => {
     await axios.patch(`${API}/companies/${id}/campaigns/${campaignId}?status=${status}`)
@@ -550,14 +573,24 @@ export default function CompanyDetail() {
                     <textarea value={emailDraft.body} onChange={e => setEmailDraft({ ...emailDraft, body: e.target.value })}
                       rows={10} style={{ width: '100%', fontSize: '14px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', outline: 'none', resize: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  {sendResult && (
+                    <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171', border: `1px solid ${sendResult.ok ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                      {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button onClick={generateEmail} disabled={generatingEmail}
-                      style={{ flex: 1, padding: '8px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '14px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      style={{ flex: isMobile ? '1 1 100%' : 1, padding: '9px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer' }}>
                       🔄 Regenerate
                     </button>
                     <button onClick={copyAndOpenGmail}
-                      style={{ flex: 1, padding: '8px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                      {copied ? '✅ Copied!' : '📋 Copy + Open Gmail'}
+                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer' }}>
+                      {copied ? '✅ Copied!' : '📋 Copy'}
+                    </button>
+                    <button onClick={sendEmailDirectly} disabled={sending || !company?.email}
+                      title={!company?.email ? 'No email address for this company' : ''}
+                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (sending || !company?.email) ? 'rgba(79,123,247,0.4)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: (sending || !company?.email) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      {sending ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Sending...</> : '📨 Send Now'}
                     </button>
                   </div>
                 </div>
