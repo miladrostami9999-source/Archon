@@ -5,12 +5,23 @@ import os
 
 # ─────────────────────────────────────────
 # DATABASE SETUP
+# Uses PostgreSQL in production (Railway sets DATABASE_URL automatically)
+# Falls back to local SQLite for development on your machine
 # ─────────────────────────────────────────
-BASE_DIR = r"C:\Users\Milad Rostami\archon"
-DB_PATH = os.path.join(BASE_DIR, "database", "archon.db")
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL:
+    # Railway/production: PostgreSQL
+    # Railway gives "postgres://" but SQLAlchemy needs "postgresql://"
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(DATABASE_URL)
+else:
+    # Local development: SQLite
+    BASE_DIR = r"C:\Users\Milad Rostami\archon"
+    DB_PATH = os.path.join(BASE_DIR, "database", "archon.db")
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

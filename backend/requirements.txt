@@ -9,3 +9,6 @@ crawl4ai==0.2.77
 anthropic==0.28.0
 pydantic==2.7.0
 alembic==1.13.1
+psycopg2-binary==2.9.9
+bcrypt==4.1.3
+python-jose[cryptography]==3.3.0

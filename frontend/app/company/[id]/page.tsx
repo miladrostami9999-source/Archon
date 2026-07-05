@@ -67,6 +67,11 @@ export default function CompanyDetail() {
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<{ok: boolean; msg: string} | null>(null)
+  const [sendModal, setSendModal] = useState<{ subject: string; body: string; campaignId?: number } | null>(null)
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('')
+  const [editSubject, setEditSubject] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [attachments, setAttachments] = useState<{ filename: string; content_base64: string; mime_type: string; size: number }[]>([])
   const [expandedCampaign, setExpandedCampaign] = useState<number | null>(null)
   const [showAddContact, setShowAddContact] = useState(false)
   const [newContact, setNewContact] = useState({ full_name: '', role: '', email: '', linkedin: '', is_primary: false })
@@ -127,33 +132,84 @@ export default function CompanyDetail() {
     setCopied(true); setTimeout(() => setCopied(false), 2000)
     window.open('https://mail.google.com/mail/u/0/#compose', '_blank')
   }
-  const sendEmailDirectly = async () => {
-    if (!emailDraft || !company?.email) return
+  const openSendModal = (subject: string, body: string, campaignId?: number) => {
+    const primary = contacts.find(c => c.is_primary && c.email)
+    const defaultEmail = primary?.email || company?.email || ''
+    setSelectedRecipient(defaultEmail)
+    setEditSubject(subject)
+    setEditBody(body)
+    setAttachments([])
+    setSendModal({ subject, body, campaignId })
+  }
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    files.forEach(file => {
+      if (file.size > 10 * 1024 * 1024) { alert(`${file.name} exceeds 10MB limit`); return }
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const base64 = result.split(',')[1]
+        setAttachments(prev => [...prev, { filename: file.name, content_base64: base64, mime_type: file.type || 'application/octet-stream', size: file.size }])
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
+  const removeAttachment = (filename: string) => {
+    setAttachments(prev => prev.filter(a => a.filename !== filename))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const confirmSend = async () => {
+    if (!sendModal || !selectedRecipient || !editSubject.trim() || !editBody.trim()) return
     setSending(true); setSendResult(null)
     try {
       await axios.post(`${API}/companies/send-email`, {
-        to_email: company.email,
-        subject: emailDraft.subject,
-        body: emailDraft.body,
+        to_email: selectedRecipient,
+        subject: editSubject,
+        body: editBody,
+        campaign_id: sendModal.campaignId,
+        attachments: attachments.length > 0 ? attachments.map(a => ({ filename: a.filename, content_base64: a.content_base64, mime_type: a.mime_type })) : null,
       })
-      setSendResult({ ok: true, msg: `Sent to ${company.email}` })
-      // Update company status to 'sent' automatically
-      if (company.status === 'new' || company.status === 'reviewed' || company.status === 'ready') {
+      setSendResult({ ok: true, msg: `Sent to ${selectedRecipient}` })
+      if (sendModal.campaignId) fetchCampaigns()
+      if (company && ['new', 'reviewed', 'ready'].includes(company.status)) {
         await axios.patch(`${API}/companies/${id}/status?status=sent`)
         setCompany(prev => prev ? { ...prev, status: 'sent' } : prev)
       }
+      setSendModal(null)
+      setAttachments([])
       setTimeout(() => setSendResult(null), 4000)
     } catch (e: any) {
       setSendResult({ ok: false, msg: e.response?.data?.detail || 'Failed to send' })
     }
     setSending(false)
   }
+  const sendCampaignDirectly = (campaign: Campaign) => {
+    openSendModal(campaign.subject, campaign.body, campaign.id)
+  }
   const updateCampaignStatus = async (campaignId: number, status: string) => {
     await axios.patch(`${API}/companies/${id}/campaigns/${campaignId}?status=${status}`)
     fetchCampaigns(); fetchHistory()
   }
+  const markAsReplied = async (campaignId: number) => {
+    await updateCampaignStatus(campaignId, 'replied')
+    // Auto-advance company pipeline status if still in early stages
+    if (company && ['sent', 'waiting'].includes(company.status)) {
+      await updateStatus('replied')
+    }
+  }
   const getScoreColor = (s: number) => s >= 80 ? '#34D399' : s >= 60 ? '#FBBF24' : '#64748B'
   const getInitials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  const formatDateTime = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null
+  const daysSince = (d: string | null) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : null
 
   if (loading) return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
@@ -168,7 +224,7 @@ export default function CompanyDetail() {
   const sc = STATUS_COLORS[company.status] || STATUS_COLORS.new
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
       {/* DELETE MODAL */}
@@ -198,12 +254,131 @@ export default function CompanyDetail() {
         </div>
       )}
 
+      {/* SEND EMAIL CONFIRMATION MODAL */}
+      {sendModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }}>
+          <div style={{ ...card, maxWidth: '520px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' as const }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(79,123,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '18px' }}>📨</span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Confirm Send</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>Review recipient before sending</p>
+              </div>
+            </div>
+
+            {/* RECIPIENT SELECTOR */}
+            <div style={{ marginBottom: '14px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Send To</p>
+
+              {contacts.filter(c => c.email).length === 0 && !company?.email ? (
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', fontSize: '13px', color: '#F87171' }}>
+                  No email address available for this company or its contacts.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {/* Company general email */}
+                  {company?.email && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${selectedRecipient === company.email ? 'rgba(79,123,247,0.5)' : 'var(--border)'}`, background: selectedRecipient === company.email ? 'rgba(79,123,247,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <input type="radio" name="recipient" checked={selectedRecipient === company.email} onChange={() => setSelectedRecipient(company.email)} style={{ accentColor: '#4F7BF7' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>General / Company</p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{company.email}</p>
+                      </div>
+                    </label>
+                  )}
+
+                  {/* Individual contacts */}
+                  {contacts.filter(c => c.email).map(c => (
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${selectedRecipient === c.email ? 'rgba(79,123,247,0.5)' : 'var(--border)'}`, background: selectedRecipient === c.email ? 'rgba(79,123,247,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <input type="radio" name="recipient" checked={selectedRecipient === c.email} onChange={() => setSelectedRecipient(c.email)} style={{ accentColor: '#4F7BF7' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{c.full_name}</p>
+                          {c.is_primary && <span style={{ fontSize: '9px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.12)', padding: '1px 6px', borderRadius: '999px' }}>PRIMARY</span>}
+                        </div>
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.role ? `${c.role} · ` : ''}{c.email}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* EDITABLE SUBJECT */}
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Subject</p>
+              <input value={editSubject} onChange={e => setEditSubject(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '9px 12px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+            </div>
+
+            {/* EDITABLE BODY */}
+            <div style={{ marginBottom: '14px' }}>
+              <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Message — edit before sending</p>
+              <textarea value={editBody} onChange={e => setEditBody(e.target.value)} rows={8}
+                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none', resize: 'vertical' as const, lineHeight: 1.6, fontFamily: 'inherit' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+            </div>
+
+            {/* ATTACHMENTS */}
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Attachments</p>
+              <input id="attach-input" type="file" multiple style={{ display: 'none' }} onChange={handleAttachmentUpload} accept=".pdf,.jpg,.jpeg,.png,.zip,.doc,.docx" />
+              <button onClick={() => document.getElementById('attach-input')?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px dashed rgba(79,123,247,0.4)', background: 'rgba(79,123,247,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
+                📎 Add Portfolio / Files
+              </button>
+              {attachments.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
+                  {attachments.map(a => (
+                    <div key={a.filename} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <span style={{ fontSize: '14px' }}>📄</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{a.filename}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-dim)', flexShrink: 0 }}>{formatFileSize(a.size)}</span>
+                      </div>
+                      <button onClick={() => removeAttachment(a.filename)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '13px', padding: '2px 6px', flexShrink: 0 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {sendResult && (
+              <div style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+                {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setSendModal(null)} disabled={sending}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={confirmSend} disabled={sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: (sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()) ? 'rgba(79,123,247,0.4)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: (sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                {sending ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Sending...</> : '📨 Confirm & Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MAIN */}
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0 }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, height: '100vh', overflow: 'hidden' }}>
 
         {/* TOP BAR */}
         <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
+          flexShrink: 0, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: '12px',
           padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
@@ -237,7 +412,8 @@ export default function CompanyDetail() {
         </div>
 
         {/* CONTENT */}
-        <div style={{ flex: 1, padding: isMobile ? '12px' : '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+          <div style={{ padding: isMobile ? '12px' : '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box' }}>
 
           {/* COMPANY CARD */}
           <div style={card}>
@@ -371,11 +547,11 @@ export default function CompanyDetail() {
           )}
 
           {/* TABS */}
-          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', flexShrink: 0, width: '100%', boxSizing: 'border-box' as const }}>
             {(['overview', 'notes', 'history', 'email', 'emails'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{
-                  flex: 1, padding: '8px', fontSize: '12px', fontWeight: 500,
+                  flex: '1 1 0', minWidth: 0, padding: isMobile ? '8px 4px' : '8px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500,
                   borderRadius: '8px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
                   background: activeTab === tab ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent',
                   color: activeTab === tab ? 'white' : 'var(--text-muted)',
@@ -587,10 +763,10 @@ export default function CompanyDetail() {
                       style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer' }}>
                       {copied ? '✅ Copied!' : '📋 Copy'}
                     </button>
-                    <button onClick={sendEmailDirectly} disabled={sending || !company?.email}
-                      title={!company?.email ? 'No email address for this company' : ''}
-                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (sending || !company?.email) ? 'rgba(79,123,247,0.4)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: (sending || !company?.email) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                      {sending ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Sending...</> : '📨 Send Now'}
+                    <button onClick={() => emailDraft && openSendModal(emailDraft.subject, emailDraft.body)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
+                      title={(!company?.email && contacts.filter(c => c.email).length === 0) ? 'No email address available' : ''}
+                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(79,123,247,0.4)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                      📨 Send Now
                     </button>
                   </div>
                 </div>
@@ -612,17 +788,35 @@ export default function CompanyDetail() {
               ) : (
                 campaigns.map(campaign => {
                   const cs = CAMPAIGN_STATUS[campaign.status] || CAMPAIGN_STATUS.draft
+                  const waitingDays = campaign.status === 'sent' ? daysSince(campaign.sent_at) : null
+                  const needsFollowUp = waitingDays !== null && waitingDays >= 7
                   return (
-                    <div key={campaign.id} style={{ ...card, padding: 0, overflow: 'hidden' }}>
-                      <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'background 0.15s' }}
+                    <div key={campaign.id} style={{ ...card, padding: 0, overflow: 'hidden', border: needsFollowUp ? '1px solid rgba(251,191,36,0.3)' : card.border }}>
+                      <div style={{ padding: isMobile ? '12px 14px' : '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'background 0.15s', gap: '10px' }}
                         onClick={() => setExpandedCampaign(expandedCampaign === campaign.id ? null : campaign.id)}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{campaign.subject}</p>
-                          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>{campaign.tone} · {new Date(campaign.created_at).toLocaleDateString()}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '160px' : '320px' }}>{campaign.subject}</p>
+                            {campaign.status === 'replied' && (
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
+                                ✅ Replied
+                              </span>
+                            )}
+                            {needsFollowUp && (
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
+                                ⏰ {waitingDays}d — Follow up
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
+                            {campaign.tone} · Created {new Date(campaign.created_at).toLocaleDateString()}
+                            {campaign.sent_at && <> · Sent {formatDateTime(campaign.sent_at)}</>}
+                            {campaign.replied_at && <> · Replied {formatDateTime(campaign.replied_at)}</>}
+                          </p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px', flexShrink: 0 }}>
                           <select value={campaign.status}
                             onChange={e => { e.stopPropagation(); updateCampaignStatus(campaign.id, e.target.value) }}
                             onClick={e => e.stopPropagation()}
@@ -638,10 +832,34 @@ export default function CompanyDetail() {
                         <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
                           <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Body</p>
                           <p style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: '0 0 12px' }}>{campaign.body}</p>
-                          <button onClick={() => { navigator.clipboard.writeText(`Subject: ${campaign.subject}\n\n${campaign.body}`); window.open('https://mail.google.com/mail/u/0/#compose', '_blank') }}
-                            style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'white', background: '#4F7BF7', border: 'none', cursor: 'pointer' }}>
-                            📋 Copy + Open Gmail
-                          </button>
+                          {sendResult && (
+                            <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '10px', fontSize: '12px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+                              {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button onClick={() => { navigator.clipboard.writeText(`Subject: ${campaign.subject}\n\n${campaign.body}`); window.open('https://mail.google.com/mail/u/0/#compose', '_blank') }}
+                              style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                              📋 Copy
+                            </button>
+                            {campaign.status === 'draft' && (
+                              <button onClick={() => sendCampaignDirectly(campaign)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
+                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(79,123,247,0.4)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                                📨 Send Now
+                              </button>
+                            )}
+                            {campaign.status === 'sent' && (
+                              <button onClick={() => markAsReplied(campaign.id)}
+                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #34D399, #10B981)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ✅ Mark as Replied
+                              </button>
+                            )}
+                            {campaign.status === 'replied' && campaign.replied_at && (
+                              <span style={{ fontSize: '12px', padding: '6px 12px', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ✅ Replied on {formatDateTime(campaign.replied_at)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -651,6 +869,7 @@ export default function CompanyDetail() {
             </div>
           )}
 
+          </div>
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
