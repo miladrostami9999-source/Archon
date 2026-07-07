@@ -493,7 +493,7 @@ export default function Dashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px', flexShrink: 0 }}>
             {/* VIEW TOGGLE */}
-            <div style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '2px', flexShrink: 0 }}>
+            <div data-tour="view-toggle" style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '2px', flexShrink: 0 }}>
               {([['list','☰'],['board','⊞']] as const).map(([v, icon]) => (
                 <button key={v} onClick={() => setView(v)}
                   style={{ padding: isMobile ? '6px 8px' : '5px 10px', borderRadius: '6px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: view === v ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: view === v ? 'white' : 'var(--text-muted)' }}>
@@ -578,7 +578,7 @@ export default function Dashboard() {
             </div>
 
             {/* ADD */}
-            <button onClick={() => window.location.href = '/add'}
+            <button data-tour="add-company" onClick={() => window.location.href = '/add'}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 10px' : '8px 16px', borderRadius: '8px', fontSize: isMobile ? '14px' : '14px', fontWeight: 600, background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
               {isMobile ? '+' : '+ Add'}
             </button>

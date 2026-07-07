@@ -112,6 +112,7 @@ export default function Sidebar() {
     const active = path === item.href
     return (
       <a href={item.href}
+        data-tour={item.href === '/tasks' ? 'nav-tasks' : item.href === '/analytics' ? 'nav-analytics' : undefined}
         onClick={() => setMobileOpen(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: '10px',
@@ -176,15 +177,22 @@ export default function Sidebar() {
       {/* FOOTER */}
       <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}` }}>
         <button onClick={() => setDark(!dark)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '10px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '8px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
           <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(79,123,247,0.4)' : '#D1D5DB' }}>
             <div style={{ position: 'absolute', top: '1.5px', left: dark ? '15px' : '1.5px', width: '12px', height: '12px', borderRadius: '50%', background: dark ? '#60A5FA' : 'white', transition: 'left 0.2s' }} />
           </div>
         </button>
 
+        <button onClick={() => window.dispatchEvent(new Event('archon:open-onboarding'))}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '8px', marginBottom: '10px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer', color: ts, fontSize: '12px', fontWeight: 500, transition: 'color 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
+          onMouseLeave={e => { e.currentTarget.style.color = ts }}>
+          <span>❓</span> Help &amp; Tour
+        </button>
+
         {user && (
-          <div onClick={() => { window.location.href = '/profile'; setMobileOpen(false) }}
+          <div data-tour="profile-link" onClick={() => { window.location.href = '/profile'; setMobileOpen(false) }}
             style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: '10px', margin: '-2px -4px', transition: 'background 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
@@ -232,7 +240,7 @@ export default function Sidebar() {
             <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
             <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
           </div>
-          <div onClick={() => { window.location.href = '/profile' }}
+          <div data-tour="profile-link" onClick={() => { window.location.href = '/profile' }}
             style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(79,123,247,0.3)' }}>
             {avatar ? (
               <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

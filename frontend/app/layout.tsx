@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import OnboardingTour from './components/OnboardingTour'
 
 export const metadata: Metadata = {
   title: 'Archon — by Armila Design',
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="page-enter">
           {children}
         </div>
+        <OnboardingTour />
       </body>
     </html>
   )

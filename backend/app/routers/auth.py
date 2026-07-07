@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List, Any
+import json
+import re
 import bcrypt
 from app.models.database import get_db, User
 
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # ─────────────────────────────────────────
 SECRET_KEY = "archon-secret-key-armila-design-2024-change-in-production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24 * 7  # 7 days
+ACCESS_TOKEN_EXPIRE_HOURS = 24 * 60  # 60 days — extended for long gaps between sessions
 bearer = HTTPBearer(auto_error=False)
 
 # ─────────────────────────────────────────
@@ -205,3 +207,127 @@ def delete_user(
 @router.get("/plans")
 def get_plans():
     return PLAN_LIMITS
+
+
+# ─────────────────────────────────────────
+# PUBLIC PROFILE
+# ─────────────────────────────────────────
+class PortfolioImage(BaseModel):
+    id: str
+    data: str      # base64 image
+    name: str = ""
+
+class PortfolioItem(BaseModel):
+    id: str
+    title: str
+    desc: Optional[str] = ""
+    url: Optional[str] = ""
+    images: List[PortfolioImage] = []
+
+class ProfileUpdate(BaseModel):
+    bio: Optional[str] = ""
+    location: Optional[str] = ""
+    website: Optional[str] = ""
+    company: Optional[str] = ""
+    phone: Optional[str] = ""
+    avatar: Optional[str] = ""              # base64 image
+    skills: List[str] = []
+    customSkills: List[str] = []
+    portfolio: List[PortfolioItem] = []
+    is_public: Optional[bool] = None
+    username: Optional[str] = None
+
+
+def slugify(text: str) -> str:
+    text = text.strip().lower()
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = re.sub(r"[\s-]+", "-", text)
+    return text.strip("-") or "user"
+
+
+def ensure_unique_username(db: Session, desired: str, user_id: int) -> str:
+    base = slugify(desired)
+    candidate = base
+    i = 1
+    while True:
+        existing = db.query(User).filter(User.username == candidate, User.id != user_id).first()
+        if not existing:
+            return candidate
+        i += 1
+        candidate = f"{base}-{i}"
+
+
+@router.get("/profile/me")
+def get_my_profile(current_user: User = Depends(get_current_user)):
+    data = json.loads(current_user.profile_json) if current_user.profile_json else {}
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "plan": current_user.plan,
+        "role": current_user.role,
+        "username": current_user.username,
+        "is_public": current_user.is_public,
+        **data,
+    }
+
+
+@router.put("/profile/me")
+def update_my_profile(
+    payload: ProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Handle username slug (only if explicitly provided)
+    if payload.username:
+        current_user.username = ensure_unique_username(db, payload.username, current_user.id)
+    elif not current_user.username:
+        # First save — auto-generate from name so a public URL exists immediately
+        current_user.username = ensure_unique_username(db, current_user.name, current_user.id)
+
+    if payload.is_public is not None:
+        current_user.is_public = payload.is_public
+
+    profile_data = {
+        "bio": payload.bio,
+        "location": payload.location,
+        "website": payload.website,
+        "company": payload.company,
+        "phone": payload.phone,
+        "avatar": payload.avatar,
+        "skills": payload.skills,
+        "customSkills": payload.customSkills,
+        "portfolio": [p.dict() for p in payload.portfolio],
+    }
+    current_user.profile_json = json.dumps(profile_data)
+    db.commit()
+
+    return {
+        "message": "Profile saved",
+        "username": current_user.username,
+        "is_public": current_user.is_public,
+        "public_url": f"/u/{current_user.username}" if current_user.is_public else None,
+    }
+
+
+@router.get("/profile/public/{username}")
+def get_public_profile(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    if not user or not user.is_public or not user.is_active:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    data = json.loads(user.profile_json) if user.profile_json else {}
+
+    # Only expose safe, public-facing fields — never email, phone, plan, role
+    return {
+        "name": user.name,
+        "username": user.username,
+        "avatar": data.get("avatar", ""),
+        "bio": data.get("bio", ""),
+        "location": data.get("location", ""),
+        "website": data.get("website", ""),
+        "company": data.get("company", ""),
+        "skills": data.get("skills", []),
+        "customSkills": data.get("customSkills", []),
+        "portfolio": data.get("portfolio", []),
+    }

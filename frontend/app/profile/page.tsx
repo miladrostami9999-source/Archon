@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import PublishSection from './PublishSection'
 
 const API = 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -211,7 +212,7 @@ export default function ProfilePage() {
   ] as const
 
   return (
-    <div className="page-enter" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
+    <div className="page-enter" style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
       {/* LIGHTBOX */}
@@ -278,7 +279,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0, height: '100vh', overflowY: 'auto' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
 
           {/* PROFILE HERO */}
@@ -584,6 +585,9 @@ export default function ProfilePage() {
           {/* ── TAB: SECURITY ── */}
           {activeTab === 'security' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+              <PublishSection profile={profile} />
+
               <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔐 Change Password</h2>
                 {pwdError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>{pwdError}</div>}

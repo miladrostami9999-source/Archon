@@ -47,6 +47,11 @@ class User(Base):
     created_at    = Column(DateTime, default=datetime.utcnow)
     last_login    = Column(DateTime)
 
+    # ── PUBLIC PROFILE FIELDS ──
+    username      = Column(String, unique=True, index=True, nullable=True)  # url slug, e.g. /u/milad-rostami
+    profile_json  = Column(Text, nullable=True)   # bio, location, website, skills, portfolio — stored as JSON text
+    is_public     = Column(Boolean, default=False)  # must opt-in before profile is publicly visible
+
 # ─────────────────────────────────────────
 # TABLE 2 — COMPANIES
 # ─────────────────────────────────────────
@@ -155,6 +160,25 @@ class DailyTask(Base):
 # ─────────────────────────────────────────
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+    # Auto-migrate: add new columns to existing tables if they don't exist yet
+    # (safe no-op on fresh databases where create_all already added them)
+    try:
+        from sqlalchemy import text as _text
+        inspector_cols = [c["name"] for c in __import__("sqlalchemy").inspect(engine).get_columns("users")]
+        with engine.connect() as conn:
+            if "username" not in inspector_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN username VARCHAR"))
+                conn.commit()
+            if "profile_json" not in inspector_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN profile_json TEXT"))
+                conn.commit()
+            if "is_public" not in inspector_cols:
+                default_val = "FALSE" if "postgresql" in str(engine.url) else "0"
+                conn.execute(_text(f"ALTER TABLE users ADD COLUMN is_public BOOLEAN DEFAULT {default_val}"))
+                conn.commit()
+    except Exception as e:
+        print(f"⚠️  Profile column migration check: {e}")
 
     # Create admin user if not exists
     db = SessionLocal()
