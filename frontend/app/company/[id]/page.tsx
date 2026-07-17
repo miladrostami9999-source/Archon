@@ -106,6 +106,7 @@ export default function CompanyDetail() {
     setSavingNote(false)
   }
   const togglePin = async (noteId: number, pinned: boolean) => { await axios.patch(`${API}/companies/${id}/notes/${noteId}`, { pinned: !pinned }); fetchNotes() }
+  const deleteNote = async (noteId: number) => { if (!confirm('Delete this note?')) return; await axios.delete(`${API}/companies/${id}/notes/${noteId}`); fetchNotes() }
   const saveContact = async () => {
     if (!newContact.full_name.trim()) return
     setSavingContact(true)
@@ -122,8 +123,20 @@ export default function CompanyDetail() {
   }
   const generateSummary = async () => {
     setGeneratingSummary(true)
-    try { const res = await axios.post(`${API}/companies/${id}/generate-summary`); setCompany(prev => prev ? { ...prev, ai_summary: res.data.summary } : prev) }
-    catch { alert('Error generating summary.') }
+    try {
+      const res = await axios.post(`${API}/companies/${id}/generate-summary`)
+      // Backend returns the full updated company (auto-filled email, website,
+      // linkedin, instagram, industry, size, score — whatever real research found)
+      if (res.data.company) {
+        setCompany(res.data.company)
+      } else {
+        setCompany(prev => prev ? { ...prev, ai_summary: res.data.summary } : prev)
+      }
+      if (res.data.verified === false) {
+        alert("Couldn't confidently verify this company from web search — summary and score are based on limited information. You may want to add more details manually.")
+      }
+    }
+    catch (e: any) { alert(e.response?.data?.detail || 'Error researching company.') }
     setGeneratingSummary(false)
   }
   const copyAndOpenGmail = () => {
@@ -447,8 +460,8 @@ export default function CompanyDetail() {
                   </div>
                 ) : (
                   <button onClick={generateSummary} disabled={generatingSummary}
-                    style={{ fontSize: '12px', color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer', padding: 0, opacity: generatingSummary ? 0.4 : 1 }}>
-                    {generatingSummary ? '⏳ Generating...' : '✨ Generate AI Summary'}
+                    style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', opacity: generatingSummary ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    {generatingSummary ? <><div className="spinner-sm" /> Researching with AI...</> : '✨ Research with AI — get score & summary'}
                   </button>
                 )}
               </div>
@@ -459,7 +472,7 @@ export default function CompanyDetail() {
                   <svg width={isMobile ? 42 : 56} height={isMobile ? 42 : 56} viewBox="0 0 56 56" style={{ transform: 'rotate(-90deg)' }}>
                     <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" strokeWidth="4"/>
                     <circle cx="28" cy="28" r="22" fill="none" stroke={getScoreColor(company.opportunity_score)} strokeWidth="4"
-                      strokeDasharray={`${company.opportunity_score} 100`} strokeLinecap="round"
+                      strokeDasharray={`${company.opportunity_score * 1.382} 999`} strokeLinecap="round"
                       style={{ filter: `drop-shadow(0 0 6px ${getScoreColor(company.opportunity_score)}60)` }}/>
                   </svg>
                   <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: getScoreColor(company.opportunity_score) }}>
@@ -679,12 +692,20 @@ export default function CompanyDetail() {
                   <div key={note.id} style={{ ...card, borderColor: note.pinned ? 'rgba(251,191,36,0.3)' : 'var(--border)', background: note.pinned ? 'rgba(251,191,36,0.04)' : 'var(--bg-card)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
                       <p style={{ fontSize: '14px', color: 'var(--text)', flex: 1, margin: 0, lineHeight: 1.6 }}>{note.content}</p>
-                      <button onClick={() => togglePin(note.id, note.pinned)}
-                        style={{ fontSize: '14px', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', opacity: note.pinned ? 1 : 0.3, transition: 'opacity 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                        onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '1' : '0.3' }}>
-                        📌
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <button onClick={() => togglePin(note.id, note.pinned)}
+                          style={{ fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', opacity: note.pinned ? 1 : 0.3, transition: 'opacity 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                          onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '1' : '0.3' }}>
+                          📌
+                        </button>
+                        <button onClick={() => deleteNote(note.id)}
+                          style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', opacity: 0.5, transition: 'all 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#F87171' }}
+                          onMouseLeave={e => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = 'var(--text-dim)' }}>
+                          🗑
+                        </button>
+                      </div>
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '8px 0 0' }}>{new Date(note.created_at).toLocaleDateString()}</p>
                   </div>

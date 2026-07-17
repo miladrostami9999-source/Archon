@@ -62,6 +62,7 @@ class Company(Base):
     domain            = Column(String, unique=True, index=True)
     website           = Column(String)
     email             = Column(String)
+    phone             = Column(String)
     country           = Column(String, index=True)
     city              = Column(String)
     industry          = Column(String, index=True)
@@ -143,6 +144,24 @@ class History(Base):
 # ─────────────────────────────────────────
 # TABLE 7 — DAILY TASKS
 # ─────────────────────────────────────────
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token      = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used       = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WeeklyReport(Base):
+    __tablename__ = "weekly_reports"
+    id           = Column(Integer, primary_key=True, index=True)
+    report_json  = Column(Text, nullable=False)   # the generated report content
+    lang         = Column(String, default="en")
+    generated_at = Column(DateTime, default=datetime.utcnow)
+
+
 class DailyTask(Base):
     __tablename__ = "daily_tasks"
     id          = Column(Integer, primary_key=True, index=True)
@@ -165,20 +184,25 @@ def init_db():
     # (safe no-op on fresh databases where create_all already added them)
     try:
         from sqlalchemy import text as _text
-        inspector_cols = [c["name"] for c in __import__("sqlalchemy").inspect(engine).get_columns("users")]
+        _inspector = __import__("sqlalchemy").inspect(engine)
+        user_cols = [c["name"] for c in _inspector.get_columns("users")]
+        company_cols = [c["name"] for c in _inspector.get_columns("companies")]
         with engine.connect() as conn:
-            if "username" not in inspector_cols:
+            if "username" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN username VARCHAR"))
                 conn.commit()
-            if "profile_json" not in inspector_cols:
+            if "profile_json" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN profile_json TEXT"))
                 conn.commit()
-            if "is_public" not in inspector_cols:
+            if "is_public" not in user_cols:
                 default_val = "FALSE" if "postgresql" in str(engine.url) else "0"
                 conn.execute(_text(f"ALTER TABLE users ADD COLUMN is_public BOOLEAN DEFAULT {default_val}"))
                 conn.commit()
+            if "phone" not in company_cols:
+                conn.execute(_text("ALTER TABLE companies ADD COLUMN phone VARCHAR"))
+                conn.commit()
     except Exception as e:
-        print(f"⚠️  Profile column migration check: {e}")
+        print(f"⚠️  Column migration check: {e}")
 
     # Create admin user if not exists
     db = SessionLocal()

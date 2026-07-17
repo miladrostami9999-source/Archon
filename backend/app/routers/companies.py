@@ -4,14 +4,15 @@ from sqlalchemy import or_
 from typing import Optional
 import smtplib
 import os
+import json
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 
-from app.models.database import get_db, Company, History, Note, Campaign, Contact
+from app.models.database import get_db, Company, History, Note, Campaign, Contact, User, DailyTask, WeeklyReport
 from app.services.claude import generate_email as claude_generate_email
 from app.services.claude import generate_summary as claude_generate_summary
 
@@ -245,6 +246,16 @@ def update_note(company_id: int, note_id: int, data: NoteUpdate, db: Session = D
     return to_dict(note)
 
 
+@router.delete("/{company_id}/notes/{note_id}")
+def delete_note(company_id: int, note_id: int, db: Session = Depends(get_db)):
+    note = db.query(Note).filter(Note.id == note_id, Note.company_id == company_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    db.delete(note)
+    db.commit()
+    return {"message": "Note deleted"}
+
+
 @router.get("/{company_id}/history")
 def get_history(company_id: int, db: Session = Depends(get_db)):
     items = db.query(History).filter(
@@ -347,18 +358,58 @@ def gen_email(company_id: int, data: EmailRequest, db: Session = Depends(get_db)
 
 @router.post("/{company_id}/generate-summary")
 def gen_summary(company_id: int, db: Session = Depends(get_db)):
+    """
+    AI Research — searches the web for the real company, verifies it,
+    and fills in any missing fields (email, website, linkedin, instagram,
+    industry, company_size) from what it actually finds. The opportunity
+    score is computed from these real, verified fields — not guessed.
+    Existing values the user already entered are never overwritten.
+    """
+    from app.services.claude import research_company
+
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+
     company_dict = to_dict(company)
     try:
-        summary = claude_generate_summary(company_dict)
+        result = research_company(company_dict)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    company.ai_summary = summary
-    company.opportunity_score = calculate_score(company)
+        raise HTTPException(status_code=500, detail=f"AI research failed: {str(e)}")
+
+    # Only fill fields that are currently empty — never overwrite user-entered data
+    if not company.email and result.get("email"):
+        company.email = result["email"]
+    if not company.website and result.get("website"):
+        company.website = result["website"]
+    if not company.linkedin and result.get("linkedin"):
+        company.linkedin = result["linkedin"]
+    if not company.instagram and result.get("instagram"):
+        company.instagram = result["instagram"]
+    if not company.industry and result.get("industry"):
+        company.industry = result["industry"]
+    if not company.company_size and result.get("company_size"):
+        company.company_size = result["company_size"]
+
+    company.ai_summary = result.get("summary", "")
+
+    # Score comes from AI's grounded assessment when it found real data,
+    # falling back to the rule-based calculator if the search came up empty.
+    if result.get("verified") and isinstance(result.get("score"), (int, float)):
+        company.opportunity_score = max(0.0, min(100.0, float(result["score"])))
+    else:
+        company.opportunity_score = calculate_score(company)
+
+    company.last_checked = datetime.utcnow()
     db.commit()
-    return {"summary": summary}
+    db.refresh(company)
+
+    return {
+        "summary": company.ai_summary,
+        "verified": result.get("verified", False),
+        "score_reasoning": result.get("score_reasoning", ""),
+        "company": to_dict(company),
+    }
 
 
 @router.post("/recalculate-scores")
@@ -629,14 +680,53 @@ def export_csv(db: Session = Depends(get_db)):
     )
 
 # ─────────────────────────────────────────
-# WEEKLY AI REPORT
+# WEEKLY AI REPORT — with server-side 7-day lock
 # ─────────────────────────────────────────
+import json as _json
+from app.models.database import WeeklyReport
+
+REPORT_LOCK_DAYS = 7
+
 class ReportRequest(BaseModel):
     lang: str = "en"
+
+
+def _report_status(db: Session):
+    """Returns the most recent report + whether generation is currently locked."""
+    last = db.query(WeeklyReport).order_by(WeeklyReport.generated_at.desc()).first()
+    if not last:
+        return {"locked": False, "report": None, "generated_at": None, "next_available_at": None}
+
+    elapsed = datetime.utcnow() - last.generated_at
+    remaining = timedelta(days=REPORT_LOCK_DAYS) - elapsed
+    locked = remaining.total_seconds() > 0
+
+    return {
+        "locked": locked,
+        "report": _json.loads(last.report_json),
+        "lang": last.lang,
+        "generated_at": last.generated_at.isoformat(),
+        "next_available_at": (last.generated_at + timedelta(days=REPORT_LOCK_DAYS)).isoformat() if locked else None,
+    }
+
+
+@router.get("/report/weekly/status")
+def get_weekly_report_status(db: Session = Depends(get_db)):
+    """Frontend calls this on page load to know whether to show the last report
+    and whether the Generate button should be locked."""
+    return _report_status(db)
+
 
 @router.post("/report/weekly")
 def generate_weekly_report(request: ReportRequest, db: Session = Depends(get_db)):
     from app.services.claude import generate_weekly_report as gen_report
+
+    status = _report_status(db)
+    if status["locked"]:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Weekly report already generated. Next one available after {status['next_available_at']}."
+        )
 
     companies = db.query(Company).all()
     companies_list = [to_dict(c) for c in companies]
@@ -663,6 +753,12 @@ def generate_weekly_report(request: ReportRequest, db: Session = Depends(get_db)
     }
 
     report = gen_report(data, lang=request.lang)
+
+    # Persist so the lock survives refresh, logout, and works across devices
+    saved = WeeklyReport(report_json=_json.dumps(report), lang=request.lang)
+    db.add(saved)
+    db.commit()
+
     return report
 
 
@@ -792,3 +888,84 @@ def send_email(req: SendEmailRequest, db: Session = Depends(get_db)):
             db.commit()
 
     return {"message": "Email sent successfully", "to": req.to_email}
+
+
+# ─────────────────────────────────────────
+# MANUAL / AUTOMATIC BACKUP
+# ─────────────────────────────────────────
+BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "backups")
+
+# Tables included in every backup. Password reset tokens are intentionally
+# excluded — they're short-lived and shouldn't be restored across backups.
+BACKUP_MODELS = [
+    ("users", User),
+    ("companies", Company),
+    ("contacts", Contact),
+    ("notes", Note),
+    ("campaigns", Campaign),
+    ("history", History),
+    ("daily_tasks", DailyTask),
+    ("weekly_reports", WeeklyReport),
+]
+
+
+def _row_to_dict(row):
+    result = {}
+    for col in row.__table__.columns:
+        value = getattr(row, col.name)
+        if isinstance(value, datetime):
+            value = value.isoformat()
+        result[col.name] = value
+    return result
+
+
+@router.post("/backup/run")
+def run_backup(db: Session = Depends(get_db)):
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"archon_backup_{timestamp}.json"
+    filepath = os.path.join(BACKUP_DIR, filename)
+
+    backup_data = {
+        "created_at": datetime.utcnow().isoformat(),
+        "tables": {},
+    }
+
+    row_counts = {}
+    for table_name, model in BACKUP_MODELS:
+        rows = db.query(model).all()
+        backup_data["tables"][table_name] = [_row_to_dict(r) for r in rows]
+        row_counts[table_name] = len(rows)
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(backup_data, f, indent=2, ensure_ascii=False)
+
+    size_kb = round(os.path.getsize(filepath) / 1024, 1)
+
+    return {
+        "message": "Backup completed successfully",
+        "filename": filename,
+        "created_at": backup_data["created_at"],
+        "size_kb": size_kb,
+        "row_counts": row_counts,
+    }
+
+
+@router.get("/backup/list")
+def list_backups():
+    if not os.path.isdir(BACKUP_DIR):
+        return []
+
+    backups = []
+    for fname in sorted(os.listdir(BACKUP_DIR), reverse=True):
+        if not fname.endswith(".json"):
+            continue
+        fpath = os.path.join(BACKUP_DIR, fname)
+        stat = os.stat(fpath)
+        backups.append({
+            "filename": fname,
+            "size_kb": round(stat.st_size / 1024, 1),
+            "created_at": datetime.utcfromtimestamp(stat.st_mtime).isoformat(),
+        })
+    return backups[:20]  # most recent 20

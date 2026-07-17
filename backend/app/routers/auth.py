@@ -1,3 +1,10 @@
+import os
+import json
+import re
+import secrets as _secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -5,17 +12,21 @@ from pydantic import BaseModel
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
-import json
-import re
 import bcrypt
-from app.models.database import get_db, User
+from app.models.database import get_db, User, PasswordResetToken
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ─────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────
-SECRET_KEY = "archon-secret-key-armila-design-2024-change-in-production"
+# JWT secret key — loaded from environment (.env), never hardcoded
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET_KEY is not set in your .env file. "
+        "Add a line like: JWT_SECRET_KEY=your-random-secret-here"
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24 * 60  # 60 days — extended for long gaps between sessions
 bearer = HTTPBearer(auto_error=False)
@@ -207,8 +218,6 @@ def delete_user(
 @router.get("/plans")
 def get_plans():
     return PLAN_LIMITS
-
-
 # ─────────────────────────────────────────
 # PUBLIC PROFILE
 # ─────────────────────────────────────────
@@ -331,3 +340,108 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "customSkills": data.get("customSkills", []),
         "portfolio": data.get("portfolio", []),
     }
+
+
+# ─────────────────────────────────────────
+# FORGOT / RESET PASSWORD
+# ─────────────────────────────────────────
+RESET_TOKEN_EXPIRE_MINUTES = 30
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+def _send_reset_email(to_email: str, reset_link: str, user_name: str):
+    smtp_email = os.getenv("SMTP_EMAIL")
+    smtp_password = os.getenv("SMTP_APP_PASSWORD")
+    if not smtp_email or not smtp_password:
+        raise HTTPException(status_code=500, detail="Email service not configured on server")
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Archon (via Armila Design) <{smtp_email}>"
+    msg["To"] = to_email
+    msg["Subject"] = "Reset your Archon password"
+
+    plain = (
+        f"Hi {user_name},\n\n"
+        f"We received a request to reset your Archon password.\n"
+        f"Click the link below to choose a new one. This link expires in {RESET_TOKEN_EXPIRE_MINUTES} minutes.\n\n"
+        f"{reset_link}\n\n"
+        f"If you didn't request this, you can safely ignore this email.\n\n"
+        f"— Archon, by Armila Design"
+    )
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+      <p>Hi {user_name},</p>
+      <p>We received a request to reset your Archon password. This link expires in {RESET_TOKEN_EXPIRE_MINUTES} minutes.</p>
+      <p style="margin:24px 0">
+        <a href="{reset_link}" style="background:linear-gradient(135deg,#4F7BF7,#7C3AED);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Reset Password</a>
+      </p>
+      <p style="color:#888;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+      <p style="color:#888;font-size:13px">— Archon, by Armila Design</p>
+    </div>
+    """
+    msg.attach(MIMEText(plain, "plain", "utf-8"))
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(smtp_email, smtp_password)
+        server.sendmail(smtp_email, to_email, msg.as_string())
+
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+
+    # Always return the same generic response, whether or not the email exists —
+    # prevents leaking which emails are registered (standard security practice).
+    generic_response = {"message": "If an account exists with that email, a reset link has been sent."}
+
+    if not user or not user.is_active:
+        return generic_response
+
+    token = _secrets.token_urlsafe(32)
+    reset_entry = PasswordResetToken(
+        user_id=user.id,
+        token=token,
+        expires_at=datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES),
+    )
+    db.add(reset_entry)
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    reset_link = f"{frontend_url}/reset-password?token={token}"
+
+    try:
+        _send_reset_email(user.email, reset_link, user.name)
+    except Exception as e:
+        # Don't leak SMTP errors to the client — log-style detail stays server-side
+        print(f"Failed to send reset email: {e}")
+
+    return generic_response
+
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    entry = db.query(PasswordResetToken).filter(PasswordResetToken.token == req.token).first()
+
+    if not entry or entry.used or entry.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
+    user = db.query(User).filter(User.id == entry.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    user.password_hash = hash_password(req.new_password)
+    entry.used = True
+    db.commit()
+
+    return {"message": "Password has been reset successfully."}

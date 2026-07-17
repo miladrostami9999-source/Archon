@@ -81,6 +81,7 @@ Do not include any other text or markdown.
 
 
 def generate_summary(company: dict) -> str:
+    """Legacy quick summary (no web search) — kept for backward compatibility."""
     prompt = f"""
 Write a 2-3 sentence summary of this company for an architectural visualization studio's CRM.
 Focus on: what they do, their size/style, and potential for outsourcing visualization work.
@@ -100,6 +101,60 @@ Return ONLY the summary text, no labels or formatting.
     )
 
     return message.content[0].text.strip()
+
+
+def research_company(company: dict) -> dict:
+    """
+    Real web-search-grounded research. Claude actually searches the web to
+    confirm this is the correct company, extracts real contact details, and
+    produces a score based on verified findings — not a guess.
+    """
+    known = []
+    if company.get("website"): known.append(f"Website: {company['website']}")
+    if company.get("country"): known.append(f"Country: {company['country']}")
+    if company.get("city"): known.append(f"City: {company['city']}")
+    if company.get("industry"): known.append(f"Industry (unconfirmed): {company['industry']}")
+    known_str = "\n".join(known) if known else "No additional details known — search by name only."
+
+    prompt = f"""Search the web to research this real company. Do not guess or assume — only report what you actually find from search results.
+
+Company name: {company.get('name')}
+{known_str}
+
+Steps:
+1. Search for this exact company and confirm you found the real one (check official website, LinkedIn, or business listings — be careful with common names, use the country/city to disambiguate if given).
+2. From what you find, extract: a real public contact email if listed, their official website, LinkedIn company page URL, Instagram handle/URL, their actual industry/specialty, and an estimate of company size (solo/small/medium/large based on team size or scale of work shown).
+3. Write a 2-3 sentence summary based ONLY on what you actually found — their real focus, notable projects or style, and why they would (or wouldn't) be a good potential client for an architectural visualization studio (Armila Design) that provides outsourced 3D rendering.
+4. Score 0-100 how strong a lead they are for Armila Design, based on real signals: do they appear to need/use visualization work, is their scale large enough to outsource, is the industry a good match (architecture, real estate, interior design, CGI, construction). Be honest — if you found little to nothing, the score should be low.
+
+Return ONLY valid JSON, no other text, in exactly this shape:
+{{
+  "verified": true or false,
+  "summary": "2-3 sentence summary based on real findings",
+  "email": "found email or null",
+  "website": "confirmed website URL or null",
+  "linkedin": "LinkedIn company URL or null",
+  "instagram": "Instagram URL or handle or null",
+  "industry": "best-matching one of: Architecture, CGI, Interior Design, Real Estate, Visualization, Other",
+  "company_size": "one of: solo, small, medium, large",
+  "score": 0-100,
+  "score_reasoning": "one short sentence explaining the score"
+}}"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1200,
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    text_blocks = [block.text for block in message.content if getattr(block, "type", None) == "text"]
+    full_text = "\n".join(text_blocks)
+
+    result = parse_json_response(full_text)
+    if not isinstance(result, dict):
+        raise ValueError("AI research did not return valid structured data")
+    return result
 
 
 def smart_search(query: str, companies: list) -> list:
