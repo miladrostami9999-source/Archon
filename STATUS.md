@@ -66,6 +66,8 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 ---
 
 ## ۵. باگ‌های اخیر رفع‌شده
+- `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback)
+- Backup path هاردکد بود و روی Railway (filesystem ephemeral) با هر redeploy پاک می‌شد — الان از `BACKUP_DIR` env var پشتیبانی می‌کنه؛ نیاز به ساخت Railway Volume + تنظیم env var قبل از Deploy واقعی (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
 - Sidebar جابجایی هنگام اسکرول (minHeight→height + overflow:hidden)
 - Score circle strokeDasharray بدون ضریب مقیاس
 - حذف Note امکان‌پذیر نبود (DELETE endpoint اضافه شد)

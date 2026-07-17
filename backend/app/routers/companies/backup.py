@@ -10,7 +10,11 @@ from .utils import row_to_dict
 
 router = APIRouter()
 
-BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "backups")
+# On Railway (and any container with an ephemeral filesystem), the default
+# path below is wiped on every redeploy/restart. Set BACKUP_DIR to a mounted
+# Railway Volume path (e.g. /data/backups) in production so backups survive.
+_default_backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "backups")
+BACKUP_DIR = os.getenv("BACKUP_DIR", _default_backup_dir)
 
 # Tables included in every backup. Password reset tokens are intentionally
 # excluded — they're short-lived and shouldn't be restored across backups.
