@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
@@ -116,7 +116,7 @@ export default function AdminPanel() {
     {
       icon: '📖', title: 'API Documentation', desc: 'FastAPI Swagger UI for developers',
       color: 'var(--text-muted)', bg: 'var(--bg-input)', border: 'var(--border)',
-      action: () => window.open('http://localhost:8000/docs', '_blank'),
+      action: () => window.open(`${API}/docs`, '_blank'),
       label: 'Open Docs',
     },
   ]

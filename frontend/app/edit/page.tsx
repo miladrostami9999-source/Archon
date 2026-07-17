@@ -5,7 +5,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const inputStyle: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box',

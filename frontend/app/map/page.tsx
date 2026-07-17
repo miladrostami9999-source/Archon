@@ -10,7 +10,7 @@ import {
   ZoomableGroup,
 } from 'react-simple-maps'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
 const getThemeColors = (isDark: boolean) => ({

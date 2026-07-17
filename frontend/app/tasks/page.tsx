@@ -4,7 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const TASK_COLORS: Record<string, { border: string; bg: string }> = {
   email:    { border: 'rgba(79,123,247,0.2)',  bg: 'rgba(79,123,247,0.05)' },

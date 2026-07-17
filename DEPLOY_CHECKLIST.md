@@ -10,9 +10,9 @@
 - [ ] آخرین تغییرات commit و push شده‌ن (`git status` تمیزه)
 - [ ] بک‌اند لوکال با `uvicorn app.main:app --reload` بدون خطا بالا میاد
 - [ ] فرانت لوکال با `npm run dev` بدون خطا بالا میاد و به بک‌اند لوکال وصل می‌شه
-- [ ] یک بک‌آپ دستی از دیتابیس SQLite فعلی گرفته شده (`POST /companies/backup/run` یا کپی مستقیم فایل `.db`) — قبل از هر migration
-- [ ] `backend/requirements.txt` به‌روزه و شامل `psycopg2-binary` هست (برای Postgres)
-- [ ] فایل `.env` واقعی (secrets) **در `.gitignore`** هست و هرگز push نشده — چک کنید با `git log --all --full-history -- backend/.env`
+- [ ] یک بک‌آپ دستی از دیتابیس SQLite فعلی گرفته شده (`POST /companies/backup/run` یا کپی مستقیم فایل `.db`) — قبل از هر migration (این یکی رو خودتون باید موقع deploy واقعی انجام بدید)
+- [x] `backend/requirements.txt` شامل `psycopg2-binary==2.9.9` هست — تأیید شد
+- [x] فایل `.env` هرگز در تاریخچه‌ی git نبوده — با `git log --all --full-history` تأیید شد
 
 ## بخش ۲ — متغیرهای محیطی (Environment Variables)
 
@@ -21,19 +21,19 @@
 **Railway (Backend):**
 - [ ] `DATABASE_URL` (خودکار توسط Railway وقتی Postgres addon اضافه می‌شه)
 - [ ] `ANTHROPIC_API_KEY` (کلید واقعی Claude)
-- [ ] `JWT_SECRET` — **یک مقدار جدید و رندوم برای production بسازید، همون مقدار لوکال رو استفاده نکنید**
+- [ ] `JWT_SECRET_KEY` — **یک مقدار جدید و رندوم برای production بسازید، همون مقدار لوکال رو استفاده نکنید** (کد بدون این مقدار اصلاً بالا نمیاد — این یک fail-safe موجوده)
 - [ ] `SMTP_EMAIL`, `SMTP_APP_PASSWORD`, `SMTP_SENDER_NAME`
 - [ ] `ALLOWED_ORIGINS` — باید شامل دامنه‌ی نهایی فرانت (مثلاً `https://archon.armiladesign.com`) باشه، نه فقط localhost
 - [ ] `BACKUP_DIR=/data/backups` — بعد از ساخت Railway Volume (جزئیات در بخش ۶)
 
 **Vercel (Frontend):**
-- [ ] `NEXT_PUBLIC_API_URL` (یا اسم مشابه) → آدرس بک‌اند روی Railway، نه `localhost:8000`
-
-- [ ] هیچ‌کدوم از این مقادیر داخل کد هاردکد نشدن (چک با grep برای `localhost:8000` و کلیدهای API در سورس فرانت)
+- [x] ~~`NEXT_PUBLIC_API_URL` هاردکد بود در ۱۷ فایل~~ — **رفع شد.** همه‌ی صفحات الان از `process.env.NEXT_PUBLIC_API_URL` می‌خونن (با fallback به localhost برای dev). فقط کافیه این مقدار رو در Vercel، برابر آدرس بک‌اند روی Railway ست کنید (مثلاً `https://archon-backend.up.railway.app`)
+- [ ] بدون ست‌کردن `NEXT_PUBLIC_API_URL` در Vercel، فرانت production همچنان به `localhost:8000` وصل می‌شه و کاملاً از کار می‌افته — این مهم‌ترین env var فرانت است
 
 ## بخش ۳ — دیتابیس / Migration
 
 - [ ] یک Postgres instance روی Railway ساخته شده
+- [x] ~~`weekly_reports` جدول اصلاً در migration script نبود~~ — **رفع شد.** حالا هر ۸ جدول (شامل قفل ۷روزه‌ی گزارش هفتگی) migrate می‌شن
 - [ ] `migrate_to_postgres.py` یک‌بار روی دیتای local SQLite اجرا و خروجیش بررسی شده (تعداد ردیف‌های هر جدول با مبدا مطابقت داره)
 - [ ] بعد از migration، یک login تستی و یک GET لیست companies از production DB انجام شده تا مطمئن بشیم داده واقعاً منتقل شده
 - [ ] ⚠️ **قبل از اجرای migration روی داده‌ی واقعی، حتماً بک‌آپ بخش ۱ رو دوباره چک کنید** — این عملیات یک‌طرفه‌ست
@@ -69,9 +69,10 @@
 
 ## بخش ۷ — نکات امنیتی نهایی
 
-- [ ] `DEBUG`/development mode در بک‌اند خاموشه
-- [ ] هیچ کلید API یا پسورد در پاسخ‌های API لو نمی‌ره (چک کنید response شرکت‌ها/یوزرها هیچ فیلد حساسی نداره)
-- [ ] Rate limiting یا حداقل محدودیت پایه روی `/auth/login` هست (اگه نیست، به لیست بعد از دیپلوی اضافه کنید — بلاکر deploy نیست)
+- [x] `DEBUG`/development mode در بک‌اند وجود نداره (چک شد — هیچ flag دیباگی فعال نیست)
+- [x] بررسی شد: هیچ endpoint، `password_hash` رو در پاسخ برنمی‌گردونه (همه‌ی پاسخ‌های `/auth/*` دستی و صریح فیلدهای مجاز رو می‌سازن، نه serialize خام مدل)
+- [x] `JWT_SECRET_KEY` بدون مقدار پیش‌فرض ناامن — اگه در `.env` نباشه، برنامه اصلاً بالا نمیاد (fail-safe از قبل موجود بود)
+- [ ] Rate limiting یا حداقل محدودیت پایه روی `/auth/login` هست — **فعلاً وجود نداره.** بلاکر deploy نیست (برای یک‌نفره فعلاً ریسک پایینه) ولی قبل از باز کردن signup عمومی در Phase 5 حتماً باید اضافه بشه
 
 ## بخش ۸ — بعد از Deploy
 

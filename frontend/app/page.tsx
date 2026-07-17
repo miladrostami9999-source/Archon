@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/core'
 import { useIsMobile } from './hooks/useIsMobile'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const PAGE_SIZE = 20
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {

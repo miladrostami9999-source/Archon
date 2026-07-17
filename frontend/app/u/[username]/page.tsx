@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 
-const API = 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface PortfolioImage { id: string; data: string; name: string }
 interface PortfolioItem { id: string; title: string; desc: string; url: string; images: PortfolioImage[] }

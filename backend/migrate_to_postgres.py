@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 from app.models.database import (
-    Base, User, Company, Contact, Note, Campaign, History, DailyTask
+    Base, User, Company, Contact, Note, Campaign, History, DailyTask, WeeklyReport
 )
 
 SQLITE_PATH = r"C:\Users\Milad Rostami\archon\database\archon.db"
@@ -48,6 +48,7 @@ MODELS_IN_ORDER = [
     (Campaign, "campaigns"),
     (History, "history"),
     (DailyTask, "daily_tasks"),
+    (WeeklyReport, "weekly_reports"),
 ]
 
 

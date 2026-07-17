@@ -66,7 +66,9 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 ---
 
 ## ۵. باگ‌های اخیر رفع‌شده
-- `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback)
+- **[بحرانی]** آدرس بک‌اند (`http://localhost:8000`) در ۱۷ فایل فرانت‌اند هاردکد بود — بدون این fix، دیپلوی روی Vercel کاملاً از کار می‌افتاد. الان همه از `NEXT_PUBLIC_API_URL` می‌خونن.
+- `migrate_to_postgres.py` جدول `weekly_reports` رو migrate نمی‌کرد (قفل ۷روزه‌ی گزارش هفتگی گم می‌شد بعد از مهاجرت) — رفع شد.
+- `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback) و کاملاً بازبینی/تست شد
 - Backup path هاردکد بود و روی Railway (filesystem ephemeral) با هر redeploy پاک می‌شد — الان از `BACKUP_DIR` env var پشتیبانی می‌کنه؛ نیاز به ساخت Railway Volume + تنظیم env var قبل از Deploy واقعی (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
 - Sidebar جابجایی هنگام اسکرول (minHeight→height + overflow:hidden)
 - Score circle strokeDasharray بدون ضریب مقیاس
