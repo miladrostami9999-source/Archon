@@ -28,7 +28,7 @@ class SMTP_IPv4(smtplib.SMTP):
             raise ValueError("Non-blocking socket (timeout=0) is not supported")
         addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
         sock = socket.socket(addrinfo[0][0], addrinfo[0][1], addrinfo[0][2])
-        if timeout is not smtplib._GLOBAL_DEFAULT_TIMEOUT:
+        if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
             sock.settimeout(timeout)
         sock.connect(addrinfo[0][4])
         return sock
