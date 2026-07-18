@@ -3,7 +3,7 @@
 > این فایل خلاصه‌ی وضعیت پروژه‌ست. هر وقت گفتید «استاتوس رو ثبت کن»، این فایل رو با آخرین وضعیت آپدیت می‌کنم.
 > طراحی شده که قابل کپی/انتقال به یک AI دیگه باشه برای مشاوره — همه چیز خودایستا و بدون نیاز به context قبلی نوشته می‌شه.
 
-**آخرین آپدیت:** 2026-07-17
+**آخرین آپدیت:** 2026-07-18 — Cloud Deploy انجام شد (Railway + Vercel)، production زنده و در دسترسه
 
 ---
 
@@ -35,13 +35,20 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - AI Company Research واقعی (web_search grounded، نه حدسی)
 - **[جدید]** تفکیک `companies.py` (۹۷۱ خط) به پکیج ماژولار `routers/companies/` (۱۳ فایل تخصصی) — بدون تغییر در API، تست‌شده با ۳۵ endpoint
 
-### باقی‌مانده Phase 4 (نیاز به Deploy)
-- [ ] خرید Railway ($5/mo) + Deploy backend
-- [ ] Deploy frontend روی Vercel
-- [ ] اتصال دامنه armiladesign.com (خریده‌شده، DNS وصل نشده)
+### تمام‌شده — Cloud Deploy (2026-07-18)
+- [x] Backend روی Railway، زنده روی `https://archon-production-b8a6.up.railway.app`
+- [x] Postgres روی Railway، در همون پروژه‌ی backend
+- [x] Frontend روی Vercel، زنده روی `https://archon-hazel.vercel.app`
+- [x] `migrate_to_postgres.py` اجرا شد — ۷۲ ردیف منتقل شد، داده‌ی واقعی روی production تأیید شد
+- [x] لاگین واقعی از production تست و تأیید شد
+
+### باقی‌مانده Phase 4
+- [ ] **تأیید Railway Volume + `BACKUP_DIR`** — وضعیتش نامشخصه، باید چک بشه (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
+- [ ] Smoke test کامل production: تولید ایمیل با AI، ارسال SMTP واقعی، Public Profile، Forgot Password، Weekly Report
+- [ ] اتصال دامنه armiladesign.com (خریده‌شده، **عمداً به تعویق افتاد** — فعلاً با آدرس vercel.app کار می‌کنیم)
 - [ ] File Storage روی Cloudflare R2 (الان portfolio images به‌صورت base64 در DB)
-- [ ] اجرای `migrate_to_postgres.py` بعد از ساخت DB روی Railway
 - [ ] Public signup endpoint واقعی (الان فقط `POST /auth/users` توسط ادمین — بدون self-serve)
+- [ ] یک بک‌آپ رسمی تازه از production گرفته بشه (بعد از تأیید Volume)
 
 ---
 
@@ -66,6 +73,13 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 ---
 
 ## ۵. باگ‌های اخیر رفع‌شده
+
+**در طول Deploy واقعی پیدا و رفع شد (2026-07-18):**
+- `crawl4ai==0.2.77` تو `requirements.txt` دیگه روی PyPI موجود نبود و build Railway رو fail می‌کرد — حذف شد (هیچ‌جای کد استفاده نمی‌شد)
+- `python-multipart` (لازم برای آپلود CSV) در `requirements.txt` نبود — اضافه شد
+- `.python-version` اضافه شد تا Railway نسخه‌ی سازگار با `psycopg2-binary` انتخاب کنه
+- Vercel build fail می‌شد: تضاد peer-dependency بین `react-simple-maps` و React 19 — با `.npmrc` (`legacy-peer-deps=true`) حل شد
+- Vercel build fail می‌شد: خطای TypeScript (`JSX.Element` namespace در Sidebar، typeهای گم‌شده در map/page.tsx، `useSearchParams` بدون Suspense در reset-password) — هر سه رفع و با `npm run build` لوکال تأیید شد
 - **[بحرانی]** آدرس بک‌اند (`http://localhost:8000`) در ۱۷ فایل فرانت‌اند هاردکد بود — بدون این fix، دیپلوی روی Vercel کاملاً از کار می‌افتاد. الان همه از `NEXT_PUBLIC_API_URL` می‌خونن.
 - `migrate_to_postgres.py` جدول `weekly_reports` رو migrate نمی‌کرد (قفل ۷روزه‌ی گزارش هفتگی گم می‌شد بعد از مهاجرت) — رفع شد.
 - `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback) و کاملاً بازبینی/تست شد
