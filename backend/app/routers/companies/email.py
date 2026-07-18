@@ -1,16 +1,11 @@
 import base64
-import os
-import socket
-import smtplib
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Campaign
+from app.services.email_service import send_email as resend_send_email
 from .schemas import SendEmailRequest
 
 router = APIRouter()
@@ -18,84 +13,43 @@ router = APIRouter()
 MAX_ATTACHMENTS_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB total, matches Gmail's own limit headroom
 
 
-class SMTP_IPv4(smtplib.SMTP):
-    """Railway containers often have no outbound IPv6 route, so the default
-    getaddrinfo()-based connect can pick an AAAA record and fail with
-    'Network is unreachable'. Force IPv4 resolution instead."""
-
-    def _get_socket(self, host, port, timeout):
-        if timeout is not None and not timeout:
-            raise ValueError("Non-blocking socket (timeout=0) is not supported")
-        addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
-        sock = socket.socket(addrinfo[0][0], addrinfo[0][1], addrinfo[0][2])
-        if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-            sock.settimeout(timeout)
-        sock.connect(addrinfo[0][4])
-        return sock
-
-
 @router.post("/send-email")
 def send_email(req: SendEmailRequest, db: Session = Depends(get_db)):
-    smtp_email = os.getenv("SMTP_EMAIL")
-    smtp_password = os.getenv("SMTP_APP_PASSWORD")
-    sender_name = os.getenv("SMTP_SENDER_NAME", "Armila Design")
-
-    if not smtp_email or not smtp_password:
-        raise HTTPException(status_code=500, detail="Email credentials not configured on server")
-
     if not req.to_email or "@" not in req.to_email:
         raise HTTPException(status_code=400, detail="Invalid recipient email")
 
+    plain_body = req.body  # already plain text from the editable textarea
+    html_body = req.body.replace("\n", "<br>")
+
+    resend_attachments = None
+    if req.attachments:
+        total_size = 0
+        resend_attachments = []
+        for att in req.attachments:
+            try:
+                file_data = base64.b64decode(att.content_base64)
+            except Exception:
+                raise HTTPException(status_code=400, detail=f"Invalid attachment data: {att.filename}")
+            total_size += len(file_data)
+            resend_attachments.append({"filename": att.filename, "content": att.content_base64})
+
+        if total_size > MAX_ATTACHMENTS_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Attachments too large: {round(total_size / 1024 / 1024, 1)}MB "
+                       f"(limit is {MAX_ATTACHMENTS_SIZE_BYTES // 1024 // 1024}MB total)"
+            )
+
     try:
-        # Outer container: mixed (allows attachments alongside the message body)
-        msg = MIMEMultipart("mixed")
-        msg["From"] = f"{sender_name} <{smtp_email}>"
-        msg["To"] = req.to_email
-        msg["Subject"] = req.subject
-
-        # Inner container: alternative (plain text + HTML) — critical for spam filters
-        body_container = MIMEMultipart("alternative")
-
-        plain_body = req.body  # already plain text from the editable textarea
-        html_body = req.body.replace("\n", "<br>")
-
-        body_container.attach(MIMEText(plain_body, "plain", "utf-8"))
-        body_container.attach(MIMEText(html_body, "html", "utf-8"))
-        msg.attach(body_container)
-
-        # Attachments (e.g. portfolio PDF, images)
-        if req.attachments:
-            total_size = 0
-            decoded = []
-            for att in req.attachments:
-                try:
-                    file_data = base64.b64decode(att.content_base64)
-                except Exception:
-                    raise HTTPException(status_code=400, detail=f"Invalid attachment data: {att.filename}")
-                total_size += len(file_data)
-                decoded.append((att, file_data))
-
-            if total_size > MAX_ATTACHMENTS_SIZE_BYTES:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Attachments too large: {round(total_size / 1024 / 1024, 1)}MB "
-                           f"(limit is {MAX_ATTACHMENTS_SIZE_BYTES // 1024 // 1024}MB total)"
-                )
-
-            for att, file_data in decoded:
-                part = MIMEApplication(file_data, Name=att.filename)
-                part["Content-Disposition"] = f'attachment; filename="{att.filename}"'
-                msg.attach(part)
-
-        with SMTP_IPv4("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(smtp_email, smtp_password)
-            server.sendmail(smtp_email, req.to_email, msg.as_string())
-
-    except HTTPException:
-        raise
-    except smtplib.SMTPAuthenticationError:
-        raise HTTPException(status_code=500, detail="Email authentication failed. Check App Password.")
+        resend_send_email(
+            to_email=req.to_email,
+            subject=req.subject,
+            html_body=html_body,
+            text_body=plain_body,
+            attachments=resend_attachments,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 

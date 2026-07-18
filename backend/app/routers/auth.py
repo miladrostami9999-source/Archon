@@ -2,9 +2,7 @@ import os
 import json
 import re
 import secrets as _secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from app.services.email_service import send_email
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -356,16 +354,6 @@ class ResetPasswordRequest(BaseModel):
 
 
 def _send_reset_email(to_email: str, reset_link: str, user_name: str):
-    smtp_email = os.getenv("SMTP_EMAIL")
-    smtp_password = os.getenv("SMTP_APP_PASSWORD")
-    if not smtp_email or not smtp_password:
-        raise HTTPException(status_code=500, detail="Email service not configured on server")
-
-    msg = MIMEMultipart("alternative")
-    msg["From"] = f"Archon (via Armila Design) <{smtp_email}>"
-    msg["To"] = to_email
-    msg["Subject"] = "Reset your Archon password"
-
     plain = (
         f"Hi {user_name},\n\n"
         f"We received a request to reset your Archon password.\n"
@@ -385,13 +373,18 @@ def _send_reset_email(to_email: str, reset_link: str, user_name: str):
       <p style="color:#888;font-size:13px">— Archon, by Armila Design</p>
     </div>
     """
-    msg.attach(MIMEText(plain, "plain", "utf-8"))
-    msg.attach(MIMEText(html, "html", "utf-8"))
-
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(smtp_email, smtp_password)
-        server.sendmail(smtp_email, to_email, msg.as_string())
+    try:
+        send_email(
+            to_email=to_email,
+            subject="Reset your Archon password",
+            html_body=html,
+            text_body=plain,
+            from_name="Archon (via Armila Design)",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send reset email: {str(e)}")
 
 
 @router.post("/forgot-password")
