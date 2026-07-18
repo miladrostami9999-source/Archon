@@ -41,11 +41,13 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - [x] Frontend روی Vercel، زنده روی `https://archon-hazel.vercel.app`
 - [x] `migrate_to_postgres.py` اجرا شد — ۷۲ ردیف منتقل شد، داده‌ی واقعی روی production تأیید شد
 - [x] لاگین واقعی از production تست و تأیید شد
+- [x] Add Company، Generate Email (AI)، Send Email (Resend) — همه تست و تأیید شدن
+- [x] ایمیل از SMTP خام به Resend (HTTPS API) مهاجرت کرد — چون Railway پورت‌های SMTP رو مسدود می‌کنه
 
 ### باقی‌مانده Phase 4
 - [ ] **تأیید Railway Volume + `BACKUP_DIR`** — وضعیتش نامشخصه، باید چک بشه (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
-- [ ] Smoke test کامل production: تولید ایمیل با AI، ارسال SMTP واقعی، Public Profile، Forgot Password، Weekly Report
-- [ ] اتصال دامنه armiladesign.com (خریده‌شده، **عمداً به تعویق افتاد** — فعلاً با آدرس vercel.app کار می‌کنیم)
+- [ ] تست attachment واقعی در ارسال ایمیل، Public Profile، Forgot Password (با Resend)، Weekly Report، Daily Tasks
+- [ ] اتصال دامنه armiladesign.com به پلتفرم (پیشنهاد: زیردامنه‌ی جدا مثل `app.armiladesign.com`، سایت پورتفولیوی فعلی دست‌نخورده می‌مونه) — **عمداً به تعویق افتاد** — فعلاً با آدرس vercel.app کار می‌کنیم. نکته: armiladesign.com همین الان برای Resend (ارسال ایمیل) هم وصل شده — این با هاست کردن سایت تداخلی نداره و بعداً نیازی به تغییر نداره
 - [ ] File Storage روی Cloudflare R2 (الان portfolio images به‌صورت base64 در DB)
 - [ ] Public signup endpoint واقعی (الان فقط `POST /auth/users` توسط ادمین — بدون self-serve)
 - [ ] یک بک‌آپ رسمی تازه از production گرفته بشه (بعد از تأیید Volume)
@@ -81,6 +83,8 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - Vercel build fail می‌شد: تضاد peer-dependency بین `react-simple-maps` و React 19 — با `.npmrc` (`legacy-peer-deps=true`) حل شد
 - Vercel build fail می‌شد: خطای TypeScript (`JSX.Element` namespace در Sidebar، typeهای گم‌شده در map/page.tsx، `useSearchParams` بدون Suspense در reset-password) — هر سه رفع و با `npm run build` لوکال تأیید شد
 - **[بحرانی]** آدرس بک‌اند (`http://localhost:8000`) در ۱۷ فایل فرانت‌اند هاردکد بود — بدون این fix، دیپلوی روی Vercel کاملاً از کار می‌افتاد. الان همه از `NEXT_PUBLIC_API_URL` می‌خونن.
+- **[بحرانی]** بعد از migration، sequence شماره‌گذاری خودکار Postgres برای هر ۸ جدول درست نشده بود (یه خط SQL خام بدون `text()` در SQLAlchemy 2.x silent-fail می‌کرد) — هر INSERT جدید (Add Company، Generate Email، Tasks، Weekly Report) با خطای duplicate-key crash می‌کرد و به‌اشتباه به شکل خطای CORS در مرورگر دیده می‌شد. رفع شد + sequenceهای production دستی ریست شدن.
+- **[بحرانی]** ارسال ایمیل با SMTP خام کار نمی‌کرد — اول `Network is unreachable` (نبود مسیر IPv6 روی Railway)، بعد از فیکس IPv4 هم `Connection timed out` (Railway پورت‌های SMTP رو مسدود می‌کنه). رفع نهایی: مهاجرت کامل به **Resend** (HTTPS API) برای send-email و forgot-password — نیاز به `RESEND_API_KEY` و `RESEND_FROM_EMAIL` روی دامنه‌ی verified.
 - `migrate_to_postgres.py` جدول `weekly_reports` رو migrate نمی‌کرد (قفل ۷روزه‌ی گزارش هفتگی گم می‌شد بعد از مهاجرت) — رفع شد.
 - `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback) و کاملاً بازبینی/تست شد
 - Backup path هاردکد بود و روی Railway (filesystem ephemeral) با هر redeploy پاک می‌شد — الان از `BACKUP_DIR` env var پشتیبانی می‌کنه؛ نیاز به ساخت Railway Volume + تنظیم env var قبل از Deploy واقعی (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
