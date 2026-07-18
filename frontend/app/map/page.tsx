@@ -139,13 +139,13 @@ export default function MapPage() {
           style={{ width: '100%', height: '100%', background: themeColors.mapBg }}
         >
           <ZoomableGroup zoom={zoom} center={center}
-            onMoveEnd={({ coordinates, zoom: z }) => {
+            onMoveEnd={({ coordinates, zoom: z }: { coordinates: [number, number]; zoom: number }) => {
               centerRef.current = coordinates as [number, number]
               zoomRef.current = z
               // Don't call setCenter/setZoom here — avoids re-render flash
             }}>
             <Geographies geography={GEO_URL}>
-              {({ geographies }) => geographies.map(geo => {
+              {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => {
                 const geoName = geo.properties.name
                 const data = getCountryData(geoName)
                 const fill = getFillColor(data)
