@@ -1,5 +1,6 @@
 import base64
 import os
+import socket
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -13,6 +14,24 @@ from app.models.database import get_db, Campaign
 from .schemas import SendEmailRequest
 
 router = APIRouter()
+
+MAX_ATTACHMENTS_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB total, matches Gmail's own limit headroom
+
+
+class SMTP_IPv4(smtplib.SMTP):
+    """Railway containers often have no outbound IPv6 route, so the default
+    getaddrinfo()-based connect can pick an AAAA record and fail with
+    'Network is unreachable'. Force IPv4 resolution instead."""
+
+    def _get_socket(self, host, port, timeout):
+        if timeout is not None and not timeout:
+            raise ValueError("Non-blocking socket (timeout=0) is not supported")
+        addrinfo = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(addrinfo[0][0], addrinfo[0][1], addrinfo[0][2])
+        if timeout is not smtplib._GLOBAL_DEFAULT_TIMEOUT:
+            sock.settimeout(timeout)
+        sock.connect(addrinfo[0][4])
+        return sock
 
 
 @router.post("/send-email")
@@ -46,16 +65,29 @@ def send_email(req: SendEmailRequest, db: Session = Depends(get_db)):
 
         # Attachments (e.g. portfolio PDF, images)
         if req.attachments:
+            total_size = 0
+            decoded = []
             for att in req.attachments:
                 try:
                     file_data = base64.b64decode(att.content_base64)
                 except Exception:
                     raise HTTPException(status_code=400, detail=f"Invalid attachment data: {att.filename}")
+                total_size += len(file_data)
+                decoded.append((att, file_data))
+
+            if total_size > MAX_ATTACHMENTS_SIZE_BYTES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Attachments too large: {round(total_size / 1024 / 1024, 1)}MB "
+                           f"(limit is {MAX_ATTACHMENTS_SIZE_BYTES // 1024 // 1024}MB total)"
+                )
+
+            for att, file_data in decoded:
                 part = MIMEApplication(file_data, Name=att.filename)
                 part["Content-Disposition"] = f'attachment; filename="{att.filename}"'
                 msg.attach(part)
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        with SMTP_IPv4("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(smtp_email, smtp_password)
             server.sendmail(smtp_email, req.to_email, msg.as_string())

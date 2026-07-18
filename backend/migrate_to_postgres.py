@@ -24,7 +24,7 @@ ARCHON — SQLite → PostgreSQL Migration Script
 import sys
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
 # ─────────────────────────────────────────
@@ -143,15 +143,20 @@ def migrate():
             summary.append((table_name, migrated, skipped, "commit error"))
             continue
 
-        # Reset PostgreSQL sequence so future inserts don't collide with migrated IDs
+        # Reset PostgreSQL sequence so future inserts don't collide with migrated IDs.
+        # Raw SQL must go through text() in SQLAlchemy 2.x — passing a bare string
+        # raises ObjectNotExecutableError, which a bare except here used to swallow
+        # silently, leaving every sequence stuck at 1 and every INSERT after
+        # migration crashing with a UniqueViolation on the primary key.
         try:
-            postgres_db.execute(
+            postgres_db.execute(text(
                 f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), "
                 f"COALESCE((SELECT MAX(id) FROM {table_name}), 1), true)"
-            )
+            ))
             postgres_db.commit()
-        except Exception:
-            postgres_db.rollback()  # non-fatal, sequences are a nice-to-have fix
+        except Exception as e:
+            postgres_db.rollback()
+            print(f"   ⚠️  Sequence reset failed for {table_name}: {e}")
 
         print(f"   ✅ {migrated} migrated, {skipped} already existed (skipped)")
         summary.append((table_name, migrated, skipped, "ok"))
