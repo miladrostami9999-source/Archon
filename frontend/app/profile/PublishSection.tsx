@@ -135,7 +135,7 @@ export default function PublishSection({ profile }: Props) {
               style={{ flex: 1, background: 'none', border: 'none', padding: '9px 10px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
           </div>
         </div>
-        <button onClick={() => publish(isPublic)} disabled={saving}
+        <button onClick={() => publish(true)} disabled={saving}
           style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1, alignSelf: 'flex-end' }}>
           {saving ? 'Saving...' : 'Save & Publish'}
         </button>
