@@ -44,13 +44,21 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - [x] Add Company، Generate Email (AI)، Send Email (Resend) — همه تست و تأیید شدن
 - [x] ایمیل از SMTP خام به Resend (HTTPS API) مهاجرت کرد — چون Railway پورت‌های SMTP رو مسدود می‌کنه
 
+### تمام‌شده — R2 + Landing + Signup (2026-07-18/19)
+- [x] **File Storage روی Cloudflare R2** — سرویس آپلود (boto3) + endpoint `POST /auth/upload` + سه هندلر فرانت (آواتار، پورتفولیو). عکس‌ها به‌جای base64 روی R2 می‌رن. **کد آماده، نیاز به ست‌کردن ۵ env var روی Railway** (R2_ACCOUNT_ID و...). تا اون موقع fallback به base64 کار می‌کنه.
+- [x] **Landing Page عمومی** روی `/` (فایل static در `public/landing.html`، دوزبانه EN/FA). داشبورد رفت به `/dashboard`. کاربر لاگین‌شده خودکار به داشبورد هدایت می‌شه.
+- [x] **Signup (Waitlist)** — چون دیتا تا Phase 5 مشترکه، signup عمومی یه waitlist امنه: `POST /auth/signup` (عمومی) + صفحه‌ی `/signup` + `GET /auth/waitlist` (فقط ادمین). CTAهای لندینگ به `/signup?plan=X` وصلن.
+
 ### باقی‌مانده Phase 4
+- [ ] ست‌کردن ۵ env var مربوط به R2 روی Railway (تا آپلود واقعاً روی R2 بره، نه fallback)
 - [ ] **تأیید Railway Volume + `BACKUP_DIR`** — وضعیتش نامشخصه، باید چک بشه (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
-- [ ] تست attachment واقعی در ارسال ایمیل، Public Profile، Forgot Password (با Resend)، Weekly Report، Daily Tasks
-- [ ] اتصال دامنه armiladesign.com به پلتفرم (پیشنهاد: زیردامنه‌ی جدا مثل `app.armiladesign.com`، سایت پورتفولیوی فعلی دست‌نخورده می‌مونه) — **عمداً به تعویق افتاد** — فعلاً با آدرس vercel.app کار می‌کنیم. نکته: armiladesign.com همین الان برای Resend (ارسال ایمیل) هم وصل شده — این با هاست کردن سایت تداخلی نداره و بعداً نیازی به تغییر نداره
-- [ ] File Storage روی Cloudflare R2 (الان portfolio images به‌صورت base64 در DB)
-- [ ] Public signup endpoint واقعی (الان فقط `POST /auth/users` توسط ادمین — بدون self-serve)
+- [ ] ست‌کردن `FRONTEND_URL=https://archon-hazel.vercel.app` روی Railway (لینک فورگت‌پسورد خراب بود)
+- [ ] تست attachment واقعی در ارسال ایمیل، Weekly Report، Daily Tasks
+- [ ] اتصال دامنه armiladesign.com به پلتفرم (پیشنهاد: زیردامنه‌ی جدا مثل `app.armiladesign.com`) — **فردا** انجام می‌شه. نکته: armiladesign.com الان برای Resend وصله، تداخلی نداره
 - [ ] یک بک‌آپ رسمی تازه از production گرفته بشه (بعد از تأیید Volume)
+
+### Phase 5 (بعدی، پیش‌نیاز باز شدن signup واقعی)
+- Multi-tenant واقعی (فیلد owner/user_id روی `companies` — الان مشترکه) — پیش‌نیاز اینه که waitlist به signup واقعی تبدیل بشه
 
 ---
 
