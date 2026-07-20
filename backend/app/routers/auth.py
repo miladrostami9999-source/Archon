@@ -3,7 +3,8 @@ import json
 import re
 import secrets as _secrets
 from app.services.email_service import send_email
-from fastapi import APIRouter, Depends, HTTPException
+from app.services import storage
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -338,6 +339,30 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "customSkills": data.get("customSkills", []),
         "portfolio": data.get("portfolio", []),
     }
+
+
+# ─────────────────────────────────────────
+# IMAGE UPLOAD (avatar + portfolio) → Cloudflare R2
+# ─────────────────────────────────────────
+@router.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload a single image to R2 and return its public URL. Used for avatar
+    and portfolio images so they no longer bloat the database as base64."""
+    if not storage.is_configured():
+        raise HTTPException(status_code=503, detail="Image storage is not configured on the server")
+
+    content = await file.read()
+    try:
+        url = storage.upload_image(content, file.content_type or "", prefix=f"users/{current_user.id}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+    return {"url": url}
 
 
 # ─────────────────────────────────────────

@@ -9,6 +9,27 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
+// Reads a file as a base64 data URL (used as a fallback when R2 isn't configured)
+const readAsDataURL = (file: File) => new Promise<string>((resolve) => {
+  const reader = new FileReader()
+  reader.onload = ev => resolve(ev.target?.result as string)
+  reader.readAsDataURL(file)
+})
+
+// Uploads an image to R2 via the backend and returns its public URL.
+// Falls back to an inline base64 data URL if storage isn't configured yet,
+// so the profile keeps working during the R2 rollout.
+const uploadImage = async (file: File): Promise<string> => {
+  try {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await axios.post(`${API}/auth/upload`, form, { headers: headers() })
+    return res.data.url as string
+  } catch {
+    return readAsDataURL(file)
+  }
+}
+
 const SKILLS_OPTIONS = [
   '3D Visualization', 'Architectural Rendering', 'Interior Design',
   'Exterior Design', 'Blender', '3ds Max', 'V-Ray', 'Corona',
@@ -96,38 +117,33 @@ export default function ProfilePage() {
   }
 
   // Avatar upload
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const updated = { ...profile, avatar: ev.target?.result as string }
-      setProfile(updated)
-      saveProfile(updated)
-    }
-    reader.readAsDataURL(file)
+    if (file.size > 8 * 1024 * 1024) { alert('Image must be under 8MB'); return }
+    const url = await uploadImage(file)
+    const updated = { ...profile, avatar: url }
+    setProfile(updated)
+    saveProfile(updated)
   }
 
   // Portfolio images upload
-  const handlePortfolioImages = (e: React.ChangeEvent<HTMLInputElement>, projectId: string) => {
+  const handlePortfolioImages = async (e: React.ChangeEvent<HTMLInputElement>, projectId: string) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
-    const readers = files.map(file => new Promise<PortfolioImage>((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (ev) => resolve({ id: Date.now() + Math.random().toString(), data: ev.target?.result as string, name: file.name })
-      reader.readAsDataURL(file)
-    }))
-    Promise.all(readers).then(images => {
-      const updated = {
-        ...profile,
-        portfolio: profile.portfolio.map(p =>
-          p.id === projectId ? { ...p, images: [...p.images, ...images] } : p
-        )
-      }
-      setProfile(updated)
-      saveProfile(updated)
-    })
+    const images = await Promise.all(files.map(async file => ({
+      id: Date.now() + Math.random().toString(),
+      data: await uploadImage(file),
+      name: file.name,
+    })))
+    const updated = {
+      ...profile,
+      portfolio: profile.portfolio.map(p =>
+        p.id === projectId ? { ...p, images: [...p.images, ...images] } : p
+      )
+    }
+    setProfile(updated)
+    saveProfile(updated)
     e.target.value = ''
   }
 
@@ -168,15 +184,15 @@ export default function ProfilePage() {
     setNewPortfolioImages([])
   }
 
-  const handleNewProjectImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewProjectImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
-    const readers = files.map(file => new Promise<{id:string;data:string;name:string}>((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (ev) => resolve({ id: Date.now() + Math.random().toString(), data: ev.target?.result as string, name: file.name })
-      reader.readAsDataURL(file)
-    }))
-    Promise.all(readers).then(images => setNewPortfolioImages(prev => [...prev, ...images]))
+    const images = await Promise.all(files.map(async file => ({
+      id: Date.now() + Math.random().toString(),
+      data: await uploadImage(file),
+      name: file.name,
+    })))
+    setNewPortfolioImages(prev => [...prev, ...images])
     e.target.value = ''
   }
 
