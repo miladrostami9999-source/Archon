@@ -40,7 +40,7 @@ export default function AddCompany() {
     setLoading(true); setError('')
     try {
       await axios.post(`${API}/companies/`, form)
-      router.push('/')
+      router.push('/dashboard')
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Something went wrong')
     }
@@ -61,7 +61,7 @@ export default function AddCompany() {
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
-          <button onClick={() => router.push('/')}
+          <button onClick={() => router.push('/dashboard')}
             style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -187,7 +187,7 @@ export default function AddCompany() {
 
             {/* BUTTONS */}
             <div style={{ display: 'flex', gap: '12px', paddingTop: '4px' }}>
-              <button onClick={() => router.push('/')}
+              <button onClick={() => router.push('/dashboard')}
                 style={{ flex: 1, padding: '10px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '14px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-input)' }}>

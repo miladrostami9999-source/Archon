@@ -35,7 +35,7 @@ function EditForm() {
   })
 
   useEffect(() => {
-    if (!companyId) { window.location.href = '/'; return }
+    if (!companyId) { window.location.href = '/dashboard'; return }
     axios.get(`${API}/companies/${companyId}`)
       .then(res => {
         const c = res.data
@@ -49,7 +49,7 @@ function EditForm() {
         })
         setLoading(false)
       })
-      .catch(() => window.location.href = '/')
+      .catch(() => window.location.href = '/dashboard')
   }, [companyId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

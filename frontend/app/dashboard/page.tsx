@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import Sidebar from './components/Sidebar'
+import Sidebar from '../components/Sidebar'
 import {
   DndContext,
   DragEndEvent,
@@ -14,7 +14,7 @@ import {
   useDroppable,
   useDraggable,
 } from '@dnd-kit/core'
-import { useIsMobile } from './hooks/useIsMobile'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const PAGE_SIZE = 20

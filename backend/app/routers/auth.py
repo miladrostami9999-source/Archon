@@ -12,7 +12,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
 import bcrypt
-from app.models.database import get_db, User, PasswordResetToken
+from app.models.database import get_db, User, PasswordResetToken, WaitlistEntry
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -339,6 +339,73 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "customSkills": data.get("customSkills", []),
         "portfolio": data.get("portfolio", []),
     }
+
+
+# ─────────────────────────────────────────
+# PUBLIC SIGNUP → WAITLIST
+# (Companies data is still shared across users until per-user multi-tenancy
+#  lands in Phase 5, so public signup collects interest rather than granting
+#  immediate access. Admin reviews and provisions accounts manually.)
+# ─────────────────────────────────────────
+class WaitlistSignup(BaseModel):
+    name: str
+    email: str
+    plan: Optional[str] = "basic"
+    company: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.post("/signup")
+def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
+    email = req.email.strip().lower()
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+    if not req.name.strip():
+        raise HTTPException(status_code=400, detail="Please enter your name.")
+
+    # Idempotent: if this email already applied, don't create a duplicate.
+    existing = db.query(WaitlistEntry).filter(WaitlistEntry.email == email).first()
+    if existing:
+        return {"message": "You're already on the list — we'll be in touch soon.", "already": True}
+
+    entry = WaitlistEntry(
+        name=req.name.strip(),
+        email=email,
+        plan=(req.plan or "basic"),
+        company=(req.company or "").strip() or None,
+        note=(req.note or "").strip() or None,
+    )
+    db.add(entry)
+    db.commit()
+
+    # Notify the admin (best-effort — never fail the signup if email is down)
+    admin_email = os.getenv("ADMIN_NOTIFY_EMAIL") or os.getenv("RESEND_FROM_EMAIL")
+    if admin_email:
+        try:
+            send_email(
+                to_email=admin_email,
+                subject=f"New Archon waitlist signup: {entry.name}",
+                html_body=(
+                    f"<p><strong>{entry.name}</strong> ({entry.email}) joined the waitlist.</p>"
+                    f"<p>Plan: {entry.plan}<br>Company: {entry.company or '—'}<br>"
+                    f"Note: {entry.note or '—'}</p>"
+                ),
+                text_body=f"{entry.name} ({entry.email}) joined the waitlist. Plan: {entry.plan}.",
+            )
+        except Exception as e:
+            print(f"Waitlist admin notification failed: {e}")
+
+    return {"message": "You're on the list! We'll email you when your account is ready.", "already": False}
+
+
+@router.get("/waitlist")
+def list_waitlist(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    entries = db.query(WaitlistEntry).order_by(WaitlistEntry.created_at.desc()).all()
+    return [{
+        "id": e.id, "name": e.name, "email": e.email, "plan": e.plan,
+        "company": e.company, "note": e.note, "status": e.status,
+        "created_at": e.created_at,
+    } for e in entries]
 
 
 # ─────────────────────────────────────────

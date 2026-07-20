@@ -94,7 +94,7 @@ export default function Sidebar() {
   const sbg = dark ? '#161B27' : '#FFFFFF'
 
   const workspaceItems = [
-    { label: 'Home',       iconKey: 'home',      href: '/' },
+    { label: 'Home',       iconKey: 'home',      href: '/dashboard' },
     { label: 'Tasks',      iconKey: 'tasks',     href: '/tasks' },
     { label: 'Analytics',  iconKey: 'analytics', href: '/analytics' },
     { label: 'Market Map', iconKey: 'map',       href: '/map' },

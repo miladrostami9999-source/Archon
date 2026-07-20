@@ -81,7 +81,7 @@ export default function CompanyDetail() {
 
   const fetchCompany = async () => {
     try { const res = await axios.get(`${API}/companies/${id}`); setCompany(res.data) }
-    catch { window.location.href = '/' }
+    catch { window.location.href = '/dashboard' }
     setLoading(false)
   }
   const fetchContacts = async () => { try { const res = await axios.get(`${API}/companies/${id}/contacts`); setContacts(res.data) } catch {} }
@@ -95,7 +95,7 @@ export default function CompanyDetail() {
   const toggleFavorite = async () => { await axios.patch(`${API}/companies/${id}/favorite`); fetchCompany() }
   const deleteCompany = async () => {
     setDeleting(true)
-    try { await axios.delete(`${API}/companies/${id}`); window.location.href = '/' }
+    try { await axios.delete(`${API}/companies/${id}`); window.location.href = '/dashboard' }
     catch { setDeleting(false); setShowDeleteModal(false) }
   }
   const saveNote = async () => {
@@ -397,7 +397,7 @@ export default function CompanyDetail() {
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
-          <button onClick={() => window.location.href = '/'}
+          <button onClick={() => window.location.href = '/dashboard'}
             style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', padding: '4px 8px', borderRadius: '6px' }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>

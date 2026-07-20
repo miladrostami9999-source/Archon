@@ -14,7 +14,7 @@ export default function LoginPage() {
   useEffect(() => {
     // If already logged in, redirect
     const token = localStorage.getItem('archon-token')
-    if (token) window.location.href = '/'
+    if (token) window.location.href = '/dashboard'
   }, [])
 
   const handleLogin = async () => {
@@ -24,7 +24,7 @@ export default function LoginPage() {
       const res = await axios.post(`${API}/auth/login`, { email, password })
       localStorage.setItem('archon-token', res.data.token)
       localStorage.setItem('archon-user', JSON.stringify(res.data.user))
-      window.location.href = '/'
+      window.location.href = '/dashboard'
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Login failed')
     }

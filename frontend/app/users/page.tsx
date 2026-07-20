@@ -35,7 +35,7 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try { const r = await axios.get(`${API}/auth/users`, { headers: headers() }); setUsers(r.data) }
-    catch (e: any) { if (e.response?.status === 403) window.location.href = '/' }
+    catch (e: any) { if (e.response?.status === 403) window.location.href = '/dashboard' }
     setLoading(false)
   }
   useEffect(() => { fetchUsers() }, [])

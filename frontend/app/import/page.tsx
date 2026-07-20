@@ -45,7 +45,7 @@ MIR Visualization,mir.no,https://mir.no,post@mir.no,Norway,Bergen,CGI,small,,,`
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-gray-600 transition">
+        <button onClick={() => window.location.href = '/dashboard'} className="text-gray-400 hover:text-gray-600 transition">
           ← Back
         </button>
         <div>

@@ -174,6 +174,18 @@ class DailyTask(Base):
     date        = Column(DateTime, default=datetime.utcnow)
     company = relationship("Company", back_populates="tasks")
 
+
+class WaitlistEntry(Base):
+    __tablename__ = "waitlist"
+    id         = Column(Integer, primary_key=True, index=True)
+    name       = Column(String, nullable=False)
+    email      = Column(String, index=True, nullable=False)
+    plan       = Column(String, default="basic")   # plan the visitor was interested in
+    company    = Column(String)                     # optional studio/company name
+    note       = Column(Text)                       # optional message
+    status     = Column(String, default="pending")  # pending | approved | rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # ─────────────────────────────────────────
 # INIT + SEED ADMIN
 # ─────────────────────────────────────────

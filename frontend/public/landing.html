@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archon — Business Development OS for Architecture Studios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --line:#4F7BF7; --line-soft:rgba(79,123,247,0.35); --line-dim:rgba(79,123,247,0.12);
+  --violet:#7C3AED; --ok:#34D399; --amber:#FBBF24;
+  --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',-apple-system,sans-serif;
+}
+html{--ink:#0B0E15;--ink-2:#11151F;--ink-3:#161B27;--text:#E7EAF0;--muted:rgba(231,234,240,0.62);--dim:rgba(231,234,240,0.36);--border:rgba(255,255,255,0.09);--border-soft:rgba(255,255,255,0.05);--accent-a:#8FB3FF;--accent-b:#C4A6FF;}
+html.light-theme{--ink:#F5F6FA;--ink-2:#FFFFFF;--ink-3:#F0F2F7;--text:#181B23;--muted:rgba(24,27,35,0.62);--dim:rgba(24,27,35,0.4);--border:rgba(0,0,0,0.09);--border-soft:rgba(0,0,0,0.055);--accent-a:#2E5CE0;--accent-b:#7C3AED;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
+body{background:var(--ink);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s;position:relative;}
+body.lang-fa{--font-display:'Vazirmatn',sans-serif;--font-body:'Vazirmatn',sans-serif;}
+h1,h2,h3,h4{font-family:var(--font-display);}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+:focus-visible{outline:2px solid var(--line);outline-offset:3px;border-radius:4px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:600;border:none;transition:all .18s;white-space:nowrap;}
+.btn-primary{background:linear-gradient(135deg,var(--line),var(--violet));color:white;box-shadow:0 4px 16px rgba(79,123,247,0.32);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(79,123,247,0.42);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--line-soft);}
+.btn-lg{padding:13px 26px;font-size:14.5px;border-radius:11px;}
+
+/* ══════════ LANGUAGE GATE ══════════ */
+#langGate{position:fixed;inset:0;z-index:100;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:44px;transition:opacity .5s,visibility .5s;}
+#langGate.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+.gate-grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--border-soft) 1px,transparent 1px),linear-gradient(90deg,var(--border-soft) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(ellipse 60% 60% at 50% 50%,black 20%,transparent 75%);}
+.gate-brand{display:flex;align-items:center;gap:12px;font-family:var(--font-display);font-weight:700;font-size:20px;position:relative;z-index:2;}
+.gate-mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--line),var(--violet));display:flex;align-items:center;justify-content:center;font-weight:700;color:white;box-shadow:0 4px 16px rgba(79,123,247,0.4);}
+.gate-cards{display:flex;gap:24px;position:relative;z-index:2;}
+.gate-card{width:220px;padding:40px 28px;border-radius:20px;background:var(--ink-2);border:1px solid var(--border);cursor:pointer;text-align:center;transition:all .3s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden;}
+.gate-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(79,123,247,0.12),rgba(124,58,237,0.08));opacity:0;transition:opacity .3s;}
+.gate-card:hover{transform:translateY(-8px);border-color:var(--line-soft);box-shadow:0 20px 50px rgba(79,123,247,0.2);}
+.gate-card:hover::before{opacity:1;}
+.gate-flag{font-size:36px;margin-bottom:16px;position:relative;}
+.gate-card h3{font-size:19px;font-weight:700;margin-bottom:6px;position:relative;}
+.gate-card p{font-size:12.5px;color:var(--dim);position:relative;}
+.gate-hint{font-size:12px;color:var(--dim);position:relative;z-index:2;letter-spacing:.02em;}
+
+/* ══════════ APP SHELL ══════════ */
+#app{position:fixed;inset:0;opacity:0;transition:opacity .5s;}
+#app.ready{opacity:1;}
+
+/* ── HEADER ── */
+header.top-nav{position:fixed;top:0;left:0;right:0;z-index:40;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:linear-gradient(180deg, var(--ink) 60%, transparent);}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:15px;}
+.brand-mark-sm{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,var(--line),var(--violet));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:white;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.icon-btn{width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);transition:all .15s;}
+.icon-btn:hover{border-color:var(--line-soft);color:var(--text);}
+
+/* ── FLOORS (fade transition, no slide) ── */
+.floor{position:absolute;top:76px;left:0;right:0;bottom:210px;display:flex;align-items:center;justify-content:center;padding:16px 60px;opacity:0;visibility:hidden;transition:opacity .35s ease;overflow:auto;}
+.floor.active{opacity:1;visibility:visible;pointer-events:auto;}
+.floor:not(.active){pointer-events:none;}
+.floor-inner{max-width:1080px;width:100%;}
+
+.f-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-a);background:var(--line-dim);border:1px solid var(--line-soft);padding:7px 15px;border-radius:999px;margin-bottom:20px;}
+.f-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);}
+
+/* FLOOR 1 — HERO */
+#floor-1 .floor-inner{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;}
+#floor-1 h1{font-size:52px;font-weight:700;line-height:1.14;letter-spacing:-.025em;margin-bottom:18px;}
+body.lang-fa #floor-1 h1{font-size:42px;line-height:1.55;font-weight:800;}
+#floor-1 h1 .accent{background:linear-gradient(135deg,var(--accent-a),var(--accent-b));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+#floor-1 p.lead{font-size:17px;color:var(--muted);max-width:470px;margin-bottom:28px;line-height:1.75;}
+body.lang-fa #floor-1 p.lead{line-height:2;font-size:17px;}
+.hero-visual-sm{position:relative;aspect-ratio:1/0.85;}
+.bp-frame{position:relative;width:100%;height:100%;border-radius:16px;background:linear-gradient(180deg,var(--ink-2),var(--ink));border:1px solid var(--border);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.bp-frame::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--border-soft) 1px,transparent 1px),linear-gradient(90deg,var(--border-soft) 1px,transparent 1px);background-size:26px 26px;opacity:.5;}
+.building-svg{position:absolute;inset:0;width:100%;height:100%;}
+.bp-line{fill:none;stroke:var(--line);stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:900;stroke-dashoffset:900;}
+.bp-fill{opacity:0;}
+.floor.active .bp-line{animation:draw 2s ease forwards;}
+.floor.active .bp-line.d2{animation-delay:.12s;}
+.floor.active .bp-line.d3{animation-delay:.24s;}
+.floor.active .bp-fill{animation:fadein 1.1s ease forwards;animation-delay:1.7s;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@keyframes fadein{to{opacity:1;}}
+
+/* FLOOR 2 — PROBLEM */
+#floor-2 .f-title{font-size:36px;font-weight:700;letter-spacing:-.02em;margin-bottom:34px;max-width:680px;line-height:1.3;}
+body.lang-fa #floor-2 .f-title{font-size:30px;line-height:1.6;font-weight:800;}
+.problem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-soft);border:1px solid var(--border-soft);border-radius:14px;overflow:hidden;}
+.problem-cell{background:var(--ink);padding:22px 20px;}
+.problem-cell .num{font-family:var(--font-display);font-size:11px;color:var(--dim);margin-bottom:9px;direction:ltr;}
+.problem-cell strong{display:block;font-size:16px;font-weight:700;margin-bottom:7px;}
+.problem-cell p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+/* FLOOR 3 — FEATURES */
+#floor-3 .f-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;}
+body.lang-fa #floor-3 .f-title{font-size:28px;font-weight:800;line-height:1.6;}
+#floor-3 .f-sub{font-size:15px;color:var(--muted);margin-bottom:26px;max-width:620px;line-height:1.6;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}
+.feat-card{background:var(--ink-2);border:1px solid var(--border);border-radius:13px;padding:16px;transition:all .2s;}
+.feat-card:hover{border-color:var(--line-soft);transform:translateY(-2px);}
+.feat-icon{width:32px;height:32px;border-radius:9px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;background:var(--line-dim);border:1px solid var(--line-soft);}
+.feat-card h3{font-size:15.5px;font-weight:700;margin-bottom:6px;}
+.feat-card p{font-size:13px;color:var(--muted);line-height:1.6;}
+
+/* FLOOR 4 — HOW (vertical list — intentionally different from bottom workflow bar) */
+#floor-4 .f-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:32px;}
+body.lang-fa #floor-4 .f-title{font-size:28px;font-weight:800;line-height:1.6;}
+.steps{display:flex;flex-direction:column;gap:0;max-width:640px;position:relative;}
+.step{position:relative;display:flex;gap:18px;padding-bottom:22px;}
+.step:last-child{padding-bottom:0;}
+.step::before{content:'';position:absolute;left:15px;top:34px;bottom:-2px;width:1px;background:var(--border);}
+html[dir="rtl"] .step::before{left:auto;right:15px;}
+.step:last-child::before{display:none;}
+.step-num{
+  width:32px;height:32px;border-radius:9px;background:var(--ink-2);border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;
+  font-size:12px;color:var(--accent-a);flex-shrink:0;position:relative;z-index:1;
+}
+.step-body{padding-top:2px;}
+.step h4{font-size:17px;font-weight:700;margin-bottom:5px;}
+.step p{font-size:14px;color:var(--muted);line-height:1.55;}
+
+/* FLOOR 5 — MARKETPLACE */
+#floor-5 .f-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;}
+body.lang-fa #floor-5 .f-title{font-size:28px;font-weight:800;line-height:1.6;}
+#floor-5 .f-sub{font-size:15px;color:var(--muted);margin-bottom:24px;max-width:640px;line-height:1.6;}
+.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.mp-card{background:var(--ink-2);border:1px solid var(--border);border-radius:15px;padding:20px;}
+.mp-role{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.mp-role-icon{width:34px;height:34px;border-radius:9px;background:var(--line-dim);border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mp-card h3{font-size:16px;font-weight:700;}
+.badge-soon{display:inline-block;font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);padding:2px 6px;border-radius:999px;margin-left:6px;}
+html[dir="rtl"] .badge-soon{margin-left:0;margin-right:6px;}
+.mp-card p{font-size:13.5px;color:var(--muted);line-height:1.65;margin-bottom:12px;}
+.mp-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.mp-list li{font-size:13px;color:var(--muted);display:flex;gap:7px;}
+.mp-list li::before{content:'—';color:var(--line);flex-shrink:0;}
+
+/* FLOOR 6 — PRICING */
+#floor-6 .f-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;text-align:center;}
+body.lang-fa #floor-6 .f-title{font-size:28px;font-weight:800;line-height:1.6;}
+#floor-6 .f-sub{font-size:14.5px;color:var(--muted);text-align:center;margin-bottom:24px;}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.price-card{background:var(--ink-2);border:1px solid var(--border);border-radius:13px;padding:19px 18px;display:flex;flex-direction:column;}
+.price-card.featured{border-color:var(--line-soft);background:linear-gradient(180deg,rgba(79,123,247,.06),var(--ink-2) 60%);position:relative;}
+.f-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--line),var(--violet));color:white;font-size:9px;font-weight:700;padding:4px 11px;border-radius:999px;white-space:nowrap;}
+.plan-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);margin-bottom:9px;}
+.plan-price{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px;direction:ltr;}
+.plan-price span{font-size:12px;font-weight:500;color:var(--dim);}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:16px;flex:1;}
+.plan-features li{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:var(--muted);}
+.plan-features li svg{flex-shrink:0;margin-top:2px;}
+
+/* ══════════ WORKFLOW NAV (reference-style) ══════════ */
+.workflow-bar{
+  position:fixed; left:0; right:0; bottom:96px; z-index:35;
+  display:flex; flex-direction:column; align-items:center; gap:10px; pointer-events:none;
+}
+.workflow-track{
+  position:relative; display:flex; align-items:flex-start; gap:0;
+  pointer-events:auto; padding:0 10px;
+}
+/* label reserves fixed height regardless of opacity, so line always crosses circle center */
+.wf-node{
+  position:relative; z-index:1; display:flex; flex-direction:column; align-items:center;
+  width:172px; cursor:pointer;
+}
+.wf-label{
+  height:16px; line-height:16px;
+  font-size:13px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--dim); margin-bottom:11px; opacity:0; transform:translateY(4px);
+  transition:opacity .2s,transform .2s,color .2s; white-space:nowrap;
+}
+.wf-node.active .wf-label,.wf-node:hover .wf-label{opacity:1;transform:translateY(0);}
+.wf-node.active .wf-label{color:var(--accent-a);}
+.wf-line{position:absolute; top:53px; left:52px; right:52px; height:2px; background:var(--border); z-index:0; border-radius:2px;}
+.wf-circle{
+  width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:17px;
+  background:var(--ink); border:2px solid var(--border); color:var(--dim);
+  transition:all .25s cubic-bezier(.16,1,.3,1); transform-origin:center;
+}
+.wf-node:hover:not(.active) .wf-circle{border-color:var(--line-soft);color:var(--muted);transform:scale(1.08);}
+.wf-node.active .wf-circle{
+  background:linear-gradient(135deg,var(--line),var(--violet)); border-color:transparent; color:white;
+  box-shadow:0 0 0 6px var(--line-dim), 0 6px 20px rgba(79,123,247,.45);
+  transform:scale(1.3);
+}
+.wf-desc{
+  font-size:13px; color:var(--dim); margin-top:11px; text-align:center; max-width:170px;
+  opacity:0; transform:translateY(-3px); transition:opacity .2s,transform .2s; line-height:1.4;
+}
+.wf-node.active .wf-desc,.wf-node:hover .wf-desc{opacity:1;transform:translateY(0);}
+html[dir="rtl"] .workflow-track{flex-direction:row-reverse;}
+html[dir="rtl"] .wf-line{left:52px;right:52px;}
+
+/* minimal linear arrows below the track — no circle, no border */
+.wf-arrows{display:flex;align-items:center;gap:28px;pointer-events:auto;}
+.wf-arrow{
+  background:none;border:none;padding:4px;cursor:pointer;color:var(--dim);
+  transition:color .18s,transform .18s;
+}
+.wf-arrow:hover:not(:disabled){color:var(--accent-a);transform:translateY(-1px);}
+.wf-arrow:disabled{opacity:.22;cursor:not-allowed;}
+.wf-arrow svg{width:22px;height:22px;display:block;}
+html[dir="rtl"] .wf-arrow.prev svg{transform:scaleX(-1);}
+html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
+
+/* ══════════ RESPONSIVE ══════════ */
+@media(max-width:900px){
+  .floor{top:64px;bottom:160px;padding:12px 22px;}
+  #floor-1 .floor-inner{grid-template-columns:1fr;gap:26px;}
+  .hero-visual-sm{max-width:260px;margin:0 auto;order:-1;}
+  #floor-1 h1{font-size:30px;}
+  .problem-grid{grid-template-columns:1fr 1fr;}
+  .feat-grid{grid-template-columns:1fr 1fr;}
+  .mp-grid{grid-template-columns:1fr;}
+  .steps{grid-template-columns:1fr 1fr;gap:18px 10px;}
+  .steps::before{display:none;}
+  .price-grid{grid-template-columns:1fr;max-width:270px;margin:0 auto;}
+  .wf-node{width:auto;}
+  .wf-desc{display:none;}
+  .workflow-bar{bottom:40px;gap:8px;}
+  .wf-label{height:12px;line-height:12px;font-size:9px;margin-bottom:8px;}
+  .wf-circle{width:36px;height:36px;font-size:12px;}
+  .wf-node.active .wf-circle{transform:scale(1.3);}
+  .wf-line{top:calc(8px + 12px + 18px);}
+  .wf-arrow svg{width:18px;height:18px;}
+  .wf-arrows{gap:20px;}
+  .gate-cards{flex-direction:column;}
+}
+@media(max-width:560px){
+  .problem-grid{grid-template-columns:1fr;}
+  .feat-grid{grid-template-columns:1fr;}
+  .steps{grid-template-columns:1fr;}
+  .wf-label{font-size:8px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .bp-line{stroke-dashoffset:0;animation:none;}
+  .bp-fill{opacity:1;animation:none;}
+  .floor{transition:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ LANGUAGE GATE ══════ -->
+<div id="langGate">
+  <div class="gate-grid-bg"></div>
+  <div class="gate-brand"><span class="gate-mark">A</span>Archon</div>
+  <div class="gate-cards">
+    <div class="gate-card" data-lang="en">
+      <div class="gate-flag">🇬🇧</div>
+      <h3>English</h3>
+      <p>Continue in English</p>
+    </div>
+    <div class="gate-card" data-lang="fa">
+      <div class="gate-flag">🇮🇷</div>
+      <h3>فارسی</h3>
+      <p>ادامه به فارسی</p>
+    </div>
+  </div>
+  <p class="gate-hint">Choose your language to begin the tour · زبان خود را انتخاب کنید</p>
+</div>
+
+<!-- ══════ APP ══════ -->
+<div id="app">
+
+  <header class="top-nav">
+    <a href="#" class="brand"><span class="brand-mark-sm">A</span>Archon</a>
+    <div class="nav-right">
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">🌙</button>
+      <button class="icon-btn" id="langSwitch" aria-label="Switch language">🌐</button>
+      <a href="/login" class="btn btn-ghost" data-i18n="nav.login">Log in</a>
+      <button class="btn btn-primary" onclick="goFloor(6)" data-i18n="nav.start">Get Started →</button>
+    </div>
+  </header>
+
+  <!-- FLOOR 1 — HERO -->
+  <section class="floor active" id="floor-1" data-floor="1">
+    <div class="floor-inner">
+      <div>
+        <div class="f-eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">Built by a working architecture studio</span></div>
+        <h1 data-i18n-raw="hero.title">Stop chasing clients.<br>Start <span class="accent">building.</span></h1>
+        <p class="lead" data-i18n="hero.lead">Archon runs the business side of your architecture practice — research, outreach, and pipeline — so your time goes into the work itself.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-lg" onclick="goFloor(6)" data-i18n="hero.cta1">Start free →</button>
+          <button class="btn btn-ghost btn-lg" onclick="goFloor(2)" data-i18n="hero.cta2">Take the tour</button>
+        </div>
+      </div>
+      <div class="hero-visual-sm">
+        <div class="bp-frame">
+          <svg class="building-svg" viewBox="0 0 400 420" preserveAspectRatio="xMidYMid meet">
+            <line class="bp-line" x1="30" y1="360" x2="370" y2="360" stroke-dasharray="340" style="stroke-dashoffset:340"/>
+            <path class="bp-line d2" d="M70 360 L70 140 L200 90 L330 140 L330 360" />
+            <path class="bp-line d3" d="M70 240 L330 240 M70 300 L330 300 M120 170 L120 360 M280 170 L280 360" stroke-width="0.8" />
+            <path class="bp-line d3" d="M70 140 L200 90 L330 140" />
+            <g class="bp-fill">
+              <defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4F7BF7" stop-opacity="0.35"/><stop offset="100%" stop-color="#7C3AED" stop-opacity="0.12"/></linearGradient></defs>
+              <path d="M70 360 L70 140 L200 90 L330 140 L330 360 Z" fill="url(#wall)" />
+              <rect x="120" y="200" width="60" height="40" fill="#8FB3FF" opacity="0.55" rx="2"/>
+              <rect x="220" y="200" width="60" height="40" fill="#8FB3FF" opacity="0.4" rx="2"/>
+              <rect x="120" y="270" width="60" height="40" fill="#8FB3FF" opacity="0.3" rx="2"/>
+              <rect x="220" y="270" width="60" height="40" fill="#8FB3FF" opacity="0.45" rx="2"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 2 — PROBLEM -->
+  <section class="floor" id="floor-2" data-floor="2">
+    <div class="floor-inner">
+      <div class="f-eyebrow"><span class="dot" style="background:#F87171;box-shadow:0 0 8px #F87171"></span><span data-i18n="problem.tag">Where most studios get stuck</span></div>
+      <h2 class="f-title" data-i18n="problem.title">Running the business shouldn't cost you the craft.</h2>
+      <div class="problem-grid">
+        <div class="problem-cell"><div class="num">01</div><strong data-i18n="problem.c1t">Manual research</strong><p data-i18n="problem.c1p">Hours lost finding firms and clients worth reaching, by hand.</p></div>
+        <div class="problem-cell"><div class="num">02</div><strong data-i18n="problem.c2t">Generic outreach</strong><p data-i18n="problem.c2p">The same copy-pasted pitch, with no context on the project.</p></div>
+        <div class="problem-cell"><div class="num">03</div><strong data-i18n="problem.c3t">No visibility</strong><p data-i18n="problem.c3p">Leads live in your inbox — impossible to see the full pipeline.</p></div>
+        <div class="problem-cell"><div class="num">04</div><strong data-i18n="problem.c4t">Dropped follow-ups</strong><p data-i18n="problem.c4p">A promising reply goes quiet with nothing to remind you.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 3 — FEATURES -->
+  <section class="floor" id="floor-3" data-floor="3">
+    <div class="floor-inner">
+      <div class="f-eyebrow"><span class="dot"></span><span data-i18n="feat.tag">The toolkit</span></div>
+      <h2 class="f-title" data-i18n="feat.title">Everything between "found a lead" and "signed a client."</h2>
+      <p class="f-sub" data-i18n="feat.sub">One pipeline, replacing the spreadsheet, the notes app, and the sent-mail folder.</p>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg></div><h3 data-i18n="feat.f1t">AI Company Research</h3><p data-i18n="feat.f1p">Paste a name — get a profile, a fit score, and an angle.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="13" y="3" width="4" height="10" rx="1"/><rect x="19" y="3" width="2" height="14" rx="1"/></svg></div><h3 data-i18n="feat.f2t">Kanban Pipeline</h3><p data-i18n="feat.f2p">Every lead's stage at a glance — drag from New to Client.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg></div><h3 data-i18n="feat.f3t">AI Email Drafts</h3><p data-i18n="feat.f3p">Personalized outreach that reads like you wrote it.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><h3 data-i18n="feat.f4t">Send From Your Inbox</h3><p data-i18n="feat.f4p">One click, from your own address — no copy-paste.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div><h3 data-i18n="feat.f5t">Weekly AI Briefing</h3><p data-i18n="feat.f5p">A Monday summary of exactly who to follow up with.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M1 6v16l7-3 8 3 7-3V3l-7 3-8-3z"/><line x1="8" y1="3" x2="8" y2="19"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><h3 data-i18n="feat.f6t">Market Map</h3><p data-i18n="feat.f6p">See where your pipeline lives, geographically.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 4 — HOW IT WORKS -->
+  <section class="floor" id="floor-4" data-floor="4">
+    <div class="floor-inner">
+      <div class="f-eyebrow"><span class="dot"></span><span data-i18n="how.tag">The workflow</span></div>
+      <h2 class="f-title" data-i18n="how.title">From a name to a tracked reply, in five steps.</h2>
+      <div class="steps">
+        <div class="step"><div class="step-num">01</div><div class="step-body"><h4 data-i18n="how.s1t">Add a company</h4><p data-i18n="how.s1p">Paste a name — or import a list.</p></div></div>
+        <div class="step"><div class="step-num">02</div><div class="step-body"><h4 data-i18n="how.s2t">Archon researches</h4><p data-i18n="how.s2p">AI scores fit, drafts an angle.</p></div></div>
+        <div class="step"><div class="step-num">03</div><div class="step-body"><h4 data-i18n="how.s3t">Send in one click</h4><p data-i18n="how.s3p">From your inbox, personalized.</p></div></div>
+        <div class="step"><div class="step-num">04</div><div class="step-body"><h4 data-i18n="how.s4t">Track the reply</h4><p data-i18n="how.s4p">Move it through the pipeline.</p></div></div>
+        <div class="step"><div class="step-num">05</div><div class="step-body"><h4 data-i18n="how.s5t">Get your briefing</h4><p data-i18n="how.s5p">Know who needs a follow-up.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 5 — MARKETPLACE -->
+  <section class="floor" id="floor-5" data-floor="5">
+    <div class="floor-inner">
+      <div class="f-eyebrow"><span class="dot" style="background:#FBBF24;box-shadow:0 0 8px #FBBF24"></span><span data-i18n="mp.tag">Coming to Archon</span></div>
+      <h2 class="f-title" data-i18n="mp.title">A marketplace built for the whole industry.</h2>
+      <p class="f-sub" data-i18n="mp.sub">Sign up as a freelancer looking for work, or a studio looking for talent — both on the same platform.</p>
+      <div class="mp-grid">
+        <div class="mp-card">
+          <div class="mp-role"><div class="mp-role-icon">🎨</div><h3 data-i18n="mp.freelancer">Freelancer / Designer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
+          <p data-i18n="mp.freelancerP">Build a public portfolio and apply directly to open projects.</p>
+          <ul class="mp-list"><li data-i18n="mp.fl1">Public portfolio &amp; skills</li><li data-i18n="mp.fl2">Browse and apply to projects</li><li data-i18n="mp.fl3">AI-matched to the right fit</li></ul>
+        </div>
+        <div class="mp-card">
+          <div class="mp-role"><div class="mp-role-icon">🏢</div><h3 data-i18n="mp.employer">Studio / Employer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
+          <p data-i18n="mp.employerP">Post a project or role, browse portfolios, and hire directly.</p>
+          <ul class="mp-list"><li data-i18n="mp.em1">Post with budget &amp; deadline</li><li data-i18n="mp.em2">Review proposals &amp; portfolios</li><li data-i18n="mp.em3">Hire freelance or remote roles</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOOR 6 — PRICING -->
+  <section class="floor" id="floor-6" data-floor="6">
+    <div class="floor-inner">
+      <div class="f-eyebrow" style="margin:0 auto 14px;display:flex;width:fit-content;"><span class="dot"></span><span data-i18n="price.tag">Ready when you are</span></div>
+      <h2 class="f-title" data-i18n="price.title">Plans that grow with your pipeline.</h2>
+      <p class="f-sub" data-i18n="price.sub">Start free. Upgrade only when you outgrow the plan.</p>
+      <div class="price-grid">
+        <div class="price-card">
+          <div class="plan-name" data-i18n="price.basic">Basic</div>
+          <div class="plan-price">$19<span data-i18n="price.mo">/mo</span></div>
+          <ul class="plan-features">
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b1">Up to 50 companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b2">30 emails / month</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b4">AI email drafts</span></li>
+          </ul>
+          <a href="/signup?plan=basic" class="btn btn-ghost" style="width:100%" data-i18n="price.basicCta">Start with Basic</a>
+        </div>
+        <div class="price-card featured">
+          <div class="f-badge" data-i18n="price.popular">MOST POPULAR</div>
+          <div class="plan-name" data-i18n="price.pro">Pro</div>
+          <div class="plan-price">$49<span data-i18n="price.mo">/mo</span></div>
+          <ul class="plan-features">
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p1">Up to 500 companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p3">AI smart search</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p4">Weekly AI briefing</span></li>
+          </ul>
+          <a href="/signup?plan=pro" class="btn btn-primary" style="width:100%" data-i18n="price.proCta">Start with Pro</a>
+        </div>
+        <div class="price-card">
+          <div class="plan-name" data-i18n="price.agency">Agency</div>
+          <div class="plan-price">$99<span data-i18n="price.mo">/mo</span></div>
+          <ul class="plan-features">
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a1">Unlimited companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a3">All Pro features</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a4">Team member seats</span></li>
+          </ul>
+          <a href="/signup?plan=agency" class="btn btn-ghost" style="width:100%" data-i18n="price.agencyCta">Start with Agency</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ WORKFLOW NAV BAR ══════ -->
+  <div class="workflow-bar">
+    <div class="workflow-track" id="workflowTrack">
+      <div class="wf-line"></div>
+      <!-- nodes injected by JS -->
+    </div>
+    <div class="wf-arrows">
+      <button class="wf-arrow prev" id="wfPrev" aria-label="Previous">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+      </button>
+      <button class="wf-arrow next" id="wfNext" aria-label="Next">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Already signed in? Skip the landing and go straight to the app.
+try { if (localStorage.getItem('archon-token')) location.replace('/dashboard'); } catch (e) {}
+
+const FLOOR_META = [
+  { n:1, key:'f1', title:{en:'START',fa:'شروع'}, desc:{en:"Where Archon begins",fa:'جایی که آرکون شروع می‌شه'} },
+  { n:2, key:'f2', title:{en:'PROBLEM',fa:'مشکل'}, desc:{en:"What's eating your time",fa:'چی داره وقتتو می‌خوره'} },
+  { n:3, key:'f3', title:{en:'TOOLKIT',fa:'ابزارها'}, desc:{en:"Everything you need",fa:'همه چیزی که لازم داری'} },
+  { n:4, key:'f4', title:{en:'WORKFLOW',fa:'روند کار'}, desc:{en:"How it comes together",fa:'چطور کنار هم قرار می‌گیرن'} },
+  { n:5, key:'f5', title:{en:'MARKETPLACE',fa:'بازار پروژه'}, desc:{en:"What's coming next",fa:'چی داره میاد'} },
+  { n:6, key:'f6', title:{en:'PRICING',fa:'قیمت‌گذاری'}, desc:{en:"Ready to start",fa:'آماده شروع'} },
+];
+let currentFloor = 1;
+let currentLang = 'en';
+let animating = false;
+
+const translations = {
+  en: {
+    "hero.eyebrow":"Built by a working architecture studio",
+    "hero.title":"Stop chasing clients.<br>Start <span class=\"accent\">building.</span>",
+    "hero.lead":"Archon runs the business side of your architecture practice — research, outreach, and pipeline — so your time goes into the work itself.",
+    "hero.cta1":"Start free →","hero.cta2":"Take the tour",
+    "problem.tag":"Where most studios get stuck",
+    "problem.title":"Running the business shouldn't cost you the craft.",
+    "problem.c1t":"Manual research","problem.c1p":"Hours lost finding firms and clients worth reaching, by hand.",
+    "problem.c2t":"Generic outreach","problem.c2p":"The same copy-pasted pitch, with no context on the project.",
+    "problem.c3t":"No visibility","problem.c3p":"Leads live in your inbox — impossible to see the full pipeline.",
+    "problem.c4t":"Dropped follow-ups","problem.c4p":"A promising reply goes quiet with nothing to remind you.",
+    "feat.tag":"The toolkit",
+    "feat.title":"Everything between \"found a lead\" and \"signed a client.\"",
+    "feat.sub":"One pipeline, replacing the spreadsheet, the notes app, and the sent-mail folder.",
+    "feat.f1t":"AI Company Research","feat.f1p":"Paste a name — get a profile, a fit score, and an angle.",
+    "feat.f2t":"Kanban Pipeline","feat.f2p":"Every lead's stage at a glance — drag from New to Client.",
+    "feat.f3t":"AI Email Drafts","feat.f3p":"Personalized outreach that reads like you wrote it.",
+    "feat.f4t":"Send From Your Inbox","feat.f4p":"One click, from your own address — no copy-paste.",
+    "feat.f5t":"Weekly AI Briefing","feat.f5p":"A Monday summary of exactly who to follow up with.",
+    "feat.f6t":"Market Map","feat.f6p":"See where your pipeline lives, geographically.",
+    "how.tag":"The workflow","how.title":"From a name to a tracked reply, in five steps.",
+    "how.s1t":"Add a company","how.s1p":"Paste a name — or import a list.",
+    "how.s2t":"Archon researches","how.s2p":"AI scores fit, drafts an angle.",
+    "how.s3t":"Send in one click","how.s3p":"From your inbox, personalized.",
+    "how.s4t":"Track the reply","how.s4p":"Move it through the pipeline.",
+    "how.s5t":"Get your briefing","how.s5p":"Know who needs a follow-up.",
+    "mp.tag":"Coming to Archon","mp.title":"A marketplace built for the whole industry.",
+    "mp.sub":"Sign up as a freelancer looking for work, or a studio looking for talent — both on the same platform.",
+    "mp.freelancer":"Freelancer / Designer","mp.employer":"Studio / Employer","mp.soon":"Coming Soon",
+    "mp.freelancerP":"Build a public portfolio and apply directly to open projects.",
+    "mp.fl1":"Public portfolio & skills","mp.fl2":"Browse and apply to projects","mp.fl3":"AI-matched to the right fit",
+    "mp.employerP":"Post a project or role, browse portfolios, and hire directly.",
+    "mp.em1":"Post with budget & deadline","mp.em2":"Review proposals & portfolios","mp.em3":"Hire freelance or remote roles",
+    "price.tag":"Ready when you are","price.title":"Plans that grow with your pipeline.",
+    "price.sub":"Start free. Upgrade only when you outgrow the plan.","price.mo":"/mo","price.popular":"MOST POPULAR",
+    "price.basic":"Basic","price.basicCta":"Start with Basic","price.b1":"Up to 50 companies","price.b2":"30 emails / month","price.b4":"AI email drafts",
+    "price.pro":"Pro","price.proCta":"Start with Pro","price.p1":"Up to 500 companies","price.p3":"AI smart search","price.p4":"Weekly AI briefing",
+    "price.agency":"Agency","price.agencyCta":"Start with Agency","price.a1":"Unlimited companies","price.a3":"All Pro features","price.a4":"Team member seats",
+    "nav.login":"Log in","nav.start":"Get Started →"
+  },
+  fa: {
+    "hero.eyebrow":"ساخته‌شده توسط یک استودیوی واقعی معماری",
+    "hero.title":"دیگه دنبال مشتری نگرد.<br>برو سراغ <span class=\"accent\">ساختن.</span>",
+    "hero.lead":"آرکون بخش کسب‌وکار استودیوی معماری‌ات رو اداره می‌کنه — تحقیق، مارکتینگ و پایپلاین — تا وقتت صرف خود کار بشه.",
+    "hero.cta1":"شروع رایگان ←","hero.cta2":"تور رو ببین",
+    "problem.tag":"جایی که اکثر استودیوها گیر می‌کنن",
+    "problem.title":"اداره کسب‌وکار نباید به قیمت هنر تمام بشه.",
+    "problem.c1t":"تحقیق دستی","problem.c1p":"ساعت‌ها وقت صرف پیدا کردن شرکت‌های مناسب، به‌صورت دستی.",
+    "problem.c2t":"مارکتینگ تکراری","problem.c2p":"همون پیام کپی‌شده، بدون توجه به پروژه واقعی.",
+    "problem.c3t":"بدون دید کلی","problem.c3p":"لیدها فقط توی اینباکس‌ات هستن — دیدن کل پایپلاین غیرممکنه.",
+    "problem.c4t":"فراموشی پیگیری","problem.c4p":"یک پاسخ خوب بی‌جواب می‌مونه چون چیزی یادت نمی‌ندازه.",
+    "feat.tag":"جعبه‌ابزار",
+    "feat.title":"همه چیز بین «پیدا کردن لید» تا «امضای قرارداد».",
+    "feat.sub":"یک پایپلاین که اکسل، یادداشت و فولدر Sent رو جایگزین می‌کنه.",
+    "feat.f1t":"تحقیق شرکت با AI","feat.f1p":"یک اسم بده — پروفایل، امتیاز تناسب و زاویه پیام رو بگیر.",
+    "feat.f2t":"پایپلاین کانبان","feat.f2p":"وضعیت هر لید در یک نگاه — بکش از New تا Client.",
+    "feat.f3t":"پیش‌نویس ایمیل با AI","feat.f3p":"پیامی شخصی‌سازی‌شده که انگار خودت نوشتی.",
+    "feat.f4t":"ارسال از ایمیل خودت","feat.f4p":"یک کلیک، از آدرس خودت — بدون کپی‌پیست.",
+    "feat.f5t":"گزارش هفتگی هوشمند","feat.f5p":"خلاصه دوشنبه از دقیقاً کی نیاز به پیگیری داره.",
+    "feat.f6t":"نقشه بازار","feat.f6p":"ببین پایپلاینت جغرافیایی کجاست.",
+    "how.tag":"روند کار","how.title":"از یک اسم تا پاسخ ثبت‌شده، در پنج قدم.",
+    "how.s1t":"اضافه کردن شرکت","how.s1p":"یک اسم بده — یا یک لیست وارد کن.",
+    "how.s2t":"آرکون تحقیق می‌کنه","how.s2p":"AI امتیاز می‌ده، زاویه پیشنهاد می‌ده.",
+    "how.s3t":"ارسال با یک کلیک","how.s3p":"از ایمیل خودت، شخصی‌سازی‌شده.",
+    "how.s4t":"پیگیری پاسخ","how.s4p":"در پایپلاین جابجاش کن.",
+    "how.s5t":"دریافت گزارش","how.s5p":"بدون کی نیاز به پیگیری داره.",
+    "mp.tag":"به‌زودی در آرکون","mp.title":"یک بازار برای کل صنعت.",
+    "mp.sub":"به‌عنوان فریلنسر دنبال کار باش، یا استودیو دنبال استعداد — روی همین پلتفرم.",
+    "mp.freelancer":"فریلنسر / طراح","mp.employer":"استودیو / کارفرما","mp.soon":"به‌زودی",
+    "mp.freelancerP":"پروفایل عمومی بساز و مستقیم برای پروژه‌ها درخواست بده.",
+    "mp.fl1":"پروفایل عمومی و مهارت‌ها","mp.fl2":"مرور و درخواست برای پروژه‌ها","mp.fl3":"تطبیق هوشمند با AI",
+    "mp.employerP":"پروژه یا موقعیت شغلی ثبت کن، پورتفولیوها رو ببین، استخدام کن.",
+    "mp.em1":"ثبت با بودجه و ددلاین","mp.em2":"بررسی پیشنهادها و پورتفولیو","mp.em3":"استخدام فریلنس یا دورکاری",
+    "price.tag":"هروقت آماده بودی","price.title":"پلن‌هایی که با پایپلاینت رشد می‌کنن.",
+    "price.sub":"رایگان شروع کن. فقط وقتی لازم شد ارتقا بده.","price.mo":"/ماه","price.popular":"محبوب‌ترین",
+    "price.basic":"پایه","price.basicCta":"شروع با پایه","price.b1":"تا ۵۰ شرکت","price.b2":"۳۰ ایمیل در ماه","price.b4":"پیش‌نویس ایمیل AI",
+    "price.pro":"حرفه‌ای","price.proCta":"شروع با حرفه‌ای","price.p1":"تا ۵۰۰ شرکت","price.p3":"جستجوی هوشمند AI","price.p4":"گزارش هفتگی AI",
+    "price.agency":"آژانس","price.agencyCta":"شروع با آژانس","price.a1":"شرکت نامحدود","price.a3":"همه امکانات حرفه‌ای","price.a4":"صندلی اعضای تیم",
+    "nav.login":"ورود","nav.start":"شروع کنید ←"
+  }
+};
+
+function buildWorkflowBar(){
+  const track = document.getElementById('workflowTrack');
+  FLOOR_META.forEach(f=>{
+    const node = document.createElement('div');
+    node.className = 'wf-node';
+    node.dataset.floor = f.n;
+    node.innerHTML = `
+      <div class="wf-label">${f.title[currentLang]}</div>
+      <div class="wf-circle">${String(f.n).padStart(2,'0')}</div>
+      <div class="wf-desc">${f.desc[currentLang]}</div>
+    `;
+    node.addEventListener('click', ()=>goFloor(f.n));
+    track.appendChild(node);
+  });
+}
+
+function refreshWorkflowLabels(){
+  document.querySelectorAll('.wf-node').forEach((node,i)=>{
+    const f = FLOOR_META[i];
+    node.querySelector('.wf-label').textContent = f.title[currentLang];
+    node.querySelector('.wf-desc').textContent = f.desc[currentLang];
+  });
+}
+
+function applyLang(lang){
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-raw]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-raw');
+    if(translations[lang][key]) el.innerHTML = translations[lang][key];
+  });
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+  document.body.classList.toggle('lang-fa', lang === 'fa');
+  refreshWorkflowLabels();
+  localStorage.setItem('archon-landing-lang', lang);
+}
+
+function applyTheme(theme){
+  document.documentElement.classList.toggle('light-theme', theme === 'light');
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('archon-theme', theme);
+}
+
+function updateUI(){
+  document.querySelectorAll('.floor').forEach(f=>f.classList.toggle('active', Number(f.dataset.floor) === currentFloor));
+  document.querySelectorAll('.wf-node').forEach(n=>n.classList.toggle('active', Number(n.dataset.floor) === currentFloor));
+  document.getElementById('wfPrev').disabled = currentFloor === 1;
+  document.getElementById('wfNext').disabled = currentFloor === FLOOR_META.length;
+}
+
+function goFloor(n){
+  if(animating || n === currentFloor) return;
+  animating = true;
+  currentFloor = n;
+  updateUI();
+  setTimeout(()=>{ animating = false; }, 380);
+}
+
+document.querySelectorAll('.gate-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    const lang = card.dataset.lang;
+    applyLang(lang);
+    document.getElementById('langGate').classList.add('hidden');
+    document.getElementById('app').classList.add('ready');
+  });
+});
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const isLight = document.documentElement.classList.contains('light-theme');
+  applyTheme(isLight ? 'dark' : 'light');
+});
+document.getElementById('langSwitch').addEventListener('click', ()=>{
+  applyLang(currentLang === 'fa' ? 'en' : 'fa');
+});
+document.getElementById('wfPrev').addEventListener('click', ()=>{ if(currentFloor > 1) goFloor(currentFloor - 1); });
+document.getElementById('wfNext').addEventListener('click', ()=>{ if(currentFloor < FLOOR_META.length) goFloor(currentFloor + 1); });
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('langGate').classList.contains('hidden')) return;
+  if(e.key === 'ArrowRight') document.getElementById('wfNext').click();
+  if(e.key === 'ArrowLeft') document.getElementById('wfPrev').click();
+});
+
+(function(){
+  applyTheme(localStorage.getItem('archon-theme') || 'dark');
+  buildWorkflowBar();
+  updateUI();
+})();
+</script>
+
+</body>
+</html>
