@@ -4,18 +4,21 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Company, Campaign, WeeklyReport
+from app.models.database import get_db, Company, Campaign, WeeklyReport, UserCompanyState, User
+from app.routers.auth import get_current_user
 from .schemas import ReportRequest
-from .utils import to_dict
+from .utils import to_dict, company_to_dict
 
 router = APIRouter()
 
 REPORT_LOCK_DAYS = 7
 
 
-def _report_status(db: Session):
-    """Returns the most recent report + whether generation is currently locked."""
-    last = db.query(WeeklyReport).order_by(WeeklyReport.generated_at.desc()).first()
+def _report_status(db: Session, user_id: int):
+    """This user's most recent report + whether generation is currently locked."""
+    last = db.query(WeeklyReport).filter(
+        WeeklyReport.user_id == user_id
+    ).order_by(WeeklyReport.generated_at.desc()).first()
     if not last:
         return {"locked": False, "report": None, "generated_at": None, "next_available_at": None}
 
@@ -33,32 +36,36 @@ def _report_status(db: Session):
 
 
 @router.get("/report/weekly/status")
-def get_weekly_report_status(db: Session = Depends(get_db)):
+def get_weekly_report_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Frontend calls this on page load to know whether to show the last report
     and whether the Generate button should be locked."""
-    return _report_status(db)
+    return _report_status(db, current_user.id)
 
 
 @router.post("/report/weekly")
-def generate_weekly_report(request: ReportRequest, db: Session = Depends(get_db)):
+def generate_weekly_report(request: ReportRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.services.claude import generate_weekly_report as gen_report
 
-    status = _report_status(db)
+    status = _report_status(db, current_user.id)
     if status["locked"]:
         raise HTTPException(
             status_code=429,
             detail=f"Weekly report already generated. Next one available after {status['next_available_at']}."
         )
 
+    # Companies with this user's own pipeline state layered on
+    state_by_company = {
+        s.company_id: s for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == current_user.id).all()
+    }
     companies = db.query(Company).all()
-    companies_list = [to_dict(c) for c in companies]
+    companies_list = [company_to_dict(c, state_by_company.get(c.id)) for c in companies]
 
     status_counts = {}
     for c in companies_list:
         s = c.get('status', 'new')
         status_counts[s] = status_counts.get(s, 0) + 1
 
-    campaigns = db.query(Campaign).all()
+    campaigns = db.query(Campaign).filter(Campaign.user_id == current_user.id).all()
     emails_sent = len([c for c in campaigns if c.status in ['sent', 'replied']])
     emails_replied = len([c for c in campaigns if c.status == 'replied'])
     reply_rate = round((emails_replied / emails_sent * 100)) if emails_sent > 0 else 0
@@ -76,8 +83,8 @@ def generate_weekly_report(request: ReportRequest, db: Session = Depends(get_db)
 
     report = gen_report(data, lang=request.lang)
 
-    # Persist so the lock survives refresh, logout, and works across devices
-    saved = WeeklyReport(report_json=_json.dumps(report), lang=request.lang)
+    # Persist per-user so the lock survives refresh/logout and is isolated
+    saved = WeeklyReport(user_id=current_user.id, report_json=_json.dumps(report), lang=request.lang)
     db.add(saved)
     db.commit()
 

@@ -64,6 +64,19 @@ export default function AdminPanel() {
     setBacking(false)
   }
 
+  // CSV export needs the auth header, so it can't be a plain window.open
+  const exportCsv = async () => {
+    try {
+      const res = await axios.get(`${API}/companies/export/csv`, { headers: headers(), responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = `archon_export_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Export failed')
+    }
+  }
+
   // Downloads through axios so the auth header is sent, then saves via a blob URL
   const downloadBackup = async (filename: string) => {
     try {
@@ -101,7 +114,7 @@ export default function AdminPanel() {
     {
       icon: '📤', title: 'Export CSV', desc: 'Download all companies as CSV file',
       color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)',
-      action: () => window.open(`${API}/companies/export/csv`, '_blank'),
+      action: exportCsv,
       label: 'Download CSV',
     },
     {

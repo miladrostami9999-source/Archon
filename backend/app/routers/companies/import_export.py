@@ -6,14 +6,15 @@ from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Company, History
+from app.models.database import get_db, Company, History, User
+from app.routers.auth import get_current_user, require_admin
 from .utils import calculate_score
 
 router = APIRouter()
 
 
 @router.post("/import/csv")
-async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_csv(file: UploadFile = File(...), admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     content = await file.read()
     text = content.decode('utf-8-sig')
     reader = csv.DictReader(io.StringIO(text))
@@ -56,6 +57,7 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
 
             history = History(
                 company_id=company.id,
+                user_id=admin.id,
                 event_type="discovered",
                 description="Company imported from CSV"
             )
@@ -76,7 +78,7 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
 
 
 @router.get("/export/csv")
-def export_csv(db: Session = Depends(get_db)):
+def export_csv(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     companies = db.query(Company).order_by(Company.opportunity_score.desc()).all()
 
     output = io.StringIO()

@@ -2,15 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.models.database import get_db, Company
+from app.models.database import get_db, Company, UserCompanyState, User
+from app.routers.auth import get_current_user, require_admin
 from .schemas import SearchRequest
-from .utils import to_dict, calculate_score
+from .utils import to_dict, calculate_score, company_to_dict
 
 router = APIRouter()
 
 
 @router.post("/{company_id}/generate-summary")
-def gen_summary(company_id: int, db: Session = Depends(get_db)):
+def gen_summary(company_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     AI Research — searches the web for the real company, verifies it,
     and fills in any missing fields (email, website, linkedin, instagram,
@@ -57,16 +58,19 @@ def gen_summary(company_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(company)
 
+    state = db.query(UserCompanyState).filter(
+        UserCompanyState.user_id == admin.id, UserCompanyState.company_id == company_id
+    ).first()
     return {
         "summary": company.ai_summary,
         "verified": result.get("verified", False),
         "score_reasoning": result.get("score_reasoning", ""),
-        "company": to_dict(company),
+        "company": company_to_dict(company, state),
     }
 
 
 @router.post("/recalculate-scores")
-def recalculate_scores(db: Session = Depends(get_db)):
+def recalculate_scores(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     companies = db.query(Company).all()
     for company in companies:
         company.opportunity_score = calculate_score(company)
@@ -75,10 +79,13 @@ def recalculate_scores(db: Session = Depends(get_db)):
 
 
 @router.post("/search/smart")
-def smart_search(data: SearchRequest, db: Session = Depends(get_db)):
+def smart_search(data: SearchRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.services.claude import smart_search as claude_smart_search
     companies = db.query(Company).all()
-    company_list = [to_dict(c) for c in companies]
+    state_by_company = {
+        s.company_id: s for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == current_user.id).all()
+    }
+    company_list = [company_to_dict(c, state_by_company.get(c.id)) for c in companies]
     try:
         result_ids = claude_smart_search(data.query, company_list)
         filtered = [c for c in company_list if c['id'] in result_ids]

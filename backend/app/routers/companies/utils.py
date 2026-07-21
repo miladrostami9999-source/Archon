@@ -1,6 +1,59 @@
 from sqlalchemy.orm import class_mapper
 from datetime import datetime
 
+from app.models.database import UserCompanyState
+
+# Fields that live on the per-user overlay rather than the shared catalog
+STATE_FIELDS = ("status", "heat_level", "is_favorite", "tags")
+
+# A large prime used to build a deterministic per-user permutation of the
+# catalog, so every account sees a different ordering (see user_shuffle_key).
+_SHUFFLE_MODULUS = 1000003
+
+
+def get_or_create_state(db, user_id: int, company_id: int) -> UserCompanyState:
+    """Fetch this user's state for a company, creating it on first write.
+
+    State rows are created lazily — a brand new account doesn't get a row per
+    company, which matters once the catalog holds thousands of them.
+    """
+    state = db.query(UserCompanyState).filter(
+        UserCompanyState.user_id == user_id,
+        UserCompanyState.company_id == company_id,
+    ).first()
+    if not state:
+        state = UserCompanyState(user_id=user_id, company_id=company_id)
+        db.add(state)
+        db.flush()
+    return state
+
+
+def company_to_dict(company, state=None):
+    """Serialize a company, overlaying this user's own pipeline state.
+
+    Users with no state row yet see the defaults, so the catalog looks
+    untouched to them regardless of what anyone else has done with it.
+    """
+    result = to_dict(company)
+    result["status"] = (state.status if state else None) or "new"
+    result["heat_level"] = (state.heat_level if state else None) or "cold"
+    result["is_favorite"] = bool(state.is_favorite) if state else False
+    result["tags"] = state.tags if state else None
+    return result
+
+
+def user_shuffle_key(user_id: int) -> int:
+    """Multiplier for a per-user ordering of the catalog.
+
+    With thousands of companies, a single global order means every user works
+    the same top rows and the tail is never contacted. Multiplying the company
+    id by a per-user constant that is coprime with a prime modulus produces a
+    stable pseudo-random permutation — different per account, identical across
+    that account's own page loads, and computable in both SQLite and Postgres.
+    """
+    mult = (user_id * 2654435761) % _SHUFFLE_MODULUS
+    return mult or 1  # 0 would collapse the ordering
+
 
 def to_dict(obj):
     result = {}

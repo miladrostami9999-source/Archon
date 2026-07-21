@@ -3,7 +3,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Company, DailyTask
+from app.models.database import get_db, Company, DailyTask, User
+from app.routers.auth import get_current_user
 from .schemas import TaskGenerateRequest, PersonalTaskCreate
 from .utils import to_dict
 
@@ -11,7 +12,7 @@ router = APIRouter()
 
 
 @router.post("/tasks/generate")
-def generate_tasks(data: TaskGenerateRequest, db: Session = Depends(get_db)):
+def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.services.claude import generate_daily_tasks
     companies = db.query(Company).all()
     company_list = [to_dict(c) for c in companies]
@@ -23,14 +24,17 @@ def generate_tasks(data: TaskGenerateRequest, db: Session = Depends(get_db)):
         print("TASK ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+    # Only replace this user's own tasks for today
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     db.query(DailyTask).filter(
-        DailyTask.date >= today_start
+        DailyTask.date >= today_start,
+        DailyTask.user_id == current_user.id,
     ).delete()
 
     saved = []
     for t in tasks:
         task = DailyTask(
+            user_id=current_user.id,
             task_type=t.get("type", "review"),
             description=f"{t.get('title', '')} — {t.get('description', '')}",
             priority=t.get("priority", 3),
@@ -53,17 +57,18 @@ def generate_tasks(data: TaskGenerateRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/tasks/today")
-def get_today_tasks(db: Session = Depends(get_db)):
+def get_today_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     tasks = db.query(DailyTask).filter(
-        DailyTask.date >= today_start
+        DailyTask.date >= today_start,
+        DailyTask.user_id == current_user.id,
     ).order_by(DailyTask.priority).all()
     return [to_dict(t) for t in tasks]
 
 
 @router.patch("/tasks/{task_id}/done")
-def mark_task_done(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(DailyTask).filter(DailyTask.id == task_id).first()
+def mark_task_done(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(DailyTask).filter(DailyTask.id == task_id, DailyTask.user_id == current_user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     task.is_done = not task.is_done
@@ -72,8 +77,9 @@ def mark_task_done(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/tasks/personal")
-def add_personal_task(data: PersonalTaskCreate, db: Session = Depends(get_db)):
+def add_personal_task(data: PersonalTaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = DailyTask(
+        user_id=current_user.id,
         task_type="personal",
         description=data.description,
         priority=99,
@@ -92,8 +98,8 @@ def add_personal_task(data: PersonalTaskCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/tasks/{task_id}")
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(DailyTask).filter(DailyTask.id == task_id).first()
+def delete_task(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(DailyTask).filter(DailyTask.id == task_id, DailyTask.user_id == current_user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     db.delete(task)

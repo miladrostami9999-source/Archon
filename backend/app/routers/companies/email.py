@@ -4,7 +4,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Campaign
+from app.models.database import get_db, Campaign, User
+from app.routers.auth import get_current_user
 from app.services.email_service import send_email as resend_send_email
 from .schemas import SendEmailRequest
 
@@ -14,7 +15,7 @@ MAX_ATTACHMENTS_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB total, matches Gmail's ow
 
 
 @router.post("/send-email")
-def send_email(req: SendEmailRequest, db: Session = Depends(get_db)):
+def send_email(req: SendEmailRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not req.to_email or "@" not in req.to_email:
         raise HTTPException(status_code=400, detail="Invalid recipient email")
 
@@ -54,7 +55,9 @@ def send_email(req: SendEmailRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
     if req.campaign_id:
-        campaign = db.query(Campaign).filter(Campaign.id == req.campaign_id).first()
+        campaign = db.query(Campaign).filter(
+            Campaign.id == req.campaign_id, Campaign.user_id == current_user.id
+        ).first()
         if campaign:
             campaign.status = "sent"
             campaign.sent_at = datetime.utcnow()
