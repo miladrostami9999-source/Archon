@@ -110,6 +110,14 @@ export default function LoginPage() {
               ) : 'Sign In →'}
             </button>
           </div>
+
+          <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', margin: '0 0 10px' }}>Don&apos;t have an account yet?</p>
+            <a href="/signup"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', boxSizing: 'border-box', padding: '11px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, color: '#E2E8F0', background: 'transparent', border: '1px solid rgba(255,255,255,0.14)', textDecoration: 'none' }}>
+              Create an account
+            </a>
+          </div>
         </div>
 
         <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.2)', marginTop: '24px' }}>

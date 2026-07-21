@@ -112,20 +112,20 @@ export default function Sidebar() {
   const td  = dark ? 'rgba(255,255,255,0.22)' : '#9CA3AF'
   const sbg = dark ? '#161B27' : '#FFFFFF'
 
+  const isAdmin = user?.role === 'admin'
   const workspaceItems = [
     { label: 'Home',       iconKey: 'home',      href: '/dashboard' },
     { label: 'Tasks',      iconKey: 'tasks',     href: '/tasks' },
     { label: 'Analytics',  iconKey: 'analytics', href: '/analytics' },
     { label: 'Market Map', iconKey: 'map',       href: '/map' },
-  ]
-  const adminItems = [
-    { label: 'Admin Panel',   iconKey: 'admin',  href: '/admin' },
     { label: 'Weekly Report', iconKey: 'report', href: '/report' },
-    ...(user?.role === 'admin' ? [
-      { label: 'Users', iconKey: 'users', href: '/users' },
-      { label: 'Waitlist', iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
-    ] : []),
   ]
+  // Admin-only tools — hidden entirely for regular members
+  const adminItems = isAdmin ? [
+    { label: 'Admin Panel', iconKey: 'admin',    href: '/admin' },
+    { label: 'Users',       iconKey: 'users',    href: '/users' },
+    { label: 'Waitlist',    iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
+  ] : []
 
   const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {
     item: { label: string; iconKey: string; href: string; badge?: number }
@@ -194,12 +194,14 @@ export default function Sidebar() {
         <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Workspace</p>
         {workspaceItems.map(item => <NavItem key={item.href} item={item} />)}
 
-        <div style={{ paddingTop: '12px', marginTop: '12px', borderTop: `1px solid ${b}` }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Admin</p>
-          {adminItems.map(item => (
-            <NavItem key={item.href} item={item} accentColor='#A78BFA' activeBg='rgba(139,92,246,0.12)' />
-          ))}
-        </div>
+        {adminItems.length > 0 && (
+          <div style={{ paddingTop: '12px', marginTop: '12px', borderTop: `1px solid ${b}` }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Admin</p>
+            {adminItems.map(item => (
+              <NavItem key={item.href} item={item} accentColor='#A78BFA' activeBg='rgba(139,92,246,0.12)' />
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* FOOTER */}
@@ -245,6 +247,14 @@ export default function Sidebar() {
               onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
               onMouseLeave={e => { e.currentTarget.style.color = td }}>⏻</button>
           </div>
+        )}
+
+        {/* Explicit, always-visible logout — especially important on mobile */}
+        {user && (
+          <button onClick={logout}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '9px 10px', borderRadius: '8px', marginTop: '10px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', cursor: 'pointer', color: '#F87171', fontSize: '12.5px', fontWeight: 600 }}>
+            <span>⏻</span> Log out
+          </button>
         )}
       </div>
     </aside>
