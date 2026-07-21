@@ -408,6 +408,81 @@ def list_waitlist(admin: User = Depends(require_admin), db: Session = Depends(ge
     } for e in entries]
 
 
+@router.get("/waitlist/pending-count")
+def waitlist_pending_count(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Cheap count for the sidebar notification badge."""
+    count = db.query(WaitlistEntry).filter(WaitlistEntry.status == "pending").count()
+    return {"count": count}
+
+
+@router.post("/waitlist/{entry_id}/approve")
+def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Turn a waitlist entry into a real account with a generated temp password.
+    Returns the password once so the admin can share it; also best-effort emails
+    the new user their login details."""
+    entry = db.query(WaitlistEntry).filter(WaitlistEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+
+    if db.query(User).filter(User.email == entry.email).first():
+        entry.status = "approved"
+        db.commit()
+        raise HTTPException(status_code=400, detail="A user with this email already exists.")
+
+    temp_password = _secrets.token_urlsafe(9)
+    user = User(
+        name=entry.name,
+        email=entry.email,
+        password_hash=hash_password(temp_password),
+        plan=entry.plan or "basic",
+        role="member",
+        is_active=True,
+    )
+    db.add(user)
+    entry.status = "approved"
+    db.commit()
+    db.refresh(user)
+
+    # Best-effort welcome email with credentials (never fail the approval on this)
+    login_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + "/login"
+    try:
+        send_email(
+            to_email=entry.email,
+            subject="Your Archon account is ready",
+            html_body=(
+                f"<p>Hi {entry.name},</p>"
+                f"<p>Your Archon account has been approved. Sign in with:</p>"
+                f"<p><strong>Email:</strong> {entry.email}<br>"
+                f"<strong>Temporary password:</strong> {temp_password}</p>"
+                f"<p><a href=\"{login_url}\">Sign in</a> and change your password from Profile → Security.</p>"
+                f"<p>— Archon, by Armila Design</p>"
+            ),
+            text_body=f"Your Archon account is ready. Email: {entry.email}  Temp password: {temp_password}  Sign in: {login_url}",
+        )
+        emailed = True
+    except Exception as e:
+        print(f"Approval email failed: {e}")
+        emailed = False
+
+    return {
+        "message": "Account created",
+        "user_id": user.id,
+        "email": entry.email,
+        "temp_password": temp_password,
+        "emailed": emailed,
+    }
+
+
+@router.delete("/waitlist/{entry_id}")
+def delete_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    entry = db.query(WaitlistEntry).filter(WaitlistEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Waitlist entry not found")
+    db.delete(entry)
+    db.commit()
+    return {"message": "Waitlist entry removed"}
+
+
 # ─────────────────────────────────────────
 # IMAGE UPLOAD (avatar + portfolio) → Cloudflare R2
 # ─────────────────────────────────────────

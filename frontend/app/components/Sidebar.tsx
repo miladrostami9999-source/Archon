@@ -2,6 +2,8 @@
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, type ReactElement } from 'react'
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
 interface User { name: string; email: string; role: string; plan: string }
 const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)' },
@@ -17,6 +19,7 @@ const ICONS: Record<string, ReactElement> = {
   admin:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
   report:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   users:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  waitlist:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
 }
 
 // Hamburger icon
@@ -43,6 +46,7 @@ export default function Sidebar() {
   const [avatar, setAvatar] = useState<string>('')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [waitlistCount, setWaitlistCount] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -78,6 +82,21 @@ export default function Sidebar() {
     else { document.documentElement.classList.add('light-theme'); localStorage.setItem('archon-theme', 'light') }
   }, [dark, mounted])
 
+  // Poll pending waitlist count for the admin notification badge
+  useEffect(() => {
+    if (user?.role !== 'admin') return
+    const token = localStorage.getItem('archon-token') || ''
+    const load = () => {
+      fetch(`${API}/auth/waitlist/pending-count`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setWaitlistCount(d.count || 0))
+        .catch(() => {})
+    }
+    load()
+    const id = setInterval(load, 60000)  // refresh every minute
+    return () => clearInterval(id)
+  }, [user])
+
   // Prevent body scroll when mobile sidebar open
   useEffect(() => {
     if (mobileOpen) document.body.style.overflow = 'hidden'
@@ -102,14 +121,18 @@ export default function Sidebar() {
   const adminItems = [
     { label: 'Admin Panel',   iconKey: 'admin',  href: '/admin' },
     { label: 'Weekly Report', iconKey: 'report', href: '/report' },
-    ...(user?.role === 'admin' ? [{ label: 'Users', iconKey: 'users', href: '/users' }] : []),
+    ...(user?.role === 'admin' ? [
+      { label: 'Users', iconKey: 'users', href: '/users' },
+      { label: 'Waitlist', iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
+    ] : []),
   ]
 
   const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {
-    item: { label: string; iconKey: string; href: string }
+    item: { label: string; iconKey: string; href: string; badge?: number }
     accentColor?: string; activeBg?: string
   }) => {
     const active = path === item.href
+    const showBadge = !!item.badge && item.badge > 0
     return (
       <a href={item.href}
         data-tour={item.href === '/tasks' ? 'nav-tasks' : item.href === '/analytics' ? 'nav-analytics' : undefined}
@@ -128,7 +151,12 @@ export default function Sidebar() {
           {ICONS[item.iconKey]}
         </span>
         <span>{item.label}</span>
-        {active && <span style={{ marginLeft: 'auto', width: '3px', height: '14px', borderRadius: '2px', background: accentColor, opacity: 0.9 }} />}
+        {showBadge && (
+          <span style={{ marginLeft: 'auto', minWidth: '18px', height: '18px', padding: '0 5px', borderRadius: '999px', background: '#EF4444', color: 'white', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {item.badge}
+          </span>
+        )}
+        {active && !showBadge && <span style={{ marginLeft: 'auto', width: '3px', height: '14px', borderRadius: '2px', background: accentColor, opacity: 0.9 }} />}
       </a>
     )
   }
