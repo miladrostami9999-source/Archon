@@ -62,39 +62,39 @@ export default function WaitlistPage() {
   const pendingCount = entries.filter(e => e.status === 'pending').length
 
   const card: React.CSSProperties = {
-    background: 'var(--bg-card, rgba(255,255,255,0.03))', border: '1px solid var(--border, rgba(255,255,255,0.08))',
+    background: 'var(--bg-card)', border: '1px solid var(--border)',
     borderRadius: '14px', padding: '18px 20px',
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg, #0B0E18)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '12px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text, #E2E8F0)', margin: 0 }}>
+            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               Waitlist {pendingCount > 0 && <span style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', marginLeft: '8px' }}>{pendingCount} pending</span>}
             </h1>
             <div style={{ display: 'flex', gap: '6px' }}>
               {(['pending', 'approved', 'all'] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                    border: '1px solid ' + (filter === f ? 'rgba(79,123,247,0.4)' : 'var(--border, rgba(255,255,255,0.1))'),
+                    border: '1px solid ' + (filter === f ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
                     background: filter === f ? 'rgba(79,123,247,0.15)' : 'transparent',
-                    color: filter === f ? '#60A5FA' : 'var(--text-dim, rgba(255,255,255,0.5))' }}>
+                    color: filter === f ? '#60A5FA' : 'var(--text-muted)' }}>
                   {f}
                 </button>
               ))}
             </div>
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-dim, rgba(255,255,255,0.45))', margin: '0 0 22px' }}>
-            People who requested access from the landing page. Approving creates their account and generates a temporary password.
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 22px' }}>
+            People who requested access from the landing page. Approving activates their account so they can sign in with the password they chose.
           </p>
 
           {loading ? (
-            <p style={{ color: 'var(--text-dim, rgba(255,255,255,0.4))', fontSize: '14px' }}>Loading…</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
           ) : shown.length === 0 ? (
-            <div style={{ ...card, textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim, rgba(255,255,255,0.4))', fontSize: '14px' }}>
+            <div style={{ ...card, textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
               No {filter !== 'all' ? filter : ''} requests.
             </div>
           ) : (
@@ -107,13 +107,13 @@ export default function WaitlistPage() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text, #E2E8F0)' }}>{e.name}</span>
+                          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{e.name}</span>
                           <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: pm.color, background: pm.bg, textTransform: 'uppercase' }}>{e.plan}</span>
                           <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-dim, rgba(255,255,255,0.55))' }}>{e.email}</div>
-                        {e.company && <div style={{ fontSize: '12.5px', color: 'var(--text-dim, rgba(255,255,255,0.4))', marginTop: '2px' }}>🏢 {e.company}</div>}
-                        {e.note && <div style={{ fontSize: '12.5px', color: 'var(--text-dim, rgba(255,255,255,0.4))', marginTop: '6px', fontStyle: 'italic' }}>“{e.note}”</div>}
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{e.email}</div>
+                        {e.company && <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>🏢 {e.company}</div>}
+                        {e.note && <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '6px', fontStyle: 'italic' }}>“{e.note}”</div>}
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                         {e.status === 'pending' && (
@@ -129,7 +129,7 @@ export default function WaitlistPage() {
                           </button>
                         ) : (
                           <button onClick={() => setConfirmDelete(e.id)}
-                            style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-dim, rgba(255,255,255,0.5))', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', cursor: 'pointer' }}>
+                            style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
                             {e.status === 'pending' ? 'Reject' : 'Remove'}
                           </button>
                         )}
@@ -146,20 +146,20 @@ export default function WaitlistPage() {
       {/* Approval result — shows the temp password once */}
       {approved && (
         <div onClick={() => setApproved(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
-          <div onClick={ev => ev.stopPropagation()} style={{ width: '100%', maxWidth: '420px', background: 'var(--bg-card, #161B27)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: '16px', padding: '26px' }}>
+          <div onClick={ev => ev.stopPropagation()} style={{ width: '100%', maxWidth: '420px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '26px' }}>
             <div style={{ fontSize: '34px', textAlign: 'center', marginBottom: '10px' }}>✅</div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text, #E2E8F0)', margin: '0 0 6px', textAlign: 'center' }}>Account approved</h2>
+            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 6px', textAlign: 'center' }}>Account approved</h2>
 
             {approved.temp_password ? (
               // Legacy entry with no user-chosen password — show generated one
               <>
-                <p style={{ fontSize: '13px', color: 'var(--text-dim, rgba(255,255,255,0.5))', textAlign: 'center', margin: '0 0 18px', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', margin: '0 0 18px', lineHeight: 1.6 }}>
                   This older request had no password, so we generated one. {approved.emailed ? 'It was emailed to the user; ' : ''}copy it now — it&apos;s shown only once.
                 </p>
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Email</div>
-                  <div style={{ fontSize: '14px', color: 'var(--text, #E2E8F0)', marginBottom: '12px', wordBreak: 'break-all' }}>{approved.email}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Temporary password</div>
+                <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Email</div>
+                  <div style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '12px', wordBreak: 'break-all' }}>{approved.email}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Temporary password</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#34D399', fontFamily: 'monospace' }}>{approved.temp_password}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -168,7 +168,7 @@ export default function WaitlistPage() {
                     {copied ? '✓ Copied' : '📋 Copy credentials'}
                   </button>
                   <button onClick={() => setApproved(null)}
-                    style={{ padding: '11px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-dim, rgba(255,255,255,0.6))', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', cursor: 'pointer' }}>
+                    style={{ padding: '11px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
                     Done
                   </button>
                 </div>
@@ -176,8 +176,8 @@ export default function WaitlistPage() {
             ) : (
               // Normal flow — user already set their own password at signup
               <>
-                <p style={{ fontSize: '13.5px', color: 'var(--text-dim, rgba(255,255,255,0.55))', textAlign: 'center', margin: '0 0 20px', lineHeight: 1.7 }}>
-                  <strong style={{ color: 'var(--text, #E2E8F0)' }}>{approved.email}</strong> can now sign in with the password they chose.
+                <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', textAlign: 'center', margin: '0 0 20px', lineHeight: 1.7 }}>
+                  <strong style={{ color: 'var(--text)' }}>{approved.email}</strong> can now sign in with the password they chose.
                   {approved.emailed
                     ? ' A confirmation email has been sent to them.'
                     : ' (Email delivery is off, so let them know their account is active.)'}
