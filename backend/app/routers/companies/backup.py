@@ -1,11 +1,14 @@
 import json
 import os
+import re
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, User, Company, Contact, Note, Campaign, History, DailyTask, WeeklyReport
+from app.routers.auth import require_admin
 from .utils import row_to_dict
 
 router = APIRouter()
@@ -30,8 +33,13 @@ BACKUP_MODELS = [
 ]
 
 
+# Backup files are named archon_backup_YYYYMMDD_HHMMSS.json — anything else is
+# rejected so a crafted filename can't escape BACKUP_DIR via path traversal.
+BACKUP_FILENAME_RE = re.compile(r"^archon_backup_\d{8}_\d{6}\.json$")
+
+
 @router.post("/backup/run")
-def run_backup(db: Session = Depends(get_db)):
+def run_backup(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     os.makedirs(BACKUP_DIR, exist_ok=True)
 
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
@@ -64,7 +72,7 @@ def run_backup(db: Session = Depends(get_db)):
 
 
 @router.get("/backup/list")
-def list_backups():
+def list_backups(admin: User = Depends(require_admin)):
     if not os.path.isdir(BACKUP_DIR):
         return []
 
@@ -80,3 +88,20 @@ def list_backups():
             "created_at": datetime.utcfromtimestamp(stat.st_mtime).isoformat(),
         })
     return backups[:20]  # most recent 20
+
+
+@router.get("/backup/download/{filename}")
+def download_backup(filename: str, admin: User = Depends(require_admin)):
+    """Download a backup file so it can be stored off Railway. Without this the
+    backup only ever lives on the server's volume, which is lost with the service."""
+    if not BACKUP_FILENAME_RE.match(filename):
+        raise HTTPException(status_code=400, detail="Invalid backup filename")
+
+    filepath = os.path.join(BACKUP_DIR, filename)
+    # Belt-and-braces: make sure the resolved path really is inside BACKUP_DIR
+    if os.path.commonpath([os.path.realpath(filepath), os.path.realpath(BACKUP_DIR)]) != os.path.realpath(BACKUP_DIR):
+        raise HTTPException(status_code=400, detail="Invalid backup path")
+    if not os.path.isfile(filepath):
+        raise HTTPException(status_code=404, detail="Backup not found")
+
+    return FileResponse(filepath, media_type="application/json", filename=filename)

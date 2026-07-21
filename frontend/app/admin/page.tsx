@@ -24,6 +24,7 @@ export default function AdminPanel() {
   const [recalcMsg, setRecalcMsg] = useState('')
   const [backing, setBacking] = useState(false)
   const [backMsg, setBackMsg] = useState('')
+  const [lastBackup, setLastBackup] = useState<string | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
 
@@ -51,15 +52,29 @@ export default function AdminPanel() {
   }, [])
 
   const runBackup = async () => {
-    setBacking(true); setBackMsg('')
+    setBacking(true); setBackMsg(''); setLastBackup(null)
     try {
       const res = await axios.post(`${API}/companies/backup/run`, {}, { headers: headers() })
       const totalRows = Object.values(res.data.row_counts as Record<string, number>).reduce((a, b) => a + b, 0)
       setBackMsg(`✓ Saved ${res.data.filename} (${res.data.size_kb} KB, ${totalRows} rows)`)
+      setLastBackup(res.data.filename)
     } catch {
       setBackMsg('✗ Backup failed — check server logs')
     }
     setBacking(false)
+  }
+
+  // Downloads through axios so the auth header is sent, then saves via a blob URL
+  const downloadBackup = async (filename: string) => {
+    try {
+      const res = await axios.get(`${API}/companies/backup/download/${filename}`, { headers: headers(), responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setBackMsg('✗ Download failed')
+    }
   }
 
   const recalcScores = async () => {
@@ -217,6 +232,15 @@ export default function AdminPanel() {
 
                 {'msg' in tool && tool.msg && (
                   <p style={{ fontSize: '11px', color: tool.msgColor, marginTop: '8px', marginBottom: 0, textAlign: 'center' }}>{tool.msg}</p>
+                )}
+
+                {/* Backups live on the server volume — offer a download so a copy
+                    can be kept off Railway */}
+                {tool.title === 'Manual Backup' && lastBackup && (
+                  <button onClick={() => downloadBackup(lastBackup)}
+                    style={{ marginTop: '8px', width: '100%', padding: '8px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer' }}>
+                    ⬇ Download backup file
+                  </button>
                 )}
               </div>
             ))}
