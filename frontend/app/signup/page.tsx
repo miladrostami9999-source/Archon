@@ -14,6 +14,8 @@ function SignupInner() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [company, setCompany] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,10 +30,12 @@ function SignupInner() {
 
   const submit = async () => {
     if (!name.trim() || !email.trim()) { setError('Please enter your name and email.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (password !== confirm) { setError('Passwords do not match.'); return }
     setLoading(true); setError('')
     try {
       const res = await axios.post(`${API}/auth/signup`, {
-        name: name.trim(), email: email.trim(), plan, company: company.trim(), note: note.trim(),
+        name: name.trim(), email: email.trim(), password, plan, company: company.trim(), note: note.trim(),
       })
       setDoneMsg(res.data.message || "You're on the list!")
       setDone(true)
@@ -94,6 +98,14 @@ function SignupInner() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Email *</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@studio.com" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Password *</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Confirm password *</label>
+                  <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Studio / Company <span style={{ color: 'rgba(255,255,255,0.25)' }}>(optional)</span></label>

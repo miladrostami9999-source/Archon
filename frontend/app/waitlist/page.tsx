@@ -30,7 +30,7 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('pending')
   const [busy, setBusy] = useState<number | null>(null)
-  const [approved, setApproved] = useState<{ email: string; temp_password: string; emailed: boolean } | null>(null)
+  const [approved, setApproved] = useState<{ email: string; temp_password: string | null; emailed: boolean } | null>(null)
   const [copied, setCopied] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
@@ -70,7 +70,7 @@ export default function WaitlistPage() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg, #0B0E18)' }}>
       <Sidebar />
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
-        <div style={{ maxWidth: '860px' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '12px' }}>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text, #E2E8F0)', margin: 0 }}>
               Waitlist {pendingCount > 0 && <span style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', marginLeft: '8px' }}>{pendingCount} pending</span>}
@@ -148,26 +148,46 @@ export default function WaitlistPage() {
         <div onClick={() => setApproved(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
           <div onClick={ev => ev.stopPropagation()} style={{ width: '100%', maxWidth: '420px', background: 'var(--bg-card, #161B27)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: '16px', padding: '26px' }}>
             <div style={{ fontSize: '34px', textAlign: 'center', marginBottom: '10px' }}>✅</div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text, #E2E8F0)', margin: '0 0 6px', textAlign: 'center' }}>Account created</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-dim, rgba(255,255,255,0.5))', textAlign: 'center', margin: '0 0 18px', lineHeight: 1.6 }}>
-              Share these credentials with the user. {approved.emailed ? 'A welcome email was also sent.' : 'Email delivery is off, so copy them now — this password is shown only once.'}
-            </p>
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Email</div>
-              <div style={{ fontSize: '14px', color: 'var(--text, #E2E8F0)', marginBottom: '12px', wordBreak: 'break-all' }}>{approved.email}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Temporary password</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#34D399', fontFamily: 'monospace' }}>{approved.temp_password}</div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => { navigator.clipboard.writeText(`Email: ${approved.email}\nPassword: ${approved.temp_password}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
-                {copied ? '✓ Copied' : '📋 Copy credentials'}
-              </button>
-              <button onClick={() => setApproved(null)}
-                style={{ padding: '11px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-dim, rgba(255,255,255,0.6))', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', cursor: 'pointer' }}>
-                Done
-              </button>
-            </div>
+            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text, #E2E8F0)', margin: '0 0 6px', textAlign: 'center' }}>Account approved</h2>
+
+            {approved.temp_password ? (
+              // Legacy entry with no user-chosen password — show generated one
+              <>
+                <p style={{ fontSize: '13px', color: 'var(--text-dim, rgba(255,255,255,0.5))', textAlign: 'center', margin: '0 0 18px', lineHeight: 1.6 }}>
+                  This older request had no password, so we generated one. {approved.emailed ? 'It was emailed to the user; ' : ''}copy it now — it&apos;s shown only once.
+                </p>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border, rgba(255,255,255,0.1))', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Email</div>
+                  <div style={{ fontSize: '14px', color: 'var(--text, #E2E8F0)', marginBottom: '12px', wordBreak: 'break-all' }}>{approved.email}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-dim, rgba(255,255,255,0.45))', marginBottom: '4px' }}>Temporary password</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#34D399', fontFamily: 'monospace' }}>{approved.temp_password}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={() => { navigator.clipboard.writeText(`Email: ${approved.email}\nPassword: ${approved.temp_password}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                    style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    {copied ? '✓ Copied' : '📋 Copy credentials'}
+                  </button>
+                  <button onClick={() => setApproved(null)}
+                    style={{ padding: '11px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-dim, rgba(255,255,255,0.6))', background: 'transparent', border: '1px solid var(--border, rgba(255,255,255,0.12))', cursor: 'pointer' }}>
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              // Normal flow — user already set their own password at signup
+              <>
+                <p style={{ fontSize: '13.5px', color: 'var(--text-dim, rgba(255,255,255,0.55))', textAlign: 'center', margin: '0 0 20px', lineHeight: 1.7 }}>
+                  <strong style={{ color: 'var(--text, #E2E8F0)' }}>{approved.email}</strong> can now sign in with the password they chose.
+                  {approved.emailed
+                    ? ' A confirmation email has been sent to them.'
+                    : ' (Email delivery is off, so let them know their account is active.)'}
+                </p>
+                <button onClick={() => setApproved(null)}
+                  style={{ width: '100%', padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                  Done
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

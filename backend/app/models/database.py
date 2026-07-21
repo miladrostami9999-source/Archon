@@ -177,14 +177,15 @@ class DailyTask(Base):
 
 class WaitlistEntry(Base):
     __tablename__ = "waitlist"
-    id         = Column(Integer, primary_key=True, index=True)
-    name       = Column(String, nullable=False)
-    email      = Column(String, index=True, nullable=False)
-    plan       = Column(String, default="basic")   # plan the visitor was interested in
-    company    = Column(String)                     # optional studio/company name
-    note       = Column(Text)                       # optional message
-    status     = Column(String, default="pending")  # pending | approved | rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id            = Column(Integer, primary_key=True, index=True)
+    name          = Column(String, nullable=False)
+    email         = Column(String, index=True, nullable=False)
+    password_hash = Column(String)                    # the password the user chose at signup
+    plan          = Column(String, default="basic")   # plan the visitor was interested in
+    company       = Column(String)                     # optional studio/company name
+    note          = Column(Text)                       # optional message
+    status        = Column(String, default="pending")  # pending | approved | rejected
+    created_at    = Column(DateTime, default=datetime.utcnow)
 
 # ─────────────────────────────────────────
 # INIT + SEED ADMIN
@@ -213,6 +214,11 @@ def init_db():
             if "phone" not in company_cols:
                 conn.execute(_text("ALTER TABLE companies ADD COLUMN phone VARCHAR"))
                 conn.commit()
+            if _inspector.has_table("waitlist"):
+                waitlist_cols = [c["name"] for c in _inspector.get_columns("waitlist")]
+                if "password_hash" not in waitlist_cols:
+                    conn.execute(_text("ALTER TABLE waitlist ADD COLUMN password_hash VARCHAR"))
+                    conn.commit()
     except Exception as e:
         print(f"⚠️  Column migration check: {e}")
 

@@ -350,6 +350,7 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
 class WaitlistSignup(BaseModel):
     name: str
     email: str
+    password: str
     plan: Optional[str] = "basic"
     company: Optional[str] = None
     note: Optional[str] = None
@@ -362,6 +363,12 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Please enter a valid email address.")
     if not req.name.strip():
         raise HTTPException(status_code=400, detail="Please enter your name.")
+    if len(req.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
+    # If an account already exists for this email, they should just sign in.
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="An account with this email already exists. Please sign in.")
 
     # Idempotent: if this email already applied, don't create a duplicate.
     existing = db.query(WaitlistEntry).filter(WaitlistEntry.email == email).first()
@@ -371,6 +378,7 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     entry = WaitlistEntry(
         name=req.name.strip(),
         email=email,
+        password_hash=hash_password(req.password),
         plan=(req.plan or "basic"),
         company=(req.company or "").strip() or None,
         note=(req.note or "").strip() or None,
@@ -417,9 +425,9 @@ def waitlist_pending_count(admin: User = Depends(require_admin), db: Session = D
 
 @router.post("/waitlist/{entry_id}/approve")
 def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Turn a waitlist entry into a real account with a generated temp password.
-    Returns the password once so the admin can share it; also best-effort emails
-    the new user their login details."""
+    """Turn a waitlist entry into a real account using the password the user
+    chose at signup, then email them that their account is now active. Legacy
+    entries without a stored password fall back to a generated temp password."""
     entry = db.query(WaitlistEntry).filter(WaitlistEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Waitlist entry not found")
@@ -429,11 +437,19 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
         db.commit()
         raise HTTPException(status_code=400, detail="A user with this email already exists.")
 
-    temp_password = _secrets.token_urlsafe(9)
+    # Prefer the password the user set at signup; only generate one for old
+    # entries created before signup collected a password.
+    temp_password = None
+    if entry.password_hash:
+        password_hash = entry.password_hash
+    else:
+        temp_password = _secrets.token_urlsafe(9)
+        password_hash = hash_password(temp_password)
+
     user = User(
         name=entry.name,
         email=entry.email,
-        password_hash=hash_password(temp_password),
+        password_hash=password_hash,
         plan=entry.plan or "basic",
         role="member",
         is_active=True,
@@ -443,32 +459,40 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
     db.commit()
     db.refresh(user)
 
-    # Best-effort welcome email with credentials (never fail the approval on this)
+    # Best-effort notification (never fail the approval if email is down)
     login_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + "/login"
-    try:
-        send_email(
-            to_email=entry.email,
-            subject="Your Archon account is ready",
-            html_body=(
-                f"<p>Hi {entry.name},</p>"
-                f"<p>Your Archon account has been approved. Sign in with:</p>"
-                f"<p><strong>Email:</strong> {entry.email}<br>"
-                f"<strong>Temporary password:</strong> {temp_password}</p>"
-                f"<p><a href=\"{login_url}\">Sign in</a> and change your password from Profile → Security.</p>"
-                f"<p>— Archon, by Armila Design</p>"
-            ),
-            text_body=f"Your Archon account is ready. Email: {entry.email}  Temp password: {temp_password}  Sign in: {login_url}",
+    if temp_password:
+        html = (
+            f"<p>Hi {entry.name},</p>"
+            f"<p>Your Archon account has been approved. Sign in with:</p>"
+            f"<p><strong>Email:</strong> {entry.email}<br>"
+            f"<strong>Temporary password:</strong> {temp_password}</p>"
+            f"<p><a href=\"{login_url}\">Sign in</a> and change your password from Profile → Security.</p>"
+            f"<p>— Archon, by Armila Design</p>"
         )
+        text = f"Your Archon account is ready. Email: {entry.email}  Temp password: {temp_password}  Sign in: {login_url}"
+    else:
+        html = (
+            f"<p>Hi {entry.name},</p>"
+            f"<p>Good news — your Archon account has been approved and is now active. "
+            f"You can sign in with the email and password you chose when you signed up.</p>"
+            f"<p><a href=\"{login_url}\">Sign in to Archon</a></p>"
+            f"<p>— Archon, by Armila Design</p>"
+        )
+        text = f"Your Archon account is approved. Sign in with your chosen password: {login_url}"
+
+    try:
+        send_email(to_email=entry.email, subject="Your Archon account is ready", html_body=html, text_body=text)
         emailed = True
     except Exception as e:
         print(f"Approval email failed: {e}")
         emailed = False
 
     return {
-        "message": "Account created",
+        "message": "Account approved",
         "user_id": user.id,
         "email": entry.email,
-        "temp_password": temp_password,
+        "temp_password": temp_password,  # null when the user set their own password
         "emailed": emailed,
     }
 
