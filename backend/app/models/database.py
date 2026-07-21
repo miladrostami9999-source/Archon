@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from datetime import datetime
 import os
@@ -107,6 +107,7 @@ class Note(Base):
     __tablename__ = "notes"
     id         = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), index=True)  # owner — per-user note
     content    = Column(Text, nullable=False)
     language   = Column(String, default="en")
     pinned     = Column(Boolean, default=False)
@@ -120,6 +121,7 @@ class Campaign(Base):
     __tablename__ = "campaigns"
     id         = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), index=True)  # owner — per-user campaign
     subject    = Column(String)
     body       = Column(Text)
     tone       = Column(String)
@@ -136,6 +138,7 @@ class History(Base):
     __tablename__ = "history"
     id          = Column(Integer, primary_key=True, index=True)
     company_id  = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    user_id     = Column(Integer, ForeignKey("users.id"), index=True)  # owner — per-user activity
     event_type  = Column(String)
     description = Column(Text)
     created_at  = Column(DateTime, default=datetime.utcnow)
@@ -157,6 +160,7 @@ class PasswordResetToken(Base):
 class WeeklyReport(Base):
     __tablename__ = "weekly_reports"
     id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), index=True)  # owner — per-user report
     report_json  = Column(Text, nullable=False)   # the generated report content
     lang         = Column(String, default="en")
     generated_at = Column(DateTime, default=datetime.utcnow)
@@ -166,6 +170,7 @@ class DailyTask(Base):
     __tablename__ = "daily_tasks"
     id          = Column(Integer, primary_key=True, index=True)
     company_id  = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), index=True)  # owner — per-user task
     task_type   = Column(String)
     title       = Column(String)
     description = Column(Text)
@@ -173,6 +178,31 @@ class DailyTask(Base):
     is_done     = Column(Boolean, default=False)
     date        = Column(DateTime, default=datetime.utcnow)
     company = relationship("Company", back_populates="tasks")
+
+
+class UserCompanyState(Base):
+    """Per-user pipeline state over the SHARED company catalog.
+
+    The `companies` table holds objective facts about a company (name, website,
+    country, …) and stays shared by every account. Anything that represents one
+    user's own work on that company — where it sits in their pipeline, whether
+    they starred it — lives here, so one user moving a company to "sent" never
+    changes what another user sees.
+    """
+    __tablename__ = "user_company_state"
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    company_id  = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    status      = Column(String, default="new", index=True)
+    heat_level  = Column(String, default="cold")
+    is_favorite = Column(Boolean, default=False)
+    tags        = Column(Text)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "company_id", name="uq_user_company"),
+    )
 
 
 class WaitlistEntry(Base):
@@ -186,6 +216,55 @@ class WaitlistEntry(Base):
     note          = Column(Text)                       # optional message
     status        = Column(String, default="pending")  # pending | approved | rejected
     created_at    = Column(DateTime, default=datetime.utcnow)
+
+# ─────────────────────────────────────────
+# MULTI-TENANCY BACKFILL
+# ─────────────────────────────────────────
+def _backfill_multitenancy():
+    """One-time data migration for the shared-catalog → per-user-state model.
+
+    Everything created before multi-tenancy belonged to the original admin (the
+    only account doing outreach), so ownerless rows are assigned to them and
+    their pipeline state is lifted out of `companies` into `user_company_state`.
+    Runs on every startup but is a no-op once the data is already owned.
+    """
+    from sqlalchemy import text as _text
+    db = SessionLocal()
+    try:
+        owner = db.query(User).filter(User.role == "admin").order_by(User.id).first()
+        if not owner:
+            return  # nothing to attribute yet
+
+        moved = 0
+        for table in ("notes", "campaigns", "history", "daily_tasks", "weekly_reports"):
+            res = db.execute(_text(f"UPDATE {table} SET user_id = :uid WHERE user_id IS NULL"), {"uid": owner.id})
+            moved += res.rowcount or 0
+        if moved:
+            db.commit()
+            print(f"✅ Multi-tenancy backfill: assigned {moved} legacy rows to {owner.email}")
+
+        # Lift the admin's existing pipeline state out of the now-shared catalog
+        already = db.query(UserCompanyState).filter(UserCompanyState.user_id == owner.id).count()
+        if already == 0:
+            companies = db.query(Company).all()
+            for c in companies:
+                db.add(UserCompanyState(
+                    user_id=owner.id,
+                    company_id=c.id,
+                    status=c.status or "new",
+                    heat_level=c.heat_level or "cold",
+                    is_favorite=bool(c.is_favorite),
+                    tags=c.tags,
+                ))
+            if companies:
+                db.commit()
+                print(f"✅ Multi-tenancy backfill: seeded pipeline state for {len(companies)} companies")
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️  Multi-tenancy backfill skipped: {e}")
+    finally:
+        db.close()
+
 
 # ─────────────────────────────────────────
 # INIT + SEED ADMIN
@@ -219,8 +298,18 @@ def init_db():
                 if "password_hash" not in waitlist_cols:
                     conn.execute(_text("ALTER TABLE waitlist ADD COLUMN password_hash VARCHAR"))
                     conn.commit()
+
+            # ── Multi-tenancy: per-user ownership on what used to be shared ──
+            for table in ("notes", "campaigns", "history", "daily_tasks", "weekly_reports"):
+                if _inspector.has_table(table):
+                    cols = [c["name"] for c in _inspector.get_columns(table)]
+                    if "user_id" not in cols:
+                        conn.execute(_text(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER"))
+                        conn.commit()
     except Exception as e:
         print(f"⚠️  Column migration check: {e}")
+
+    _backfill_multitenancy()
 
     # Create admin user if not exists
     db = SessionLocal()

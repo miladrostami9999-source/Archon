@@ -77,7 +77,8 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - **نکته‌ی کلیدی:** ترتیب نمایش شرکت‌ها باید برای هر کاربر **متفاوت/رندوم** باشه (seed مخصوص هر اکانت) تا با ۳۰۰۰ شرکت، همه فقط سراغ ۲۰ تای اول نرن. یه گزینه‌ی sort «new» هم اضافه بشه
 - ⚠️ migration یک‌طرفه روی Postgres زنده — قبلش حتماً بک‌آپ
 
-**قدم ۲ — لیمیت‌های واقعی + نمایش اعتبار** *(وابسته به قدم ۱)*
+**قدم ۲ — Plan Limits Enforcement + نمایش اعتبار** *(وابسته به قدم ۱)*
+- **سقف رسمی از نقشه راه:** Basic = ۵۰ شرکت / Pro = ۵۰۰ شرکت / Agency = نامحدود
 - شمارش واقعی مصرف هر کاربر (ایمیل ارسالی، تعداد شرکت)
 - نمایش باقی‌مانده تو داشبورد (مثلاً «۳۲ از ۵۰ ایمیل باقی‌مونده»)
 - auto-disable بعد از ۳۰ روز یا اتمام سهمیه → نیاز به تمدید
@@ -93,12 +94,18 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - پرداخت $19/$49/$99، مدیریت اشتراک، کنسل خودکار
 
 **قدم ۶ به بعد — بدون وابستگی، هر وقت خواستیم:**
-- Gmail OAuth per-user (هر کاربر با ایمیل خودش بفرسته، به‌جای Resend مشترک)
-- داشبورد آنالیتیکس ایمیل هر کاربر (تعداد ارسال، reply rate شخصی)
+- **Gmail OAuth Connect** — «Sign in with Google»، هر کاربر با ایمیل خودش بفرسته از طریق Gmail API (به‌جای Resend مشترک، بدون App Password)
+- **User Email Analytics Dashboard** — برای هر کاربر: تعداد generate، sent، و reply rate شخصی خودش
+- **Admin User Database — Export to Excel** — ایمیل/فعالیت/پلن همه‌ی کاربران، قابل export برای CRM و marketing
+- **AI Lead Discovery** — Claude خودکار leadهای جدید پیشنهاد بده
+- **Data Collection Campaign** — هدف ۳۰۰۰ شرکت verified در ۶ ماه (می‌تونه موازی با بقیه شروع بشه)
 - دسترسی ادمین به پروفایل/دیتای هر ممبر *(عمداً به اینجا موکول شد — بعد از Multi-tenant معنی «همه‌ی دیتاش» روشن می‌شه)*
-- Admin Export to Excel + Broadcast/Notification system
-- Data Collection Campaign (هدف ۳۰۰۰ شرکت verified)
-- AI Lead Discovery
+
+**از فاز ۵ نقشه راه، این دو مورد زودتر (در فاز ۴) انجام شدن:**
+- ✅ Onboarding Flow — راهنمای تعاملی spotlight دوزبانه
+- ✅ Landing Page با pricing و features
+
+**مواردی که در نقشه راه اصلی نبودن و از بحث‌های بعدی اضافه شدن:** Multi-tenant واقعی (قدم ۱)، پلن رایگان ۷ روزه (قدم ۳)، باز کردن signup واقعی (قدم ۴).
 
 **Phase 6 — Project Marketplace:** Freelancer/Client project board، Escrow + Milestone payment، Digital contracts، Job listings، Rating system، Community feed.
 
