@@ -92,17 +92,47 @@ export default function ProfilePage() {
     axios.get(`${API}/auth/me`, { headers: headers() })
       .then(res => setUser(res.data))
       .catch(() => { window.location.href = '/login' })
+
+    // Show cached profile immediately, then reconcile with the server, which is
+    // the source of truth (and what the public profile page reads from).
     const saved = localStorage.getItem('archon-profile')
     if (saved) { try { const p = JSON.parse(saved); setProfile({ ...defaultProfile, ...p }) } catch {} }
+
+    axios.get(`${API}/auth/profile/me`, { headers: headers() })
+      .then(res => {
+        const d = res.data || {}
+        const fromServer: LocalProfile = {
+          bio: d.bio || '', location: d.location || '', website: d.website || '',
+          company: d.company || '', phone: d.phone || '', avatar: d.avatar || '',
+          skills: d.skills || [], customSkills: d.customSkills || [],
+          portfolio: d.portfolio || [],
+        }
+        setProfile(fromServer)
+        localStorage.setItem('archon-profile', JSON.stringify(fromServer))
+      })
+      .catch(() => {})
   }, [])
 
-  const saveProfile = (p = profile) => {
+  const saveProfile = async (p = profile) => {
     setSaving(true)
     const json = JSON.stringify(p)
     localStorage.setItem('archon-profile', json)
     // Dispatch storage event so Sidebar updates avatar
     window.dispatchEvent(new StorageEvent('storage', { key: 'archon-profile', newValue: json }))
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500) }, 300)
+
+    // Persist to the server too — without this, the public profile page (which
+    // reads from the database) never sees bio/portfolio/avatar changes.
+    // username and is_public are omitted so the backend keeps their values.
+    try {
+      await axios.put(`${API}/auth/profile/me`, {
+        bio: p.bio || '', location: p.location || '', website: p.website || '',
+        company: p.company || '', phone: p.phone || '', avatar: p.avatar || '',
+        skills: p.skills || [], customSkills: p.customSkills || [],
+        portfolio: p.portfolio || [],
+      }, { headers: headers() })
+    } catch {}
+
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 
   const changePassword = async () => {
