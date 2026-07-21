@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -18,12 +19,21 @@ interface Stats {
 }
 
 export default function AdminPanel() {
+  const isMobile = useIsMobile()
   const [recalculating, setRecalculating] = useState(false)
   const [recalcMsg, setRecalcMsg] = useState('')
   const [backing, setBacking] = useState(false)
   const [backMsg, setBackMsg] = useState('')
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
+
+  // Admin-only page — members who navigate here directly get sent back
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('archon-user')
+      if (stored && JSON.parse(stored).role !== 'admin') window.location.href = '/dashboard'
+    } catch {}
+  }, [])
 
   useEffect(() => {
     axios.get(`${API}/companies/analytics/summary`).then(res => {
@@ -124,10 +134,10 @@ export default function AdminPanel() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: '224px' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* STICKY HEADER */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
+        <div style={{ position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Platform management and system tools</p>
@@ -138,15 +148,15 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        <div style={{ padding: '0 40px 0', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ padding: isMobile ? '0 16px' : '0 40px 0', maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ marginBottom: '0' }}>
 
           {/* KPI CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px', marginTop: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '24px', marginTop: '24px' }}>
             {kpiCards.map(k => (
               <div key={k.label} style={{
                 borderRadius: '16px', border: `1px solid ${k.border}`,
-                background: k.bg, padding: '20px 24px',
+                background: k.bg, padding: isMobile ? '14px 16px' : '20px 24px',
                 position: 'relative', overflow: 'hidden',
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 cursor: 'default',
@@ -154,9 +164,9 @@ export default function AdminPanel() {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${k.border}` }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
                 <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: k.color, opacity: 0.06 }} />
-                <p style={{ fontSize: '28px', margin: '0 0 12px' }}>{k.icon}</p>
-                <p style={{ fontSize: '32px', fontWeight: 800, color: k.color, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>{k.label}</p>
+                <p style={{ fontSize: isMobile ? '22px' : '28px', margin: isMobile ? '0 0 8px' : '0 0 12px' }}>{k.icon}</p>
+                <p style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 800, color: k.color, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
+                <p style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>{k.label}</p>
               </div>
             ))}
           </div>
@@ -165,7 +175,7 @@ export default function AdminPanel() {
 
           {/* TOOLS GRID */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '16px', marginTop: '0' }}>Tools & Actions</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', paddingBottom: '40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px', paddingBottom: '40px' }}>
             {tools.map((tool) => (
               <div key={tool.title} style={{
                 borderRadius: '16px', border: `1px solid ${tool.border}`,

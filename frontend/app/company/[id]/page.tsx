@@ -404,10 +404,6 @@ export default function CompanyDetail() {
             ← Back
           </button>
           <div style={{ flex: 1 }} />
-          {!isMobile && <button onClick={() => setShowDeleteModal(true)}
-            style={{ fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '6px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
-            🗑 Delete
-          </button>}
           <button onClick={toggleFavorite}
             style={{ fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer', color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}>
             ★
@@ -545,19 +541,17 @@ export default function CompanyDetail() {
             </div>
           </div>
 
-          {/* MOBILE ACTIONS */}
-          {isMobile && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowDeleteModal(true)}
-                style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
-                🗑 Delete
-              </button>
-              <button onClick={() => window.location.href = `/edit?id=${id}`}
-                style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(79,123,247,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(79,123,247,0.08)', cursor: 'pointer' }}>
-                ✏️ Edit
-              </button>
-            </div>
-          )}
+          {/* ACTIONS — same placement on mobile and desktop */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setShowDeleteModal(true)}
+              style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
+              🗑 Delete
+            </button>
+            <button onClick={() => window.location.href = `/edit?id=${id}`}
+              style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(79,123,247,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(79,123,247,0.08)', cursor: 'pointer' }}>
+              ✏️ Edit
+            </button>
+          </div>
 
           {/* TABS */}
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', flexShrink: 0, width: '100%', boxSizing: 'border-box' as const }}>
