@@ -3,7 +3,7 @@
 > این فایل خلاصه‌ی وضعیت پروژه‌ست. هر وقت گفتید «استاتوس رو ثبت کن»، این فایل رو با آخرین وضعیت آپدیت می‌کنم.
 > طراحی شده که قابل کپی/انتقال به یک AI دیگه باشه برای مشاوره — همه چیز خودایستا و بدون نیاز به context قبلی نوشته می‌شه.
 
-**آخرین آپدیت:** 2026-07-18 — Cloud Deploy انجام شد (Railway + Vercel)، production زنده و در دسترسه
+**آخرین آپدیت:** 2026-07-21 — ✅ **Phase 4 تکمیل شد.** پلتفرم زنده روی `app.armiladesign.com` — دامنه، R2، ایمیل، پروفایل عمومی و waitlist همه عملیاتی. آماده‌ی شروع Phase 5.
 
 ---
 
@@ -20,7 +20,7 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 
 ---
 
-## ۲. فاز فعلی: Phase 4 — Production Ready (~85-90%)
+## ۲. فاز فعلی: ✅ Phase 4 تکمیل شد — آماده‌ی Phase 5
 
 ### تمام‌شده (بدون نیاز به Deploy)
 - Landing Page (دوزبانه EN/FA با RTL، تم دارک/لایت، workflow navigation)
@@ -49,22 +49,56 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - [x] **Landing Page عمومی** روی `/` (فایل static در `public/landing.html`، دوزبانه EN/FA). داشبورد رفت به `/dashboard`. کاربر لاگین‌شده خودکار به داشبورد هدایت می‌شه.
 - [x] **Signup (Waitlist)** — چون دیتا تا Phase 5 مشترکه، signup عمومی یه waitlist امنه: `POST /auth/signup` (عمومی) + صفحه‌ی `/signup` + `GET /auth/waitlist` (فقط ادمین). CTAهای لندینگ به `/signup?plan=X` وصلن.
 
-### باقی‌مانده Phase 4
-- [ ] ست‌کردن ۵ env var مربوط به R2 روی Railway (تا آپلود واقعاً روی R2 بره، نه fallback)
-- [ ] **تأیید Railway Volume + `BACKUP_DIR`** — وضعیتش نامشخصه، باید چک بشه (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
-- [ ] ست‌کردن `FRONTEND_URL=https://archon-hazel.vercel.app` روی Railway (لینک فورگت‌پسورد خراب بود)
-- [ ] تست attachment واقعی در ارسال ایمیل، Weekly Report، Daily Tasks
-- [ ] اتصال دامنه armiladesign.com به پلتفرم (پیشنهاد: زیردامنه‌ی جدا مثل `app.armiladesign.com`) — **فردا** انجام می‌شه. نکته: armiladesign.com الان برای Resend وصله، تداخلی نداره
-- [ ] یک بک‌آپ رسمی تازه از production گرفته بشه (بعد از تأیید Volume)
+### تمام‌شده — دامنه، R2، و اصلاحات نهایی (2026-07-21)
+- [x] ۵ env var مربوط به R2 روی Railway ست شد — آپلود واقعاً روی R2 می‌ره (تست‌شده)
+- [x] `FRONTEND_URL` ست شد — لینک فورگت‌پسورد درست شد
+- [x] **دامنه‌ی `app.armiladesign.com` وصل شد** (Vercel، DNS خودکار). سایت پورتفولیو روی `armiladesign.com` دست‌نخورده. `ALLOWED_ORIGINS` هم آپدیت شد.
+- [x] تست‌های production: attachment، Weekly Report، Daily Tasks، پروفایل عمومی — همه تأیید شدن
+- [x] دسترسی: Admin Panel/Users/Waitlist فقط ادمین؛ Admin Panel ریسپانسیو شد
+- [x] پابلیک پروفایل: باگ ذخیره‌نشدن در سرور رفع شد (فقط localStorage بود)
+- [x] پورتفولیو: ادیت پروژه (عنوان/توضیح/لینک) + alt text برای هر عکس
+- [x] **[امنیتی]** endpointهای بک‌آپ اصلاً احراز هویت نداشتن — فقط ادمین شدن + endpoint دانلود امن اضافه شد
 
-### Phase 5 (بعدی، پیش‌نیاز باز شدن signup واقعی)
-- Multi-tenant واقعی (فیلد owner/user_id روی `companies` — الان مشترکه) — پیش‌نیاز اینه که waitlist به signup واقعی تبدیل بشه
+## ✅ Phase 4 تکمیل شد
+
+**تنها کار عملیاتی باقی‌مانده (نه کد):** یک بک‌آپ رسمی از production بگیر و با دکمه‌ی جدید **Download** یه نسخه‌ش رو جایی بیرون از Railway نگه دار.
 
 ---
 
 ## ۳. فازهای پیش رو
 
-**Phase 5 — SaaS Launch:** Stripe Billing، Multi-tenant واقعی، Gmail OAuth per-user، Data Collection Campaign (هدف ۳۰۰۰ شرکت verified)، Admin Export to Excel، Broadcast/Notification system.
+### 🎯 Phase 5 — SaaS Launch (فاز بعدی، به ترتیب اجرا)
+
+> ترتیب بر اساس **وابستگی** چیده شده — هر مرحله پیش‌نیاز مرحله‌ی بعدیه. از قدم ۱ شروع می‌کنیم.
+
+**قدم ۱ — Multi-tenant واقعی** 🔴 *پایه‌ی همه چیز، بزرگ‌ترین کار*
+- الان `companies` هیچ فیلد مالکیت نداره و status/heat/favorite/notes/campaigns/tasks/reports بین همه‌ی کاربرا مشترکه
+- **مدل موردنظر:** catalog شرکت‌ها **مشترک** بمونه (هدف ۳۰۰۰ شرکت)، ولی **state هر کاربر جدا** باشه (یه جدول overlay با `user_id` برای status/favorite/heat + افزودن `user_id` به notes/campaigns/daily_tasks/weekly_reports)
+- **نکته‌ی کلیدی:** ترتیب نمایش شرکت‌ها باید برای هر کاربر **متفاوت/رندوم** باشه (seed مخصوص هر اکانت) تا با ۳۰۰۰ شرکت، همه فقط سراغ ۲۰ تای اول نرن. یه گزینه‌ی sort «new» هم اضافه بشه
+- ⚠️ migration یک‌طرفه روی Postgres زنده — قبلش حتماً بک‌آپ
+
+**قدم ۲ — لیمیت‌های واقعی + نمایش اعتبار** *(وابسته به قدم ۱)*
+- شمارش واقعی مصرف هر کاربر (ایمیل ارسالی، تعداد شرکت)
+- نمایش باقی‌مانده تو داشبورد (مثلاً «۳۲ از ۵۰ ایمیل باقی‌مونده»)
+- auto-disable بعد از ۳۰ روز یا اتمام سهمیه → نیاز به تمدید
+
+**قدم ۳ — پلن رایگان ۷ روزه** *(وابسته به قدم ۲)*
+- ۱۰ شرکت، ۱۰ ایمیل، انقضای ۷ روزه
+- در آینده: فقط شرکت‌های چند کشور محدود نمایش داده بشه، بقیه قفل
+
+**قدم ۴ — باز کردن Signup واقعی** *(وابسته به ۱–۳)*
+- تبدیل waitlist فعلی به ثبت‌نام مستقیم (چون دیگه دیتا ایزوله‌ست و امنه)
+
+**قدم ۵ — Stripe Billing** *(وابسته به ۲ و ۳)*
+- پرداخت $19/$49/$99، مدیریت اشتراک، کنسل خودکار
+
+**قدم ۶ به بعد — بدون وابستگی، هر وقت خواستیم:**
+- Gmail OAuth per-user (هر کاربر با ایمیل خودش بفرسته، به‌جای Resend مشترک)
+- داشبورد آنالیتیکس ایمیل هر کاربر (تعداد ارسال، reply rate شخصی)
+- دسترسی ادمین به پروفایل/دیتای هر ممبر *(عمداً به اینجا موکول شد — بعد از Multi-tenant معنی «همه‌ی دیتاش» روشن می‌شه)*
+- Admin Export to Excel + Broadcast/Notification system
+- Data Collection Campaign (هدف ۳۰۰۰ شرکت verified)
+- AI Lead Discovery
 
 **Phase 6 — Project Marketplace:** Freelancer/Client project board، Escrow + Milestone payment، Digital contracts، Job listings، Rating system، Community feed.
 
@@ -113,4 +147,9 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 ## ۷. قدم بعدی پیشنهادی
 _(این بخش رو با هر آپدیت تغییر بده)_
 
-Cloud Deploy: Railway (Postgres + backend) → اجرای migration → Vercel (frontend) → DNS → R2 → signup endpoint واقعی.
+**Phase 4 بسته شد.** قدم بعدی: شروع **Phase 5 قدم ۱ — Multi-tenant واقعی**.
+
+قبل از نوشتن هر کدی برای Multi-tenant:
+1. یک بک‌آپ کامل از production بگیر و **دانلودش کن** (چون migration یک‌طرفه‌ست)
+2. اول schema رو طراحی و تأیید کن: جدول overlay برای state هر کاربر + افزودن `user_id` به notes/campaigns/daily_tasks/weekly_reports
+3. ترتیب نمایش با seed مخصوص هر کاربر + گزینه‌ی sort «new» رو از همون اول در query اصلی لحاظ کن (بعداً اضافه‌کردنش سخت‌تره)
