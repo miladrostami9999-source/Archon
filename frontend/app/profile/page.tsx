@@ -49,7 +49,7 @@ interface UserProfile {
   role: string; plan: string; created_at: string; last_login: string | null
 }
 
-interface PortfolioImage { id: string; data: string; name: string }
+interface PortfolioImage { id: string; data: string; name: string; alt?: string }
 interface PortfolioItem {
   id: string; title: string; desc: string; url: string
   images: PortfolioImage[]
@@ -80,7 +80,8 @@ export default function ProfilePage() {
   const [pwdSuccess, setPwdSuccess] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [newPortfolio, setNewPortfolio] = useState({ title: '', desc: '', url: '' })
-  const [newPortfolioImages, setNewPortfolioImages] = useState<{id:string;data:string;name:string}[]>([])
+  const [newPortfolioImages, setNewPortfolioImages] = useState<PortfolioImage[]>([])
+  const [editingProject, setEditingProject] = useState<{ title: string; desc: string; url: string } | null>(null)
   const newProjectImgRef = useRef<HTMLInputElement>(null)
   const [selectedProject, setSelectedProject] = useState<PortfolioItem | null>(null)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
@@ -164,7 +165,7 @@ export default function ProfilePage() {
     const images = await Promise.all(files.map(async file => ({
       id: Date.now() + Math.random().toString(),
       data: await uploadImage(file),
-      name: file.name,
+      name: file.name, alt: '',
     })))
     const updated = {
       ...profile,
@@ -220,10 +221,41 @@ export default function ProfilePage() {
     const images = await Promise.all(files.map(async file => ({
       id: Date.now() + Math.random().toString(),
       data: await uploadImage(file),
-      name: file.name,
+      name: file.name, alt: '',
     })))
     setNewPortfolioImages(prev => [...prev, ...images])
     e.target.value = ''
+  }
+
+  // Save edits to an existing project's title / description / link
+  const saveProjectEdits = () => {
+    if (!selectedProject || !editingProject) return
+    const updated = {
+      ...profile,
+      portfolio: profile.portfolio.map(p =>
+        p.id === selectedProject.id
+          ? { ...p, title: editingProject.title, desc: editingProject.desc, url: editingProject.url }
+          : p
+      ),
+    }
+    setProfile(updated)
+    saveProfile(updated)
+    setSelectedProject(prev => (prev ? { ...prev, ...editingProject } : null))
+    setEditingProject(null)
+  }
+
+  // Per-image caption / alt text — committed on blur so we don't save each keystroke
+  const updateImageAlt = (projectId: string, imageId: string, alt: string) => {
+    const updated = {
+      ...profile,
+      portfolio: profile.portfolio.map(p =>
+        p.id === projectId
+          ? { ...p, images: p.images.map(i => (i.id === imageId ? { ...i, alt } : i)) }
+          : p
+      ),
+    }
+    setProfile(updated)
+    saveProfile(updated)
   }
 
   const removePortfolio = (id: string) => {
@@ -275,11 +307,42 @@ export default function ProfilePage() {
           <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1px solid var(--border)', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
             {/* MODAL HEADER */}
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{selectedProject.title}</h2>
-                {selectedProject.desc && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{selectedProject.desc}</p>}
+              {editingProject ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', marginRight: '12px' }}>
+                  <input value={editingProject.title} onChange={e => setEditingProject(p => p && ({ ...p, title: e.target.value }))}
+                    placeholder="Project title" style={{ ...inputStyle, fontSize: '15px', fontWeight: 600 }} />
+                  <input value={editingProject.desc} onChange={e => setEditingProject(p => p && ({ ...p, desc: e.target.value }))}
+                    placeholder="Short description" style={inputStyle} />
+                  <input value={editingProject.url} onChange={e => setEditingProject(p => p && ({ ...p, url: e.target.value }))}
+                    placeholder="External link (optional)" style={inputStyle} />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                    <button onClick={saveProjectEdits} disabled={!editingProject.title.trim()}
+                      style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: editingProject.title.trim() ? 'pointer' : 'not-allowed', opacity: editingProject.title.trim() ? 1 : 0.5 }}>
+                      Save changes
+                    </button>
+                    <button onClick={() => setEditingProject(null)}
+                      style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ minWidth: 0 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{selectedProject.title}</h2>
+                  {selectedProject.desc && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{selectedProject.desc}</p>}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                {!editingProject && (
+                  <button onClick={() => setEditingProject({ title: selectedProject.title, desc: selectedProject.desc || '', url: selectedProject.url || '' })}
+                    style={{ height: '36px', padding: '0 14px', borderRadius: '10px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(79,123,247,0.4)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
+                    ✏️ Edit
+                  </button>
+                )}
+                <button onClick={() => { setSelectedProject(null); setEditingProject(null) }} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
               </div>
-              <button onClick={() => setSelectedProject(null)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
             <div style={{ padding: '24px' }}>
@@ -292,13 +355,23 @@ export default function ProfilePage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                   {selectedProject.images.map(img => (
-                    <div key={img.id} style={{ borderRadius: '10px', overflow: 'hidden', position: 'relative', aspectRatio: '4/3', cursor: 'zoom-in', background: 'var(--bg-input)' }}
-                      onClick={() => setLightboxImg(img.data)}>
-                      <img src={img.data} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }} />
-                      <button onClick={e => { e.stopPropagation(); removePortfolioImage(selectedProject.id, img.id); setSelectedProject(prev => prev ? { ...prev, images: prev.images.filter(i => i.id !== img.id) } : null) }}
-                        style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    <div key={img.id}>
+                      <div style={{ borderRadius: '10px', overflow: 'hidden', position: 'relative', aspectRatio: '4/3', cursor: 'zoom-in', background: 'var(--bg-input)' }}
+                        onClick={() => setLightboxImg(img.data)}>
+                        <img src={img.data} alt={img.alt || img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)' }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }} />
+                        <button onClick={e => { e.stopPropagation(); removePortfolioImage(selectedProject.id, img.id); setSelectedProject(prev => prev ? { ...prev, images: prev.images.filter(i => i.id !== img.id) } : null) }}
+                          style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                      </div>
+                      <input
+                        value={img.alt || ''}
+                        placeholder="Add a caption…"
+                        onChange={e => setSelectedProject(prev => prev ? { ...prev, images: prev.images.map(i => i.id === img.id ? { ...i, alt: e.target.value } : i) } : null)}
+                        onBlur={e => updateImageAlt(selectedProject.id, img.id, e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', marginTop: '6px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', fontSize: '12px', color: 'var(--text)', outline: 'none' }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      />
                     </div>
                   ))}
                 </div>

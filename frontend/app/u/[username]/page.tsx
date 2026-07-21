@@ -5,7 +5,7 @@ import axios from 'axios'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-interface PortfolioImage { id: string; data: string; name: string }
+interface PortfolioImage { id: string; data: string; name: string; alt?: string }
 interface PortfolioItem { id: string; title: string; desc: string; url: string; images: PortfolioImage[] }
 interface PublicProfile {
   name: string; username: string; avatar: string; bio: string
@@ -81,8 +81,13 @@ export default function PublicProfilePage() {
               {selectedProject.images.length === 0 ? (
                 <p style={{ color: 'rgba(231,234,240,0.4)', fontSize: '13px' }}>No images for this project.</p>
               ) : selectedProject.images.map(img => (
-                <div key={img.id} onClick={() => setLightboxImg(img.data)} style={{ borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)' }}>
-                  <img src={img.data} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div key={img.id}>
+                  <div onClick={() => setLightboxImg(img.data)} style={{ borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', aspectRatio: '4/3', background: 'rgba(255,255,255,0.03)' }}>
+                    <img src={img.data} alt={img.alt || img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  {img.alt && (
+                    <p style={{ fontSize: '12px', color: 'rgba(231,234,240,0.5)', margin: '6px 2px 0', lineHeight: 1.5 }}>{img.alt}</p>
+                  )}
                 </div>
               ))}
               {selectedProject.url && (

@@ -222,8 +222,9 @@ def get_plans():
 # ─────────────────────────────────────────
 class PortfolioImage(BaseModel):
     id: str
-    data: str      # base64 image
+    data: str      # image URL (R2) — or a base64 data URI for legacy uploads
     name: str = ""
+    alt: str = ""  # short per-image caption / alt text
 
 class PortfolioItem(BaseModel):
     id: str
