@@ -92,6 +92,10 @@ def get_current_user(
     user = db.query(User).filter(User.id == payload.get("user_id")).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    # Subscription expiry — admins never expire; everyone else is blocked once
+    # their plan window has passed until it's renewed.
+    if user.role != "admin" and user.plan_expires_at and user.plan_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=403, detail="Your subscription has expired. Please renew to continue.")
     return user
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
@@ -217,6 +221,59 @@ def delete_user(
 @router.get("/plans")
 def get_plans():
     return PLAN_LIMITS
+
+
+# ─────────────────────────────────────────
+# PLAN LIMITS + USAGE
+# ─────────────────────────────────────────
+@router.get("/usage")
+def get_my_usage(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Powers the dashboard credit widget — how much of the user's quota is left."""
+    from app.services.limits import get_usage
+    return get_usage(db, current_user)
+
+
+@router.get("/plan-limits")
+def list_plan_limits(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import PlanLimit
+    rows = db.query(PlanLimit).all()
+    return [{
+        "plan": r.plan,
+        "max_companies": r.max_companies,
+        "max_emails_per_month": r.max_emails_per_month,
+        "period_days": r.period_days,
+    } for r in rows]
+
+
+class PlanLimitUpdate(BaseModel):
+    max_companies: int
+    max_emails_per_month: int
+    period_days: int
+
+
+@router.put("/plan-limits/{plan}")
+def update_plan_limit(plan: str, data: PlanLimitUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admin edits a plan's quotas — takes effect immediately for everyone on it."""
+    from app.models.database import PlanLimit, DEFAULT_PLAN_LIMITS
+    if plan not in DEFAULT_PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail="Unknown plan")
+    for field in ("max_companies", "max_emails_per_month"):
+        if getattr(data, field) < -1:
+            raise HTTPException(status_code=400, detail="Limit must be -1 (unlimited) or a positive number")
+    if data.period_days < 1:
+        raise HTTPException(status_code=400, detail="Period must be at least 1 day")
+
+    row = db.query(PlanLimit).filter(PlanLimit.plan == plan).first()
+    if not row:
+        row = PlanLimit(plan=plan)
+        db.add(row)
+    row.max_companies = data.max_companies
+    row.max_emails_per_month = data.max_emails_per_month
+    row.period_days = data.period_days
+    db.commit()
+    return {"message": f"Updated {plan} limits", "plan": plan}
+
+
 # ─────────────────────────────────────────
 # PUBLIC PROFILE
 # ─────────────────────────────────────────
@@ -447,13 +504,19 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
         temp_password = _secrets.token_urlsafe(9)
         password_hash = hash_password(temp_password)
 
+    from app.services.limits import get_plan_limit
+    plan = entry.plan or "basic"
+    now = datetime.utcnow()
+    period = get_plan_limit(db, plan)["period_days"]
     user = User(
         name=entry.name,
         email=entry.email,
         password_hash=password_hash,
-        plan=entry.plan or "basic",
+        plan=plan,
         role="member",
         is_active=True,
+        plan_started_at=now,
+        plan_expires_at=now + timedelta(days=period),
     )
     db.add(user)
     entry.status = "approved"

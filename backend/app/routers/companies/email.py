@@ -19,6 +19,11 @@ def send_email(req: SendEmailRequest, current_user: User = Depends(get_current_u
     if not req.to_email or "@" not in req.to_email:
         raise HTTPException(status_code=400, detail="Invalid recipient email")
 
+    from app.services.limits import can_send_email, get_plan_limit
+    if not can_send_email(db, current_user):
+        cap = get_plan_limit(db, current_user.plan)["max_emails_per_month"]
+        raise HTTPException(status_code=403, detail=f"You've used all {cap} email sends for this period. Upgrade or wait for it to reset.")
+
     plain_body = req.body  # already plain text from the editable textarea
     html_body = req.body.replace("\n", "<br>")
 

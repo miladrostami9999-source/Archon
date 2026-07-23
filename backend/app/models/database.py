@@ -52,6 +52,10 @@ class User(Base):
     profile_json  = Column(Text, nullable=True)   # bio, location, website, skills, portfolio — stored as JSON text
     is_public     = Column(Boolean, default=False)  # must opt-in before profile is publicly visible
 
+    # ── SUBSCRIPTION ──
+    plan_started_at = Column(DateTime)  # when the current plan period began
+    plan_expires_at = Column(DateTime)  # access is blocked past this (null = no expiry, e.g. admin)
+
 # ─────────────────────────────────────────
 # TABLE 2 — COMPANIES
 # ─────────────────────────────────────────
@@ -205,6 +209,29 @@ class UserCompanyState(Base):
     )
 
 
+class PlanLimit(Base):
+    """Per-plan quotas, editable by the admin at runtime (Admin Panel), so
+    limits are never hardcoded — the admin can raise/lower e.g. Pro's monthly
+    email cap and it takes effect immediately for everyone on that plan.
+    A value of -1 means unlimited.
+    """
+    __tablename__ = "plan_limits"
+    plan                 = Column(String, primary_key=True)  # trial | basic | pro | agency
+    max_companies        = Column(Integer, default=-1)       # companies the user may add to their pipeline
+    max_emails_per_month = Column(Integer, default=-1)       # sends allowed per period
+    period_days          = Column(Integer, default=30)       # length of a billing/trial window
+    updated_at           = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# Defaults seeded on first run — from the roadmap + landing page.
+DEFAULT_PLAN_LIMITS = {
+    "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7},
+    "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30},
+    "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30},
+    "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30},
+}
+
+
 class WaitlistEntry(Base):
     __tablename__ = "waitlist"
     id            = Column(Integer, primary_key=True, index=True)
@@ -266,6 +293,22 @@ def _backfill_multitenancy():
         db.close()
 
 
+def _seed_plan_limits():
+    """Insert default quotas for any plan that doesn't have a row yet. Existing
+    rows are left alone so admin edits are never overwritten on restart."""
+    db = SessionLocal()
+    try:
+        for plan, vals in DEFAULT_PLAN_LIMITS.items():
+            if not db.query(PlanLimit).filter(PlanLimit.plan == plan).first():
+                db.add(PlanLimit(plan=plan, **vals))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️  Plan-limit seed skipped: {e}")
+    finally:
+        db.close()
+
+
 # ─────────────────────────────────────────
 # INIT + SEED ADMIN
 # ─────────────────────────────────────────
@@ -293,6 +336,10 @@ def init_db():
             if "phone" not in company_cols:
                 conn.execute(_text("ALTER TABLE companies ADD COLUMN phone VARCHAR"))
                 conn.commit()
+            for col in ("plan_started_at", "plan_expires_at"):
+                if col not in user_cols:
+                    conn.execute(_text(f"ALTER TABLE users ADD COLUMN {col} TIMESTAMP"))
+                    conn.commit()
             if _inspector.has_table("waitlist"):
                 waitlist_cols = [c["name"] for c in _inspector.get_columns("waitlist")]
                 if "password_hash" not in waitlist_cols:
@@ -310,6 +357,7 @@ def init_db():
         print(f"⚠️  Column migration check: {e}")
 
     _backfill_multitenancy()
+    _seed_plan_limits()
 
     # Create admin user if not exists
     db = SessionLocal()

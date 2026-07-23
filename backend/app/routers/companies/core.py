@@ -107,6 +107,10 @@ def get_company(company_id: int, current_user: User = Depends(get_current_user),
 
 @router.post("/")
 def create_company(data: CompanyCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.services.limits import can_add_company, get_plan_limit
+    if not can_add_company(db, current_user):
+        cap = get_plan_limit(db, current_user.plan)["max_companies"]
+        raise HTTPException(status_code=403, detail=f"You've reached your plan's limit of {cap} companies. Upgrade to add more.")
     if data.domain:
         existing = db.query(Company).filter(Company.domain == data.domain).first()
         if existing:
@@ -164,12 +168,25 @@ def update_company(company_id: int, data: CompanyUpdate, current_user: User = De
     return company_to_dict(company, state)
 
 
+def _guard_new_engagement(db, user, company_id):
+    """Adding a shared company to your pipeline (first status/favorite on it)
+    counts against the company quota, so a trial user can only work N of them."""
+    from app.services.limits import can_add_company, get_plan_limit
+    exists = db.query(UserCompanyState).filter(
+        UserCompanyState.user_id == user.id, UserCompanyState.company_id == company_id
+    ).first()
+    if not exists and not can_add_company(db, user):
+        cap = get_plan_limit(db, user.plan)["max_companies"]
+        raise HTTPException(status_code=403, detail=f"You've reached your plan's limit of {cap} companies. Upgrade to work with more.")
+
+
 @router.patch("/{company_id}/status")
 def update_status(company_id: int, status: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
+    _guard_new_engagement(db, current_user, company_id)
     state = get_or_create_state(db, current_user.id, company_id)
     old_status = state.status or "new"
     state.status = status
@@ -188,6 +205,7 @@ def toggle_favorite(company_id: int, current_user: User = Depends(get_current_us
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+    _guard_new_engagement(db, current_user, company_id)
     state = get_or_create_state(db, current_user.id, company_id)
     state.is_favorite = not bool(state.is_favorite)
     db.commit()
