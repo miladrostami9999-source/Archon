@@ -9,6 +9,13 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
+interface PlanLimit {
+  plan: string
+  max_companies: number
+  max_emails_per_month: number
+  period_days: number
+}
+
 interface Stats {
   total_companies: number
   total_users?: number
@@ -25,6 +32,9 @@ export default function AdminPanel() {
   const [backing, setBacking] = useState(false)
   const [backMsg, setBackMsg] = useState('')
   const [lastBackup, setLastBackup] = useState<string | null>(null)
+  const [planLimits, setPlanLimits] = useState<PlanLimit[]>([])
+  const [savingPlan, setSavingPlan] = useState<string | null>(null)
+  const [limitMsg, setLimitMsg] = useState('')
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
 
@@ -49,7 +59,30 @@ export default function AdminPanel() {
     axios.get(`${API}/auth/users`, { headers: headers() }).then(res => {
       setUserCount(Array.isArray(res.data) ? res.data.length : 0)
     }).catch(() => {})
+    axios.get(`${API}/auth/plan-limits`, { headers: headers() }).then(res => {
+      setPlanLimits(res.data.sort((a: PlanLimit, b: PlanLimit) =>
+        ['trial', 'basic', 'pro', 'agency'].indexOf(a.plan) - ['trial', 'basic', 'pro', 'agency'].indexOf(b.plan)))
+    }).catch(() => {})
   }, [])
+
+  const savePlanLimit = async (pl: PlanLimit) => {
+    setLimitMsg(''); setSavingPlan(pl.plan)
+    try {
+      await axios.put(`${API}/auth/plan-limits/${pl.plan}`, {
+        max_companies: pl.max_companies,
+        max_emails_per_month: pl.max_emails_per_month,
+        period_days: pl.period_days,
+      }, { headers: headers() })
+      setLimitMsg(`✓ ${pl.plan} limits saved`)
+    } catch (e: any) {
+      setLimitMsg(`✗ ${e.response?.data?.detail || 'Save failed'}`)
+    }
+    setSavingPlan(null)
+  }
+
+  const setPl = (plan: string, field: keyof PlanLimit, value: number) => {
+    setPlanLimits(prev => prev.map(p => p.plan === plan ? { ...p, [field]: value } : p))
+  }
 
   const runBackup = async () => {
     setBacking(true); setBackMsg(''); setLastBackup(null)
@@ -258,6 +291,40 @@ export default function AdminPanel() {
               </div>
             ))}
           </div>
+
+          {/* ── PLAN LIMITS EDITOR ── */}
+          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '28px' }}>Plan Limits</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px' }}>
+            Edit quotas per plan. Changes apply immediately to everyone on that plan. Use <strong>-1</strong> for unlimited.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', paddingBottom: '40px' }}>
+            {planLimits.map(pl => (
+              <div key={pl.plan} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize' }}>{pl.plan}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {([
+                    ['Max companies', 'max_companies'],
+                    ['Emails per period', 'max_emails_per_month'],
+                    ['Period (days)', 'period_days'],
+                  ] as [string, keyof PlanLimit][]).map(([label, field]) => (
+                    <div key={field} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                      <label style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{label}</label>
+                      <input type="number" value={pl[field] as number}
+                        onChange={e => setPl(pl.plan, field, parseInt(e.target.value || '0', 10))}
+                        style={{ width: '110px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', fontSize: '13px', color: 'var(--text)', outline: 'none', textAlign: 'right' }} />
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => savePlanLimit(pl)} disabled={savingPlan === pl.plan}
+                  style={{ marginTop: '14px', width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: savingPlan === pl.plan ? 0.6 : 1 }}>
+                  {savingPlan === pl.plan ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? '#34D399' : '#F87171', marginTop: '-24px', marginBottom: '24px' }}>{limitMsg}</p>}
         </div>
       </div>
     </div>

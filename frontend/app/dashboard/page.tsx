@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import UsageWidget from '../components/UsageWidget'
 import {
   DndContext,
   DragEndEvent,
@@ -606,6 +607,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* PLAN USAGE — hidden for unlimited plans */}
+        <UsageWidget />
 
         {/* AI SEARCH BAR */}
         {showAdvanced && (
