@@ -193,9 +193,9 @@ export default function AdminPanel() {
   ]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, paddingTop: isMobile ? '52px' : 0 }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, paddingTop: isMobile ? '52px' : 0, height: '100vh', overflowY: 'auto' }}>
 
         {/* STICKY HEADER */}
         <div style={{ position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
@@ -294,8 +294,9 @@ export default function AdminPanel() {
 
           {/* ── PLAN LIMITS EDITOR ── */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '28px' }}>Plan Limits</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px' }}>
-            Edit quotas per plan. Changes apply immediately to everyone on that plan. Use <strong>-1</strong> for unlimited.
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
+            Edit quotas per plan. Changes apply immediately to everyone on that plan. Use <strong>-1</strong> for unlimited.<br />
+            <strong>Max companies</strong> counts only companies a user actively works — changing a status, favoriting, or adding one. Just browsing the catalog never uses quota.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', paddingBottom: '40px' }}>
             {planLimits.map(pl => (
