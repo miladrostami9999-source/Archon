@@ -20,3 +20,6 @@ Thumbs.db
 
 # Graphify generated output
 graphify-out/
+
+# Local backup output
+backend/backups/
