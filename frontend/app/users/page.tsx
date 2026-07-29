@@ -9,6 +9,7 @@ const getToken = () => localStorage.getItem('archon-token') || ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
 const PLAN_META = {
+  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', icon: '⏳', gradient: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05))' },
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', icon: '◈', gradient: 'linear-gradient(135deg,rgba(156,163,175,0.15),rgba(156,163,175,0.05))' },
   pro:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)',  border: 'rgba(79,123,247,0.25)',  icon: '⭐', gradient: 'linear-gradient(135deg,rgba(79,123,247,0.2),rgba(79,123,247,0.05))' },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', icon: '🏆', gradient: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.05))' },
@@ -109,7 +110,7 @@ export default function UsersPage() {
 
           {/* PLAN STATS — 3 cards always */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '24px' }}>
-            {(['basic','pro','agency'] as const).map(plan => {
+            {(['trial','basic','pro','agency'] as const).map(plan => {
               const pm = PLAN_META[plan]
               const count = (planCounts as any)[plan]
               const isActive = filterPlan === plan
@@ -160,6 +161,7 @@ export default function UsersPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Plan</label>
                   <select value={addForm.plan} onChange={e => setAddForm({ ...addForm, plan: e.target.value })} style={inp}>
+                    <option value="trial">Trial</option>
                     <option value="basic">Basic</option>
                     <option value="pro">Pro</option>
                     <option value="agency">Agency</option>
@@ -231,7 +233,7 @@ export default function UsersPage() {
                           {isEditing ? (
                             <select value={editUser.plan} onChange={e => setEditUser({ ...editUser, plan: e.target.value })}
                               style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
-                              <option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option>
+                              <option value="trial">Trial</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option>
                             </select>
                           ) : (
                             <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize' }}>

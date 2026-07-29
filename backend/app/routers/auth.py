@@ -34,6 +34,13 @@ bearer = HTTPBearer(auto_error=False)
 # PLAN LIMITS
 # ─────────────────────────────────────────
 PLAN_LIMITS = {
+    "trial": {
+        "max_companies": 10,
+        "max_emails_per_month": 10,
+        "ai_search": False,
+        "weekly_report": False,
+        "market_map": False,
+    },
     "basic": {
         "max_companies": 50,
         "max_emails_per_month": 30,
@@ -145,13 +152,19 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.get("/me")
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Feature flags come from the static map; the numeric quotas come from the
+    # admin-editable plan_limits table so edits show up here immediately.
+    from app.services.limits import get_plan_limit
+    limits = dict(PLAN_LIMITS.get(current_user.plan, PLAN_LIMITS["basic"]))
+    limits.update(get_plan_limit(db, current_user.plan))
     return {
         "id": current_user.id, "name": current_user.name,
         "email": current_user.email, "role": current_user.role,
         "plan": current_user.plan, "is_active": current_user.is_active,
         "created_at": current_user.created_at, "last_login": current_user.last_login,
-        "limits": PLAN_LIMITS.get(current_user.plan, PLAN_LIMITS["basic"]),
+        "plan_expires_at": current_user.plan_expires_at.isoformat() if current_user.plan_expires_at else None,
+        "limits": limits,
     }
 
 @router.post("/change-password")
@@ -199,7 +212,14 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
     if data.name is not None: user.name = data.name
     if data.role is not None: user.role = data.role
-    if data.plan is not None: user.plan = data.plan
+    if data.plan is not None:
+        # Setting a plan (even re-selecting the same one) acts as a renewal:
+        # a fresh billing window is stamped so an expired user regains access.
+        from app.services.limits import get_plan_limit
+        user.plan = data.plan
+        now = datetime.utcnow()
+        user.plan_started_at = now
+        user.plan_expires_at = now + timedelta(days=get_plan_limit(db, data.plan)["period_days"])
     if data.is_active is not None: user.is_active = data.is_active
     db.commit()
     return {"message": "User updated"}
@@ -423,6 +443,8 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Please enter your name.")
     if len(req.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    if req.plan and req.plan not in PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail="Unknown plan.")
 
     # If an account already exists for this email, they should just sign in.
     if db.query(User).filter(User.email == email).first():

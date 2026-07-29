@@ -39,6 +39,7 @@ const SKILLS_OPTIONS = [
 ]
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string; desc: string }> = {
+  trial:  { label: 'Trial',  color: '#34D399', bg: 'rgba(52,211,153,0.1)', desc: '7-day free trial · 10 companies · 10 emails' },
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)', desc: '50 companies · 30 emails/month' },
   pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(79,123,247,0.1)',  desc: '500 companies · 300 emails/month · AI Search' },
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.1)', desc: 'Unlimited · All features' },

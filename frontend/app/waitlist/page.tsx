@@ -9,6 +9,7 @@ const getToken = () => localStorage.getItem('archon-token') || ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
 const PLAN_META: Record<string, { color: string; bg: string }> = {
+  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' },
   pro:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)' },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)' },
