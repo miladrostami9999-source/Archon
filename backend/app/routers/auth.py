@@ -425,6 +425,32 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
 #  lands in Phase 5, so public signup collects interest rather than granting
 #  immediate access. Admin reviews and provisions accounts manually.)
 # ─────────────────────────────────────────
+# Plans a visitor can activate without admin review. Paid plans stay on the
+# waitlist until Stripe exists — otherwise picking "pro" would hand out a paid
+# tier for free.
+SELF_SERVE_PLANS = {"trial"}
+
+
+def _notify_admin_signup(name, email, plan, company, note, instant: bool):
+    """Best-effort admin notification — never fails the signup."""
+    admin_email = os.getenv("ADMIN_NOTIFY_EMAIL") or os.getenv("RESEND_FROM_EMAIL")
+    if not admin_email:
+        return
+    what = "started a free trial" if instant else "joined the waitlist"
+    try:
+        send_email(
+            to_email=admin_email,
+            subject=f"New Archon signup: {name} ({plan})",
+            html_body=(
+                f"<p><strong>{name}</strong> ({email}) {what}.</p>"
+                f"<p>Plan: {plan}<br>Company: {company or '—'}<br>Note: {note or '—'}</p>"
+            ),
+            text_body=f"{name} ({email}) {what}. Plan: {plan}.",
+        )
+    except Exception as e:
+        print(f"Signup admin notification failed: {e}")
+
+
 class WaitlistSignup(BaseModel):
     name: str
     email: str
@@ -455,6 +481,43 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     if existing:
         return {"message": "You're already on the list — we'll be in touch soon.", "already": True}
 
+    # Self-serve plans get an account immediately. Per-user data is isolated
+    # and quotas are enforced, so instant access is safe — but paid plans
+    # still go through the waitlist until Stripe can actually charge for them.
+    if (req.plan or "basic") in SELF_SERVE_PLANS:
+        from app.services.limits import get_plan_limit
+        plan = req.plan or "trial"
+        now = datetime.utcnow()
+        user = User(
+            name=req.name.strip(),
+            email=email,
+            password_hash=hash_password(req.password),
+            plan=plan,
+            role="member",
+            is_active=True,
+            plan_started_at=now,
+            plan_expires_at=now + timedelta(days=get_plan_limit(db, plan)["period_days"]),
+        )
+        db.add(user)
+        # Record it as an approved waitlist entry too, so the admin still has
+        # one place to see everyone who signed up.
+        db.add(WaitlistEntry(
+            name=user.name, email=email, password_hash=user.password_hash, plan=plan,
+            company=(req.company or "").strip() or None,
+            note=(req.note or "").strip() or None,
+            status="approved",
+        ))
+        db.commit()
+        db.refresh(user)
+        _notify_admin_signup(user.name, email, plan, req.company, req.note, instant=True)
+        return {
+            "message": "Your account is ready — signing you in…",
+            "already": False,
+            "instant": True,
+            "token": create_token({"user_id": user.id, "email": user.email, "role": user.role}),
+            "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "plan": user.plan},
+        }
+
     entry = WaitlistEntry(
         name=req.name.strip(),
         email=email,
@@ -466,23 +529,7 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     db.add(entry)
     db.commit()
 
-    # Notify the admin (best-effort — never fail the signup if email is down)
-    admin_email = os.getenv("ADMIN_NOTIFY_EMAIL") or os.getenv("RESEND_FROM_EMAIL")
-    if admin_email:
-        try:
-            send_email(
-                to_email=admin_email,
-                subject=f"New Archon waitlist signup: {entry.name}",
-                html_body=(
-                    f"<p><strong>{entry.name}</strong> ({entry.email}) joined the waitlist.</p>"
-                    f"<p>Plan: {entry.plan}<br>Company: {entry.company or '—'}<br>"
-                    f"Note: {entry.note or '—'}</p>"
-                ),
-                text_body=f"{entry.name} ({entry.email}) joined the waitlist. Plan: {entry.plan}.",
-            )
-        except Exception as e:
-            print(f"Waitlist admin notification failed: {e}")
-
+    _notify_admin_signup(entry.name, entry.email, entry.plan, entry.company, entry.note, instant=False)
     return {"message": "You're on the list! We'll email you when your account is ready.", "already": False}
 
 

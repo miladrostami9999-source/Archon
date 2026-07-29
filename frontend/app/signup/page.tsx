@@ -11,6 +11,8 @@ function SignupInner() {
   const searchParams = useSearchParams()
   const planParam = (searchParams.get('plan') || 'basic').toLowerCase()
   const plan = PLAN_LABELS[planParam] ? planParam : 'basic'
+  // The trial activates immediately; paid plans still go through the waitlist
+  const isInstant = plan === 'trial'
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -37,6 +39,14 @@ function SignupInner() {
       const res = await axios.post(`${API}/auth/signup`, {
         name: name.trim(), email: email.trim(), password, plan, company: company.trim(), note: note.trim(),
       })
+      // Self-serve plans (the free trial) come back with a token — sign in
+      // straight away instead of showing a "we'll be in touch" screen.
+      if (res.data.instant && res.data.token) {
+        localStorage.setItem('archon-token', res.data.token)
+        localStorage.setItem('archon-user', JSON.stringify(res.data.user))
+        window.location.href = '/dashboard'
+        return
+      }
       setDoneMsg(res.data.message || "You're on the list!")
       setDone(true)
     } catch (e: any) {
@@ -79,9 +89,15 @@ function SignupInner() {
             </div>
           ) : (
             <>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#E2E8F0', margin: '0 0 6px', textAlign: 'center' }}>Request early access</h2>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: '#E2E8F0', margin: '0 0 6px', textAlign: 'center' }}>
+                {isInstant ? 'Start your free trial' : 'Request early access'}
+              </h2>
               <p style={{ fontSize: '12.5px', color: 'rgba(255,255,255,0.4)', margin: '0 0 20px', textAlign: 'center', lineHeight: 1.6 }}>
-                We&apos;re onboarding studios gradually. Join the list for the <strong style={{ color: '#A78BFA' }}>{PLAN_LABELS[plan]}</strong> plan and we&apos;ll email you when your account is ready.
+                {isInstant ? (
+                  <>Free for <strong style={{ color: '#34D399' }}>7 days</strong> — 10 companies, 10 emails, no card needed. Your account is created instantly.</>
+                ) : (
+                  <>We&apos;re onboarding studios gradually. Join the list for the <strong style={{ color: '#A78BFA' }}>{PLAN_LABELS[plan]}</strong> plan and we&apos;ll email you when your account is ready.</>
+                )}
               </p>
 
               {error && (
@@ -118,7 +134,7 @@ function SignupInner() {
 
                 <button onClick={submit} disabled={loading}
                   style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: loading ? 'rgba(79,123,247,0.5)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  {loading ? (<><div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> Submitting...</>) : 'Join the waitlist →'}
+                  {loading ? (<><div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> Submitting...</>) : (isInstant ? 'Create my account →' : 'Join the waitlist →')}
                 </button>
               </div>
             </>
