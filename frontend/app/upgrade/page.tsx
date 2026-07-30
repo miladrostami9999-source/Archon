@@ -32,7 +32,7 @@ export default function UpgradePage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [current, setCurrent] = useState('')
   const [instructions, setInstructions] = useState({ en: '', fa: '' })
-  const [pay, setPay] = useState({ card_number: '', card_holder: '', paypal_email: '' })
+  const [pay, setPay] = useState({ card_number: '', card_holder: '', paypal_email: '', support_email: '', support_phone: '' })
   const [rate, setRate] = useState<{ rate: number | null; source: string } | null>(null)
   const [receipt, setReceipt] = useState<{ url: string; name: string } | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -49,7 +49,11 @@ export default function UpgradePage() {
     axios.get(`${API}/auth/billing/plans`).then(r => {
       setPlans(r.data.plans); setCurrent(r.data.current_plan)
       setInstructions({ en: r.data.instructions_en, fa: r.data.instructions_fa })
-      setPay({ card_number: r.data.card_number || '', card_holder: r.data.card_holder || '', paypal_email: r.data.paypal_email || '' })
+      setPay({
+        card_number: r.data.card_number || '', card_holder: r.data.card_holder || '',
+        paypal_email: r.data.paypal_email || '',
+        support_email: r.data.support_email || '', support_phone: r.data.support_phone || '',
+      })
       setRate(r.data.exchange || null)
     }).catch(() => {})
     axios.get(`${API}/auth/billing/requests/mine`).then(r => setMine(r.data)).catch(() => {})
@@ -92,7 +96,7 @@ export default function UpgradePage() {
 
   const submit = async () => {
     if (!selected) return
-    if (!form.reference.trim()) { setError('Please enter the payment reference / tracking number.'); return }
+    if (!form.reference.trim() && !receipt) { setError('Attach your receipt or enter a tracking number so we can verify the payment.'); return }
     setSaving(true); setError('')
     try {
       const r = await axios.post(`${API}/auth/billing/requests`, {
@@ -241,6 +245,28 @@ export default function UpgradePage() {
                 </div>
               )}
 
+              {(pay.support_email || pay.support_phone) && (
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px', fontSize: '12.5px' }}>
+                  {pay.support_email && (
+                    <a href={`mailto:${pay.support_email}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', textDecoration: 'none' }}>
+                      ✉️ {pay.support_email}
+                    </a>
+                  )}
+                  {pay.support_phone && (
+                    <>
+                      <a href={`https://wa.me/${pay.support_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(52,211,153,0.25)', background: 'rgba(52,211,153,0.08)', color: '#34D399', textDecoration: 'none' }}>
+                        WhatsApp {pay.support_phone}
+                      </a>
+                      <a href={`https://t.me/${pay.support_phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(79,123,247,0.25)', background: 'rgba(79,123,247,0.08)', color: '#60A5FA', textDecoration: 'none' }}>
+                        Telegram
+                      </a>
+                    </>
+                  )}
+                </div>
+              )}
+
               <pre style={{
                 whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '12.5px', lineHeight: 1.8,
                 color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)',
@@ -266,10 +292,16 @@ export default function UpgradePage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Payment method</label>
-                  <input value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} style={input} placeholder="card to card, transfer…" />
+                  <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} style={input}>
+                    <option value="">Select a method…</option>
+                    <option value="Card to card (Iran)">Card to card (Iran)</option>
+                    <option value="Bank transfer (Iran)">Bank transfer (Iran)</option>
+                    <option value="PayPal">PayPal</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Reference / tracking no. *</label>
+                  <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Reference / tracking no. (optional)</label>
                   <input value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} style={input} placeholder="Receipt or tracking number" />
                 </div>
               </div>
@@ -280,7 +312,7 @@ export default function UpgradePage() {
               )}
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Payment receipt (optional)</label>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Payment receipt</label>
                 {receipt ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: '8px', padding: '10px 12px' }}>
                     <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -105,6 +105,23 @@ def get_current_user(
         raise HTTPException(status_code=403, detail="Your subscription has expired. Please renew to continue.")
     return user
 
+def _purge_user_data(db: Session, user: User):
+    """Remove everything that points at a user before deleting them.
+
+    Since multi-tenancy, a user owns rows in several tables; Postgres enforces
+    those foreign keys, so deleting the user directly fails. The shared company
+    catalog is deliberately left alone — only this user's own work is removed.
+    """
+    from app.models.database import (
+        UserCompanyState, Note, Campaign, History, DailyTask,
+        WeeklyReport, PaymentRequest,
+    )
+    for model in (UserCompanyState, Note, Campaign, History, DailyTask,
+                  WeeklyReport, PaymentRequest, PasswordResetToken):
+        db.query(model).filter(model.user_id == user.id).delete(synchronize_session=False)
+    db.flush()
+
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -235,8 +252,37 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     if user.role == "admin":
         raise HTTPException(status_code=400, detail="Cannot delete admin user")
+    _purge_user_data(db, user)
     db.delete(user); db.commit()
     return {"message": "User deleted"}
+
+
+@router.post("/me/deactivate")
+def deactivate_my_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Self-service pause: keeps the data, blocks sign-in until an admin
+    re-enables the account."""
+    if current_user.role == "admin":
+        raise HTTPException(status_code=400, detail="Admin accounts can't be deactivated.")
+    current_user.is_active = False
+    db.commit()
+    return {"message": "Your account has been deactivated."}
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+
+@router.post("/me/delete")
+def delete_my_account(data: DeleteAccountRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Self-service permanent delete. Password-confirmed, since it's not
+    reversible and wipes the user's whole pipeline."""
+    if current_user.role == "admin":
+        raise HTTPException(status_code=400, detail="Admin accounts can't be deleted from here.")
+    if not verify_password(data.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Password is incorrect.")
+    _purge_user_data(db, current_user)
+    db.delete(current_user); db.commit()
+    return {"message": "Your account and all of its data have been deleted."}
 
 @router.get("/plans")
 def get_plans():
@@ -335,6 +381,8 @@ def get_billing_plans(current_user: User = Depends(get_current_user), db: Sessio
         "card_number": settings.get("pay_card_number", ""),
         "card_holder": settings.get("pay_card_holder", ""),
         "paypal_email": settings.get("pay_paypal_email", ""),
+        "support_email": settings.get("support_email", ""),
+        "support_phone": settings.get("support_phone", ""),
         "exchange": get_usd_to_toman(db),
     }
 
@@ -362,8 +410,9 @@ def create_payment_request(data: PaymentRequestCreate, current_user: User = Depe
     from app.models.database import PaymentRequest
     if data.plan not in PLAN_LIMITS:
         raise HTTPException(status_code=400, detail="Unknown plan")
-    if not (data.reference or "").strip():
-        raise HTTPException(status_code=400, detail="Please enter the payment reference or tracking number.")
+    # Either proof is enough — a receipt image is as verifiable as a tracking number
+    if not (data.reference or "").strip() and not (data.receipt_url or "").strip():
+        raise HTTPException(status_code=400, detail="Attach the receipt or enter a tracking number so we can verify the payment.")
 
     pending = db.query(PaymentRequest).filter(
         PaymentRequest.user_id == current_user.id, PaymentRequest.status == "pending"
@@ -377,7 +426,7 @@ def create_payment_request(data: PaymentRequestCreate, current_user: User = Depe
         amount=data.amount,
         currency=(data.currency or "IRR").upper(),
         method=(data.method or "").strip() or None,
-        reference=data.reference.strip(),
+        reference=(data.reference or "").strip() or "—",
         receipt_url=(data.receipt_url or "").strip() or None,
         note=(data.note or "").strip() or None,
     )
@@ -526,6 +575,8 @@ def get_payment_settings(admin: User = Depends(require_admin), db: Session = Dep
         "card_number": settings.get("pay_card_number", ""),
         "card_holder": settings.get("pay_card_holder", ""),
         "paypal_email": settings.get("pay_paypal_email", ""),
+        "support_email": settings.get("support_email", ""),
+        "support_phone": settings.get("support_phone", ""),
         "manual_rate": settings.get("usd_toman_rate_manual", ""),
     }
 
@@ -536,6 +587,8 @@ class PaymentSettingsUpdate(BaseModel):
     card_number: Optional[str] = None
     card_holder: Optional[str] = None
     paypal_email: Optional[str] = None
+    support_email: Optional[str] = None
+    support_phone: Optional[str] = None
     manual_rate: Optional[str] = None
 
 
@@ -547,6 +600,8 @@ def update_payment_settings(data: PaymentSettingsUpdate, admin: User = Depends(r
     for key, value in (("pay_card_number", data.card_number),
                        ("pay_card_holder", data.card_holder),
                        ("pay_paypal_email", data.paypal_email),
+                       ("support_email", data.support_email),
+                       ("support_phone", data.support_phone),
                        ("usd_toman_rate_manual", data.manual_rate)):
         if value is not None:
             pairs.append((key, value.strip()))

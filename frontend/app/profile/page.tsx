@@ -89,6 +89,10 @@ export default function ProfilePage() {
   const avatarRef = useRef<HTMLInputElement>(null)
   const portfolioImgRef = useRef<HTMLInputElement>(null)
   const [addingImagesTo, setAddingImagesTo] = useState<string | null>(null)
+  const [dangerMode, setDangerMode] = useState<'' | 'deactivate' | 'delete'>('')
+  const [deletePwd, setDeletePwd] = useState('')
+  const [dangerErr, setDangerErr] = useState('')
+  const [dangerBusy, setDangerBusy] = useState(false)
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -146,6 +150,33 @@ export default function ProfilePage() {
       await axios.post(`${API}/auth/change-password`, { old_password: pwdForm.old_password, new_password: pwdForm.new_password }, { headers: headers() })
       setPwdSuccess(true); setPwdForm({ old_password: '', new_password: '', confirm: '' })
     } catch (e: any) { setPwdError(e.response?.data?.detail || 'Error') }
+  }
+
+  const signOutAfter = (msg: string) => {
+    alert(msg)
+    localStorage.removeItem('archon-token')
+    localStorage.removeItem('archon-user')
+    localStorage.removeItem('archon-profile')
+    window.location.href = '/login'
+  }
+
+  const deactivateAccount = async () => {
+    setDangerBusy(true); setDangerErr('')
+    try {
+      await axios.post(`${API}/auth/me/deactivate`, {}, { headers: headers() })
+      signOutAfter('Your account has been deactivated. Contact us when you want it back.')
+    } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not deactivate the account.') }
+    setDangerBusy(false)
+  }
+
+  const deleteAccount = async () => {
+    if (!deletePwd) { setDangerErr('Enter your password to confirm.'); return }
+    setDangerBusy(true); setDangerErr('')
+    try {
+      await axios.post(`${API}/auth/me/delete`, { password: deletePwd }, { headers: headers() })
+      signOutAfter('Your account and all of its data have been deleted.')
+    } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not delete the account.') }
+    setDangerBusy(false)
   }
 
   // Avatar upload
@@ -750,6 +781,62 @@ export default function ProfilePage() {
                   ))}
                 </div>
               </div>
+
+              {/* DANGER ZONE — admins are excluded server-side too */}
+              {user?.role !== 'admin' && (
+                <div style={{ borderRadius: '16px', border: '1px solid rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.04)', padding: '24px', marginTop: '16px' }}>
+                  <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#F87171', margin: '0 0 6px' }}>Danger zone</h2>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                    Deactivating pauses your account and keeps your data — contact us to reopen it. Deleting removes your account and all of your pipeline data permanently.
+                  </p>
+
+                  {dangerErr && (
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '12.5px', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' }}>
+                      {dangerErr}
+                    </div>
+                  )}
+
+                  {dangerMode === '' && (
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button onClick={() => { setDangerMode('deactivate'); setDangerErr('') }}
+                        style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                        Deactivate account
+                      </button>
+                      <button onClick={() => { setDangerMode('delete'); setDangerErr('') }}
+                        style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer' }}>
+                        Delete account
+                      </button>
+                    </div>
+                  )}
+
+                  {dangerMode === 'deactivate' && (
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text)' }}>Deactivate your account and sign out?</span>
+                      <button onClick={deactivateAccount} disabled={dangerBusy}
+                        style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#F59E0B', border: 'none', cursor: 'pointer', opacity: dangerBusy ? 0.6 : 1 }}>
+                        {dangerBusy ? 'Working…' : 'Yes, deactivate'}
+                      </button>
+                      <button onClick={() => setDangerMode('')}
+                        style={{ padding: '9px 16px', borderRadius: '9px', fontSize: '13px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
+                    </div>
+                  )}
+
+                  {dangerMode === 'delete' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' }}>
+                      <label style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Enter your password to confirm permanent deletion</label>
+                      <input type="password" value={deletePwd} onChange={e => setDeletePwd(e.target.value)} placeholder="Your password" style={inputStyle} />
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={deleteAccount} disabled={dangerBusy}
+                          style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#EF4444', border: 'none', cursor: 'pointer', opacity: dangerBusy ? 0.6 : 1 }}>
+                          {dangerBusy ? 'Deleting…' : 'Permanently delete'}
+                        </button>
+                        <button onClick={() => { setDangerMode(''); setDeletePwd('') }}
+                          style={{ padding: '10px 16px', borderRadius: '9px', fontSize: '13px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

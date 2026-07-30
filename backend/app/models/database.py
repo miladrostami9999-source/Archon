@@ -273,20 +273,10 @@ DEFAULT_SETTINGS = {
     "pay_card_number": "",
     "pay_card_holder": "",
     "pay_paypal_email": "",
-    "payment_instructions_en": (
-        "Transfer the plan amount using one of the methods below, then submit the "
-        "tracking number here. We'll verify and activate your plan (usually within a few hours).\n\n"
-        "• Card to card (Iran): [add your card number]\n"
-        "• Bank transfer / other: [add your details]\n\n"
-        "Questions? Email milad@armiladesign.com"
-    ),
-    "payment_instructions_fa": (
-        "مبلغ پلن را با یکی از روش‌های زیر واریز کنید و سپس شماره پیگیری را همین‌جا ثبت کنید. "
-        "پس از بررسی، پلن شما فعال می‌شود (معمولاً ظرف چند ساعت).\n\n"
-        "• کارت به کارت: [شماره کارت خود را وارد کنید]\n"
-        "• حواله بانکی / سایر: [اطلاعات را وارد کنید]\n\n"
-        "سوالی دارید؟ milad@armiladesign.com"
-    ),
+    "support_email": "armila.design16@gmail.com",
+    "support_phone": "+989356668505",
+    "payment_instructions_en": "How to upgrade:\n\n1. Pick your plan above - the amount is shown in Toman and USD.\n2. Pay using one of the methods listed (card to card inside Iran, or PayPal).\n3. Attach a screenshot or PDF of the receipt below. A tracking number is optional if you attach a receipt.\n4. Submit - we verify and activate your plan, usually within a few hours.\n\nYou'll get an email when we receive it, and another the moment your plan is active.\nNeed help? Email us, or message the number below on Telegram or WhatsApp.",
+    "payment_instructions_fa": 'مراحل ارتقای پلن:\n\n۱. پلن مورد نظر را از بالا انتخاب کنید — مبلغ به تومان و دلار نمایش داده می\u200cشود.\n۲. مبلغ را با یکی از روش\u200cهای زیر پرداخت کنید (کارت به کارت داخل ایران یا پی\u200cپال).\n۳. تصویر یا فایل PDF رسید را در فرم پایین پیوست کنید. اگر رسید را پیوست کنید، وارد کردن شماره پیگیری اختیاری است.\n۴. ثبت کنید — پس از بررسی، پلن شما فعال می\u200cشود (معمولاً ظرف چند ساعت).\n\nبه محض دریافت، یک ایمیل تأیید و پس از فعال\u200cسازی پلن، ایمیل دوم برایتان ارسال می\u200cشود.\nسوالی دارید؟ با ایمیل یا از طریق تلگرام و واتساپ با شماره زیر در تماس باشید.',
 }
 
 

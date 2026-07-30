@@ -14,6 +14,8 @@ interface PlanLimit {
   max_companies: number
   max_emails_per_month: number
   period_days: number
+  price_usd: number
+  price_irr: number
 }
 
 interface Stats {
@@ -35,6 +37,13 @@ export default function AdminPanel() {
   const [planLimits, setPlanLimits] = useState<PlanLimit[]>([])
   const [savingPlan, setSavingPlan] = useState<string | null>(null)
   const [limitMsg, setLimitMsg] = useState('')
+  const [instr, setInstr] = useState({
+    instructions_en: '', instructions_fa: '',
+    card_number: '', card_holder: '', paypal_email: '',
+    support_email: '', support_phone: '', manual_rate: '',
+  })
+  const [rate, setRate] = useState<{ rate: number | null; source: string } | null>(null)
+  const [savingInstr, setSavingInstr] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
 
@@ -59,11 +68,29 @@ export default function AdminPanel() {
     axios.get(`${API}/auth/users`, { headers: headers() }).then(res => {
       setUserCount(Array.isArray(res.data) ? res.data.length : 0)
     }).catch(() => {})
+    axios.get(`${API}/auth/settings/payment`, { headers: headers() }).then(r => setInstr(s => ({ ...s, ...r.data }))).catch(() => {})
+    axios.get(`${API}/auth/billing/exchange-rate`, { headers: headers() }).then(r => setRate(r.data)).catch(() => {})
     axios.get(`${API}/auth/plan-limits`, { headers: headers() }).then(res => {
       setPlanLimits(res.data.sort((a: PlanLimit, b: PlanLimit) =>
         ['trial', 'basic', 'pro', 'agency'].indexOf(a.plan) - ['trial', 'basic', 'pro', 'agency'].indexOf(b.plan)))
     }).catch(() => {})
   }, [])
+
+  const saveInstructions = async () => {
+    setSavingInstr(true); setLimitMsg('')
+    try {
+      await axios.put(`${API}/auth/settings/payment`, instr, { headers: headers() })
+      setLimitMsg('✓ Payment settings saved')
+    } catch { setLimitMsg('✗ Could not save payment settings') }
+    setSavingInstr(false)
+  }
+
+  const input: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)',
+    border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px',
+    fontSize: '12.5px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit',
+    resize: 'vertical',
+  }
 
   const savePlanLimit = async (pl: PlanLimit) => {
     setLimitMsg(''); setSavingPlan(pl.plan)
@@ -72,6 +99,8 @@ export default function AdminPanel() {
         max_companies: pl.max_companies,
         max_emails_per_month: pl.max_emails_per_month,
         period_days: pl.period_days,
+        price_usd: pl.price_usd,
+        price_irr: pl.price_irr,
       }, { headers: headers() })
       setLimitMsg(`✓ ${pl.plan} limits saved`)
     } catch (e: any) {
@@ -309,6 +338,8 @@ export default function AdminPanel() {
                     ['Max companies', 'max_companies'],
                     ['Emails per period', 'max_emails_per_month'],
                     ['Period (days)', 'period_days'],
+                    ['Price (USD)', 'price_usd'],
+                    ['Price (Toman, 0 = auto)', 'price_irr'],
                   ] as [string, keyof PlanLimit][]).map(([label, field]) => (
                     <div key={field} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                       <label style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{label}</label>
@@ -325,6 +356,61 @@ export default function AdminPanel() {
               </div>
             ))}
           </div>
+          {/* PAYMENT INSTRUCTIONS EDITOR */}
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Payment instructions</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
+            Shown to users on the upgrade page. These are stored in the database, not in code, so they never end up in the repository.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card number (Iran)</label>
+              <input value={instr.card_number} onChange={e => setInstr(s => ({ ...s, card_number: e.target.value }))} placeholder="6037-XXXX-XXXX-XXXX" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card holder name</label>
+              <input value={instr.card_holder} onChange={e => setInstr(s => ({ ...s, card_holder: e.target.value }))} placeholder="نام صاحب کارت" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>PayPal email</label>
+              <input value={instr.paypal_email} onChange={e => setInstr(s => ({ ...s, paypal_email: e.target.value }))} placeholder="you@example.com" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Support email</label>
+              <input value={instr.support_email} onChange={e => setInstr(s => ({ ...s, support_email: e.target.value }))} placeholder="support@…" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Support phone (Telegram / WhatsApp)</label>
+              <input value={instr.support_phone} onChange={e => setInstr(s => ({ ...s, support_phone: e.target.value }))} placeholder="+98…" style={{ ...input, resize: 'none' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '0 0 220px' }}>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Fallback USD → Toman rate</label>
+              <input value={instr.manual_rate} onChange={e => setInstr(s => ({ ...s, manual_rate: e.target.value }))} placeholder="e.g. 190000" style={{ ...input, resize: 'none' }} />
+            </div>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '0 0 10px', flex: 1, minWidth: '200px' }}>
+              {rate?.rate
+                ? `Live rate: ${rate.rate.toLocaleString('en-US')} Toman / $1 (source: ${rate.source}). Used automatically for plans with no Toman price.`
+                : 'Live rate unavailable — the fallback above is used.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>English</label>
+              <textarea rows={8} value={instr.instructions_en} onChange={e => setInstr(s => ({ ...s, instructions_en: e.target.value }))} style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>فارسی</label>
+              <textarea rows={8} value={instr.instructions_fa} onChange={e => setInstr(s => ({ ...s, instructions_fa: e.target.value }))} style={{ ...input, direction: 'rtl', textAlign: 'right' }} />
+            </div>
+          </div>
+          <button onClick={saveInstructions} disabled={savingInstr}
+            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', marginBottom: '40px', opacity: savingInstr ? 0.6 : 1 }}>
+            {savingInstr ? 'Saving…' : 'Save instructions'}
+          </button>
+
           {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? '#34D399' : '#F87171', marginTop: '-24px', marginBottom: '24px' }}>{limitMsg}</p>}
         </div>
       </div>

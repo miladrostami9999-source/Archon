@@ -27,12 +27,6 @@ export default function PaymentsPage() {
   const [rejecting, setRejecting] = useState<number | null>(null)
   const [rejectNote, setRejectNote] = useState('')
   const [msg, setMsg] = useState('')
-  const [instr, setInstr] = useState({
-    instructions_en: '', instructions_fa: '',
-    card_number: '', card_holder: '', paypal_email: '', manual_rate: '',
-  })
-  const [rate, setRate] = useState<{ rate: number | null; source: string } | null>(null)
-  const [savingInstr, setSavingInstr] = useState(false)
 
   const load = () => {
     axios.get(`${API}/auth/billing/requests`)
@@ -42,8 +36,6 @@ export default function PaymentsPage() {
   }
   useEffect(() => {
     load()
-    axios.get(`${API}/auth/settings/payment`).then(r => setInstr(s => ({ ...s, ...r.data }))).catch(() => {})
-    axios.get(`${API}/auth/billing/exchange-rate`).then(r => setRate(r.data)).catch(() => {})
   }, [])
 
   const approve = async (id: number) => {
@@ -63,15 +55,6 @@ export default function PaymentsPage() {
       setRejecting(null); setRejectNote(''); load()
     } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Reject failed'}`) }
     setBusy(null)
-  }
-
-  const saveInstructions = async () => {
-    setSavingInstr(true); setMsg('')
-    try {
-      await axios.put(`${API}/auth/settings/payment`, instr)
-      setMsg('✓ Payment instructions saved')
-    } catch { setMsg('✗ Could not save instructions') }
-    setSavingInstr(false)
   }
 
   const shown = rows.filter(r => filter === 'all' ? true : r.status === filter)
@@ -103,7 +86,7 @@ export default function PaymentsPage() {
             </div>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
-            Verify the transfer landed, then approve — the plan activates immediately with a fresh period.
+            Verify the transfer landed, then approve — the plan activates immediately with a fresh period. Payment details and instructions are configured in the Admin Panel.
           </p>
 
           {msg && (
@@ -171,52 +154,6 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {/* PAYMENT INSTRUCTIONS EDITOR */}
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Payment instructions</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
-            Shown to users on the upgrade page. These are stored in the database, not in code, so they never end up in the repository.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card number (Iran)</label>
-              <input value={instr.card_number} onChange={e => setInstr(s => ({ ...s, card_number: e.target.value }))} placeholder="6037-XXXX-XXXX-XXXX" style={{ ...input, resize: 'none' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card holder name</label>
-              <input value={instr.card_holder} onChange={e => setInstr(s => ({ ...s, card_holder: e.target.value }))} placeholder="نام صاحب کارت" style={{ ...input, resize: 'none' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>PayPal email</label>
-              <input value={instr.paypal_email} onChange={e => setInstr(s => ({ ...s, paypal_email: e.target.value }))} placeholder="you@example.com" style={{ ...input, resize: 'none' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '0 0 220px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Fallback USD → Toman rate</label>
-              <input value={instr.manual_rate} onChange={e => setInstr(s => ({ ...s, manual_rate: e.target.value }))} placeholder="e.g. 190000" style={{ ...input, resize: 'none' }} />
-            </div>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '0 0 10px', flex: 1, minWidth: '200px' }}>
-              {rate?.rate
-                ? `Live rate: ${rate.rate.toLocaleString('en-US')} Toman / $1 (source: ${rate.source}). Used automatically for plans with no Toman price.`
-                : 'Live rate unavailable — the fallback above is used.'}
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>English</label>
-              <textarea rows={8} value={instr.instructions_en} onChange={e => setInstr(s => ({ ...s, instructions_en: e.target.value }))} style={input} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>فارسی</label>
-              <textarea rows={8} value={instr.instructions_fa} onChange={e => setInstr(s => ({ ...s, instructions_fa: e.target.value }))} style={{ ...input, direction: 'rtl', textAlign: 'right' }} />
-            </div>
-          </div>
-          <button onClick={saveInstructions} disabled={savingInstr}
-            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', marginBottom: '40px', opacity: savingInstr ? 0.6 : 1 }}>
-            {savingInstr ? 'Saving…' : 'Save instructions'}
-          </button>
         </div>
       </main>
     </div>

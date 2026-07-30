@@ -212,32 +212,97 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
 
 /* ══════════ RESPONSIVE ══════════ */
 @media(max-width:900px){
-  .floor{top:64px;bottom:160px;padding:12px 22px;}
-  #floor-1 .floor-inner{grid-template-columns:1fr;gap:26px;}
-  .hero-visual-sm{max-width:260px;margin:0 auto;order:-1;}
-  #floor-1 h1{font-size:30px;}
+  /* Header: the desktop row overflowed on phones — shrink everything and let
+     the brand truncate rather than pushing the CTA off-screen. */
+  header.top-nav{height:56px;padding:0 14px;gap:8px;}
+  .brand{font-size:14px;gap:7px;min-width:0;}
+  .brand-mark-sm{width:24px;height:24px;font-size:11px;flex-shrink:0;}
+  .nav-right{gap:6px;flex-shrink:0;}
+  .icon-btn{width:32px;height:32px;font-size:13px;}
+  .nav-right .btn{padding:8px 12px;font-size:12.5px;border-radius:9px;}
+
+  /* Floors: start content at the top instead of centring it in a tall box —
+     centring left a large dead gap above the hero on short screens. */
+  .floor{top:56px;bottom:132px;padding:18px 18px 8px;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .floor-inner{max-width:100%;}
+  .f-eyebrow{font-size:10.5px;padding:6px 12px;margin-bottom:14px;letter-spacing:.06em;}
+
+  #floor-1 .floor-inner{grid-template-columns:1fr;gap:20px;}
+  .hero-visual-sm{max-width:200px;margin:0 auto;order:-1;}
+  #floor-1 h1{font-size:27px;line-height:1.22;margin-bottom:12px;}
+  body.lang-fa #floor-1 h1{font-size:23px;line-height:1.5;}
+  #floor-1 p.lead{font-size:14.5px;margin-bottom:20px;line-height:1.7;}
+  body.lang-fa #floor-1 p.lead{font-size:14.5px;line-height:1.9;}
+  #floor-1 .btn-lg{padding:11px 18px;font-size:13.5px;}
+
+  #floor-2 .f-title,#floor-3 .f-title,#floor-4 .f-title,#floor-5 .f-title,#floor-6 .f-title{font-size:22px;margin-bottom:16px;line-height:1.3;}
+  body.lang-fa #floor-2 .f-title,body.lang-fa #floor-3 .f-title,body.lang-fa #floor-4 .f-title,body.lang-fa #floor-5 .f-title,body.lang-fa #floor-6 .f-title{font-size:19px;line-height:1.55;}
+  #floor-3 .f-sub,#floor-5 .f-sub,#floor-6 .f-sub{font-size:13.5px;margin-bottom:16px;}
+
   .problem-grid{grid-template-columns:1fr 1fr;}
-  .feat-grid{grid-template-columns:1fr 1fr;}
-  .mp-grid{grid-template-columns:1fr;}
-  .steps{grid-template-columns:1fr 1fr;gap:18px 10px;}
-  .steps::before{display:none;}
-  .price-grid{grid-template-columns:1fr;max-width:270px;margin:0 auto;}
+  .problem-cell{padding:14px 12px;}
+  .problem-cell strong{font-size:14px;}
+  .problem-cell p{font-size:12.5px;}
+
+  .feat-grid{grid-template-columns:1fr 1fr;gap:9px;}
+  .feat-card{padding:12px;}
+  .feat-card h3{font-size:13.5px;}
+  .feat-card p{font-size:12px;}
+  .feat-icon{width:28px;height:28px;margin-bottom:8px;}
+
+  .steps{max-width:100%;}
+  .step{gap:13px;padding-bottom:16px;}
+  .step h4{font-size:15px;}
+  .step p{font-size:13px;}
+
+  .mp-grid{grid-template-columns:1fr;gap:10px;}
+  .mp-card{padding:16px;}
+
+  .price-grid{grid-template-columns:1fr;gap:10px;max-width:340px;margin:0 auto;}
+  .price-card{padding:16px;}
+  .plan-price{font-size:27px;margin-bottom:10px;}
+  .plan-features li{font-size:13px;}
+
+  /* Workflow nav: labels and descriptions don't fit, so keep just the numbered
+     steps and the arrows. */
+  .workflow-bar{bottom:26px;gap:6px;}
+  .workflow-track{padding:0 4px;}
   .wf-node{width:auto;}
   .wf-desc{display:none;}
-  .workflow-bar{bottom:40px;gap:8px;}
-  .wf-label{height:12px;line-height:12px;font-size:9px;margin-bottom:8px;}
-  .wf-circle{width:36px;height:36px;font-size:12px;}
-  .wf-node.active .wf-circle{transform:scale(1.3);}
-  .wf-line{top:calc(8px + 12px + 18px);}
-  .wf-arrow svg{width:18px;height:18px;}
-  .wf-arrows{gap:20px;}
-  .gate-cards{flex-direction:column;}
+  .wf-label{display:none;}
+  .wf-circle{width:34px;height:34px;font-size:12px;border-width:1.5px;}
+  .wf-node.active .wf-circle{transform:scale(1.22);box-shadow:0 0 0 4px var(--line-dim),0 4px 14px rgba(79,123,247,.4);}
+  .wf-line{top:17px;left:34px;right:34px;}
+  html[dir="rtl"] .wf-line{left:34px;right:34px;}
+  .wf-arrow svg{width:20px;height:20px;}
+  .wf-arrows{gap:26px;}
+
+  #langGate{gap:30px;padding:24px;}
+  .gate-cards{flex-direction:column;gap:14px;width:100%;max-width:280px;}
+  .gate-card{width:100%;padding:22px 20px;}
+  .gate-flag{font-size:30px;margin-bottom:10px;}
+  .gate-card h3{font-size:17px;}
+  .gate-brand{font-size:18px;}
+  .gate-hint{font-size:11px;text-align:center;padding:0 20px;}
 }
 @media(max-width:560px){
+  .brand span:not(.brand-mark-sm){display:none;}   /* keep just the mark */
   .problem-grid{grid-template-columns:1fr;}
   .feat-grid{grid-template-columns:1fr;}
-  .steps{grid-template-columns:1fr;}
-  .wf-label{font-size:8px;}
+  .floor{bottom:120px;padding:14px 14px 8px;}
+  #floor-1 h1{font-size:24px;}
+  body.lang-fa #floor-1 h1{font-size:21px;}
+  .wf-circle{width:30px;height:30px;font-size:11px;}
+  .wf-line{top:15px;left:30px;right:30px;}
+  html[dir="rtl"] .wf-line{left:30px;right:30px;}
+  .wf-arrows{gap:22px;}
+}
+/* Short landscape phones: reclaim the space the nav bar reserves */
+@media(max-height:520px){
+  .floor{bottom:96px;}
+  .workflow-bar{bottom:14px;}
+  .wf-circle{width:28px;height:28px;font-size:10.5px;}
+  .wf-line{top:14px;left:28px;right:28px;}
 }
 @media(prefers-reduced-motion:reduce){
   .bp-line{stroke-dashoffset:0;animation:none;}

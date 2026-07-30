@@ -53,8 +53,24 @@ def get_usage(db: Session, user) -> dict:
     def remaining(used, cap):
         return None if cap == UNLIMITED else max(0, cap - used)
 
+    # Days consumed in the current period, so the dashboard can show how much
+    # of the subscription window is left alongside the usage meters.
+    days_total = limits["period_days"]
+    days_used = None
+    days_remaining = None
+    if user.plan_started_at:
+        days_used = max(0, (datetime.utcnow() - user.plan_started_at).days)
+        days_used = min(days_used, days_total)
+    if user.plan_expires_at:
+        left = (user.plan_expires_at - datetime.utcnow()).total_seconds() / 86400
+        days_remaining = max(0, int(left // 1) + (1 if left % 1 > 0 else 0))
+
     return {
         "plan": user.plan,
+        "days_total": days_total,
+        "days_used": days_used,
+        "days_remaining": days_remaining,
+        "expired": bool(user.plan_expires_at and user.plan_expires_at < datetime.utcnow()),
         "companies_used": companies_used,
         "companies_limit": limits["max_companies"],
         "companies_remaining": remaining(companies_used, limits["max_companies"]),

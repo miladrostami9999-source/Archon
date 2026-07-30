@@ -50,6 +50,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [waitlistCount, setWaitlistCount] = useState(0)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [paymentCount, setPaymentCount] = useState(0)
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function Sidebar() {
   }, [])
 
   // Close sidebar on route change (mobile)
-  useEffect(() => { setMobileOpen(false) }, [path])
+  useEffect(() => { setMobileOpen(false); setAccountOpen(false) }, [path])
 
   useEffect(() => {
     const saved = localStorage.getItem('archon-theme')
@@ -289,14 +290,49 @@ export default function Sidebar() {
             <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
             <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
           </div>
-          <div data-tour="profile-link" onClick={() => { window.location.href = '/profile' }}
-            style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(79,123,247,0.3)' }}>
-            {avatar ? (
-              <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
-                {user?.name.charAt(0).toUpperCase() || 'A'}
-              </div>
+          {/* Account menu — logout used to live only at the bottom of the drawer,
+              which was easy to miss on a phone. */}
+          <div style={{ position: 'relative' }}>
+            <div data-tour="profile-link" onClick={() => setAccountOpen(o => !o)}
+              style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(79,123,247,0.3)' }}>
+              {avatar ? (
+                <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                  {user?.name.charAt(0).toUpperCase() || 'A'}
+                </div>
+              )}
+            </div>
+
+            {accountOpen && (
+              <>
+                <div onClick={() => setAccountOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 25 }} />
+                <div style={{
+                  position: 'absolute', top: '40px', right: 0, zIndex: 26, minWidth: '190px',
+                  background: sbg, border: `1px solid ${b}`, borderRadius: '12px',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.28)', overflow: 'hidden',
+                }}>
+                  {user && (
+                    <div style={{ padding: '12px 14px', borderBottom: `1px solid ${b}` }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: tm, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</p>
+                      <p style={{ fontSize: '11px', color: td, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</p>
+                    </div>
+                  )}
+                  <button onClick={() => { window.location.href = '/profile' }}
+                    style={{ width: '100%', textAlign: 'left', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: ts }}>
+                    Profile &amp; settings
+                  </button>
+                  <button onClick={() => { window.location.href = '/upgrade' }}
+                    style={{ width: '100%', textAlign: 'left', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: ts, borderTop: `1px solid ${b}` }}>
+                    Upgrade plan
+                  </button>
+                  <button onClick={logout}
+                    style={{ width: '100%', textAlign: 'left', padding: '12px 14px', background: 'rgba(248,113,113,0.08)', border: 'none', borderTop: `1px solid ${b}`, cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#F87171' }}>
+                    ⏻ Log out
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
