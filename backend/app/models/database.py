@@ -220,15 +220,68 @@ class PlanLimit(Base):
     max_companies        = Column(Integer, default=-1)       # companies the user may add to their pipeline
     max_emails_per_month = Column(Integer, default=-1)       # sends allowed per period
     period_days          = Column(Integer, default=30)       # length of a billing/trial window
+    price_usd            = Column(Float, default=0)          # 0 = free / not purchasable
+    price_irr            = Column(Float, default=0)          # Toman price for Iranian users
     updated_at           = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # Defaults seeded on first run — from the roadmap + landing page.
 DEFAULT_PLAN_LIMITS = {
-    "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7},
-    "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30},
-    "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30},
-    "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30},
+    "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7,  "price_usd": 0,  "price_irr": 0},
+    "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30, "price_usd": 19, "price_irr": 0},
+    "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30, "price_usd": 49, "price_irr": 0},
+    "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30, "price_usd": 99, "price_irr": 0},
+}
+
+
+class PaymentRequest(Base):
+    """A user's claim that they've paid for a plan, awaiting admin confirmation.
+
+    No automated gateway is available (Stripe and similar don't serve Iran, and
+    Iranian gateways require an Iranian legal entity), so upgrades run through
+    an offline payment the admin verifies and approves. This table is the audit
+    trail; approving it activates the plan. When a real gateway is added later
+    it becomes just another `method` and the rest of the flow is unchanged.
+    """
+    __tablename__ = "payment_requests"
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    plan        = Column(String, nullable=False)     # plan being purchased
+    amount      = Column(Float)                      # what the user says they paid
+    currency    = Column(String, default="IRR")      # IRR (Toman) | USD
+    method      = Column(String)                     # card-to-card, bank transfer, PayPal…
+    reference   = Column(String)                     # tracking number / receipt id
+    note        = Column(Text)
+    status      = Column(String, default="pending", index=True)  # pending | approved | rejected
+    admin_note  = Column(Text)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime)
+
+
+class AppSetting(Base):
+    """Small key/value store for admin-editable text, e.g. payment instructions."""
+    __tablename__ = "app_settings"
+    key        = Column(String, primary_key=True)
+    value      = Column(Text)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# Shown to users on the upgrade page; the admin edits these in the Admin Panel.
+DEFAULT_SETTINGS = {
+    "payment_instructions_en": (
+        "Transfer the plan amount using one of the methods below, then submit the "
+        "tracking number here. We'll verify and activate your plan (usually within a few hours).\n\n"
+        "• Card to card (Iran): [add your card number]\n"
+        "• Bank transfer / other: [add your details]\n\n"
+        "Questions? Email milad@armiladesign.com"
+    ),
+    "payment_instructions_fa": (
+        "مبلغ پلن را با یکی از روش‌های زیر واریز کنید و سپس شماره پیگیری را همین‌جا ثبت کنید. "
+        "پس از بررسی، پلن شما فعال می‌شود (معمولاً ظرف چند ساعت).\n\n"
+        "• کارت به کارت: [شماره کارت خود را وارد کنید]\n"
+        "• حواله بانکی / سایر: [اطلاعات را وارد کنید]\n\n"
+        "سوالی دارید؟ milad@armiladesign.com"
+    ),
 }
 
 
@@ -301,6 +354,16 @@ def _seed_plan_limits():
         for plan, vals in DEFAULT_PLAN_LIMITS.items():
             if not db.query(PlanLimit).filter(PlanLimit.plan == plan).first():
                 db.add(PlanLimit(plan=plan, **vals))
+        # Rows created before prices existed came back as 0 from the ALTER
+        # default; give them the standard USD price so the upgrade page has
+        # something to show. Toman prices stay 0 until the admin sets them.
+        for plan, vals in DEFAULT_PLAN_LIMITS.items():
+            row = db.query(PlanLimit).filter(PlanLimit.plan == plan).first()
+            if row and not row.price_usd and vals.get("price_usd"):
+                row.price_usd = vals["price_usd"]
+        for key, value in DEFAULT_SETTINGS.items():
+            if not db.query(AppSetting).filter(AppSetting.key == key).first():
+                db.add(AppSetting(key=key, value=value))
         db.commit()
     except Exception as e:
         db.rollback()
@@ -345,6 +408,13 @@ def init_db():
                 if "password_hash" not in waitlist_cols:
                     conn.execute(_text("ALTER TABLE waitlist ADD COLUMN password_hash VARCHAR"))
                     conn.commit()
+
+            if _inspector.has_table("plan_limits"):
+                pl_cols = [c["name"] for c in _inspector.get_columns("plan_limits")]
+                for col in ("price_usd", "price_irr"):
+                    if col not in pl_cols:
+                        conn.execute(_text(f"ALTER TABLE plan_limits ADD COLUMN {col} FLOAT DEFAULT 0"))
+                        conn.commit()
 
             # ── Multi-tenancy: per-user ownership on what used to be shared ──
             for table in ("notes", "campaigns", "history", "daily_tasks", "weekly_reports"):

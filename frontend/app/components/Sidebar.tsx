@@ -20,6 +20,8 @@ const ICONS: Record<string, ReactElement> = {
   admin:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
   report:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   users:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+  upgrade:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>,
+  payments:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
   waitlist:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
 }
 
@@ -48,6 +50,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [waitlistCount, setWaitlistCount] = useState(0)
+  const [paymentCount, setPaymentCount] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -92,6 +95,10 @@ export default function Sidebar() {
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => setWaitlistCount(d.count || 0))
         .catch(() => {})
+      fetch(`${API}/auth/billing/requests/pending-count`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setPaymentCount(d.count || 0))
+        .catch(() => {})
     }
     load()
     const id = setInterval(load, 60000)  // refresh every minute
@@ -120,12 +127,15 @@ export default function Sidebar() {
     { label: 'Analytics',  iconKey: 'analytics', href: '/analytics' },
     { label: 'Market Map', iconKey: 'map',       href: '/map' },
     { label: 'Weekly Report', iconKey: 'report', href: '/report' },
+    // Admins are on an unlimited plan, so an upgrade page would be noise
+    ...(isAdmin ? [] : [{ label: 'Upgrade', iconKey: 'upgrade', href: '/upgrade' }]),
   ]
   // Admin-only tools — hidden entirely for regular members
   const adminItems = isAdmin ? [
     { label: 'Admin Panel', iconKey: 'admin',    href: '/admin' },
     { label: 'Users',       iconKey: 'users',    href: '/users' },
     { label: 'Waitlist',    iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
+    { label: 'Payments',    iconKey: 'payments', href: '/payments', badge: paymentCount },
   ] : []
 
   const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {

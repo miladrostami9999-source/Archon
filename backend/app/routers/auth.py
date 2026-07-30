@@ -262,6 +262,8 @@ def list_plan_limits(admin: User = Depends(require_admin), db: Session = Depends
         "max_companies": r.max_companies,
         "max_emails_per_month": r.max_emails_per_month,
         "period_days": r.period_days,
+        "price_usd": r.price_usd or 0,
+        "price_irr": r.price_irr or 0,
     } for r in rows]
 
 
@@ -269,6 +271,8 @@ class PlanLimitUpdate(BaseModel):
     max_companies: int
     max_emails_per_month: int
     period_days: int
+    price_usd: Optional[float] = None
+    price_irr: Optional[float] = None
 
 
 @router.put("/plan-limits/{plan}")
@@ -290,8 +294,221 @@ def update_plan_limit(plan: str, data: PlanLimitUpdate, admin: User = Depends(re
     row.max_companies = data.max_companies
     row.max_emails_per_month = data.max_emails_per_month
     row.period_days = data.period_days
+    if data.price_usd is not None:
+        row.price_usd = max(0, data.price_usd)
+    if data.price_irr is not None:
+        row.price_irr = max(0, data.price_irr)
     db.commit()
     return {"message": f"Updated {plan} limits", "plan": plan}
+
+
+# ─────────────────────────────────────────
+# UPGRADES / MANUAL PAYMENTS
+# No automated gateway is usable yet (Stripe et al. don't serve Iran; Iranian
+# gateways need an Iranian legal entity), so upgrades run as an offline payment
+# the admin verifies. Adding a real gateway later means adding a `method` here.
+# ─────────────────────────────────────────
+@router.get("/billing/plans")
+def get_billing_plans(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Purchasable plans with prices + payment instructions, for the upgrade page."""
+    from app.models.database import PlanLimit, AppSetting
+    rows = db.query(PlanLimit).all()
+    order = ["trial", "basic", "pro", "agency"]
+    plans = sorted(
+        [{
+            "plan": r.plan,
+            "max_companies": r.max_companies,
+            "max_emails_per_month": r.max_emails_per_month,
+            "period_days": r.period_days,
+            "price_usd": r.price_usd or 0,
+            "price_irr": r.price_irr or 0,
+        } for r in rows if (r.price_usd or 0) > 0 or (r.price_irr or 0) > 0],
+        key=lambda p: order.index(p["plan"]) if p["plan"] in order else 99,
+    )
+    settings = {s.key: s.value for s in db.query(AppSetting).all()}
+    return {
+        "current_plan": current_user.plan,
+        "plans": plans,
+        "instructions_en": settings.get("payment_instructions_en", ""),
+        "instructions_fa": settings.get("payment_instructions_fa", ""),
+    }
+
+
+class PaymentRequestCreate(BaseModel):
+    plan: str
+    amount: Optional[float] = None
+    currency: str = "IRR"
+    method: Optional[str] = None
+    reference: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.post("/billing/requests")
+def create_payment_request(data: PaymentRequestCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import PaymentRequest
+    if data.plan not in PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail="Unknown plan")
+    if not (data.reference or "").strip():
+        raise HTTPException(status_code=400, detail="Please enter the payment reference or tracking number.")
+
+    pending = db.query(PaymentRequest).filter(
+        PaymentRequest.user_id == current_user.id, PaymentRequest.status == "pending"
+    ).first()
+    if pending:
+        raise HTTPException(status_code=400, detail="You already have a payment awaiting review.")
+
+    pr = PaymentRequest(
+        user_id=current_user.id,
+        plan=data.plan,
+        amount=data.amount,
+        currency=(data.currency or "IRR").upper(),
+        method=(data.method or "").strip() or None,
+        reference=data.reference.strip(),
+        note=(data.note or "").strip() or None,
+    )
+    db.add(pr)
+    db.commit()
+
+    admin_email = os.getenv("ADMIN_NOTIFY_EMAIL") or os.getenv("RESEND_FROM_EMAIL")
+    if admin_email:
+        try:
+            send_email(
+                to_email=admin_email,
+                subject=f"Archon payment to verify: {current_user.name} → {data.plan}",
+                html_body=(
+                    f"<p><strong>{current_user.name}</strong> ({current_user.email}) submitted a payment.</p>"
+                    f"<p>Plan: {data.plan}<br>Amount: {data.amount or '—'} {pr.currency}<br>"
+                    f"Method: {pr.method or '—'}<br>Reference: {pr.reference}</p>"
+                ),
+                text_body=f"{current_user.name} paid for {data.plan}. Ref: {pr.reference}",
+            )
+        except Exception as e:
+            print(f"Payment notification failed: {e}")
+
+    return {"message": "Payment submitted — we'll verify and activate your plan shortly.", "id": pr.id}
+
+
+@router.get("/billing/requests/mine")
+def my_payment_requests(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import PaymentRequest
+    rows = db.query(PaymentRequest).filter(
+        PaymentRequest.user_id == current_user.id
+    ).order_by(PaymentRequest.created_at.desc()).all()
+    return [{
+        "id": r.id, "plan": r.plan, "amount": r.amount, "currency": r.currency,
+        "reference": r.reference, "status": r.status, "admin_note": r.admin_note,
+        "created_at": r.created_at,
+    } for r in rows]
+
+
+@router.get("/billing/requests")
+def list_payment_requests(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import PaymentRequest
+    rows = db.query(PaymentRequest).order_by(PaymentRequest.created_at.desc()).all()
+    users = {u.id: u for u in db.query(User).all()}
+    return [{
+        "id": r.id, "plan": r.plan, "amount": r.amount, "currency": r.currency,
+        "method": r.method, "reference": r.reference, "note": r.note,
+        "status": r.status, "created_at": r.created_at,
+        "user_name": users[r.user_id].name if r.user_id in users else "—",
+        "user_email": users[r.user_id].email if r.user_id in users else "—",
+    } for r in rows]
+
+
+@router.get("/billing/requests/pending-count")
+def pending_payments_count(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import PaymentRequest
+    return {"count": db.query(PaymentRequest).filter(PaymentRequest.status == "pending").count()}
+
+
+@router.post("/billing/requests/{request_id}/approve")
+def approve_payment(request_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Confirm the payment landed and activate the plan with a fresh period."""
+    from app.models.database import PaymentRequest
+    from app.services.limits import get_plan_limit
+    pr = db.query(PaymentRequest).filter(PaymentRequest.id == request_id).first()
+    if not pr:
+        raise HTTPException(status_code=404, detail="Payment request not found")
+    if pr.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Already {pr.status}")
+
+    user = db.query(User).filter(User.id == pr.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    now = datetime.utcnow()
+    user.plan = pr.plan
+    user.plan_started_at = now
+    user.plan_expires_at = now + timedelta(days=get_plan_limit(db, pr.plan)["period_days"])
+    pr.status = "approved"
+    pr.reviewed_at = now
+    db.commit()
+
+    try:
+        send_email(
+            to_email=user.email,
+            subject=f"Your Archon {pr.plan.capitalize()} plan is active",
+            html_body=(
+                f"<p>Hi {user.name},</p>"
+                f"<p>We've confirmed your payment — your <strong>{pr.plan}</strong> plan is now active "
+                f"until {user.plan_expires_at.strftime('%d %b %Y')}.</p>"
+                f"<p>— Archon, by Armila Design</p>"
+            ),
+            text_body=f"Your {pr.plan} plan is active until {user.plan_expires_at.strftime('%d %b %Y')}.",
+        )
+    except Exception as e:
+        print(f"Activation email failed: {e}")
+
+    return {"message": "Payment approved and plan activated", "plan": pr.plan,
+            "expires_at": user.plan_expires_at.isoformat()}
+
+
+class PaymentReject(BaseModel):
+    admin_note: Optional[str] = None
+
+
+@router.post("/billing/requests/{request_id}/reject")
+def reject_payment(request_id: int, data: PaymentReject, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import PaymentRequest
+    pr = db.query(PaymentRequest).filter(PaymentRequest.id == request_id).first()
+    if not pr:
+        raise HTTPException(status_code=404, detail="Payment request not found")
+    if pr.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Already {pr.status}")
+    pr.status = "rejected"
+    pr.admin_note = (data.admin_note or "").strip() or None
+    pr.reviewed_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Payment request rejected"}
+
+
+@router.get("/settings/payment")
+def get_payment_settings(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import AppSetting
+    settings = {s.key: s.value for s in db.query(AppSetting).all()}
+    return {
+        "instructions_en": settings.get("payment_instructions_en", ""),
+        "instructions_fa": settings.get("payment_instructions_fa", ""),
+    }
+
+
+class PaymentSettingsUpdate(BaseModel):
+    instructions_en: str
+    instructions_fa: str
+
+
+@router.put("/settings/payment")
+def update_payment_settings(data: PaymentSettingsUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import AppSetting
+    for key, value in (("payment_instructions_en", data.instructions_en),
+                       ("payment_instructions_fa", data.instructions_fa)):
+        row = db.query(AppSetting).filter(AppSetting.key == key).first()
+        if not row:
+            row = AppSetting(key=key)
+            db.add(row)
+        row.value = value
+    db.commit()
+    return {"message": "Payment instructions updated"}
 
 
 # ─────────────────────────────────────────
