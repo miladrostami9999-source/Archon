@@ -284,7 +284,7 @@ export default function MapPage() {
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : '100vh', overflow: 'hidden', paddingTop: isMobile ? '52px' : 0 }}>
 
         {/* HEADER */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', flexShrink: 0 }}>
+        <div style={{ position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 24px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', flexShrink: 0 }}>
           <div>
             <h1 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Market Intelligence Map</h1>
             <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: 0 }}>Geographic distribution of your pipeline</p>

@@ -412,7 +412,7 @@ export default function Dashboard() {
 
         {/* TOP BAR */}
         <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
+          position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: isMobile ? '0 10px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', backdropFilter: 'blur(12px)',

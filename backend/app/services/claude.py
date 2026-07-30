@@ -330,3 +330,56 @@ Return ONLY a JSON object with these fields (no markdown, no extra text):
     )
 
     return parse_json_response(message.content[0].text)
+
+
+def discover_leads(existing_names: list, criteria: dict) -> list:
+    """Web-search for architecture/design firms that could be new leads.
+
+    Existing names are passed so Claude can skip what's already in the catalog;
+    the caller de-duplicates again by name and domain before saving anything.
+    """
+    known = ", ".join(existing_names[:150]) if existing_names else "none yet"
+    country = criteria.get("country") or "any country (prefer UAE, Saudi Arabia, Scandinavia, UK, Germany, Netherlands)"
+    industry = criteria.get("industry") or "architecture, interior design, real estate development, or CGI/visualization"
+    count = min(int(criteria.get("count") or 5), 10)
+
+    prompt = f"""Search the web and find {count} REAL companies that would be good potential clients for Armila Design, an architectural visualization studio that provides outsourced 3D rendering.
+
+Target country/region: {country}
+Target industry: {industry}
+
+Already in our database — do NOT return any of these: {known}
+
+Rules:
+- Only return companies you actually found through search and can verify exist. Never invent a company, website, or email.
+- Prefer firms that visibly produce buildings/interiors and would plausibly outsource visualization.
+- Leave a field as null if you could not find it. Do not guess emails.
+
+Return ONLY valid JSON, an array of exactly this shape:
+[
+  {{
+    "name": "Company name",
+    "website": "https://... or null",
+    "email": "public contact email or null",
+    "country": "Country",
+    "city": "City or null",
+    "industry": "one of: Architecture, Interior Design, Real Estate, CGI, Visualization, Animation, Construction",
+    "company_size": "solo|small|medium|large",
+    "linkedin": "LinkedIn company URL or null",
+    "instagram": "Instagram URL or null",
+    "why": "one sentence on why they're a good lead",
+    "score": 0-100
+  }}
+]"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2500,
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 8}],
+        messages=[{"role": "user", "content": prompt}]
+    )
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    if not isinstance(result, list):
+        raise ValueError("Lead discovery did not return a list")
+    return result

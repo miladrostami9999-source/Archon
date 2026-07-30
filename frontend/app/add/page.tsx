@@ -55,7 +55,7 @@ export default function AddCompany() {
 
         {/* HEADER */}
         <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
+          position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20,
           display: 'flex', alignItems: 'center', gap: '16px',
           padding: isMobile ? '0 16px' : '0 24px', height: '56px',
           background: 'var(--bg-main)', borderBottom: '1px solid var(--border)',

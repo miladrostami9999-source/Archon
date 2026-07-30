@@ -635,6 +635,127 @@ def update_payment_settings(data: PaymentSettingsUpdate, admin: User = Depends(r
 
 
 # ─────────────────────────────────────────
+# EMAIL ANALYTICS + ADMIN USER DATA
+# ─────────────────────────────────────────
+@router.get("/email-analytics")
+def my_email_analytics(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """This user's own outreach numbers: drafts generated, sends, replies, and
+    a six-month trend so they can see whether outreach is actually working."""
+    from app.models.database import Campaign
+    from sqlalchemy import func
+
+    uid = current_user.id
+    base = db.query(Campaign).filter(Campaign.user_id == uid)
+    generated = base.count()
+    sent = base.filter(Campaign.status.in_(["sent", "replied"])).count()
+    replied = base.filter(Campaign.status == "replied").count()
+
+    # Last 6 months of send/reply activity, oldest first
+    months, now = [], datetime.utcnow()
+    for i in range(5, -1, -1):
+        year, month = now.year, now.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        start = datetime(year, month, 1)
+        end = datetime(year + (1 if month == 12 else 0), 1 if month == 12 else month + 1, 1)
+        months.append({
+            "month": start.strftime("%Y-%m"),
+            "sent": db.query(Campaign).filter(
+                Campaign.user_id == uid, Campaign.sent_at.isnot(None),
+                Campaign.sent_at >= start, Campaign.sent_at < end).count(),
+            "replied": db.query(Campaign).filter(
+                Campaign.user_id == uid, Campaign.replied_at.isnot(None),
+                Campaign.replied_at >= start, Campaign.replied_at < end).count(),
+        })
+
+    return {
+        "generated": generated,
+        "sent": sent,
+        "replied": replied,
+        "drafts": max(0, generated - sent),
+        "reply_rate": round(replied / sent * 100) if sent else 0,
+        "monthly": months,
+    }
+
+
+def _user_activity(db: Session, user: User) -> dict:
+    from app.models.database import Campaign, UserCompanyState, Note, DailyTask
+    sent = db.query(Campaign).filter(Campaign.user_id == user.id, Campaign.status.in_(["sent", "replied"])).count()
+    replied = db.query(Campaign).filter(Campaign.user_id == user.id, Campaign.status == "replied").count()
+    return {
+        "companies": db.query(UserCompanyState).filter(UserCompanyState.user_id == user.id).count(),
+        "emails_generated": db.query(Campaign).filter(Campaign.user_id == user.id).count(),
+        "emails_sent": sent,
+        "replies": replied,
+        "reply_rate": round(replied / sent * 100) if sent else 0,
+        "notes": db.query(Note).filter(Note.user_id == user.id).count(),
+        "tasks": db.query(DailyTask).filter(DailyTask.user_id == user.id).count(),
+    }
+
+
+@router.get("/users/{user_id}/detail")
+def user_detail(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Everything the admin needs about one member: plan, activity and their
+    public profile — useful for support and for reaching out."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    profile = json.loads(user.profile_json) if user.profile_json else {}
+    return {
+        "id": user.id, "name": user.name, "email": user.email,
+        "role": user.role, "plan": user.plan, "plan_status": user.plan_status or "active",
+        "is_active": user.is_active,
+        "created_at": user.created_at, "last_login": user.last_login,
+        "plan_started_at": user.plan_started_at, "plan_expires_at": user.plan_expires_at,
+        "username": user.username, "is_public": user.is_public,
+        "public_url": f"/u/{user.username}" if user.username and user.is_public else None,
+        "profile": {
+            "bio": profile.get("bio", ""), "location": profile.get("location", ""),
+            "website": profile.get("website", ""), "company": profile.get("company", ""),
+            "phone": profile.get("phone", ""), "avatar": profile.get("avatar", ""),
+            "skills": (profile.get("skills") or []) + (profile.get("customSkills") or []),
+            "portfolio_count": len(profile.get("portfolio") or []),
+        },
+        "activity": _user_activity(db, user),
+    }
+
+
+@router.get("/users/export")
+def export_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """CSV of every user with plan and activity — opens straight in Excel."""
+    import csv, io as _io
+    from fastapi.responses import StreamingResponse
+
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    out = _io.StringIO()
+    w = csv.writer(out)
+    w.writerow([
+        "Name", "Email", "Role", "Plan", "Plan Status", "Active",
+        "Companies", "Emails Generated", "Emails Sent", "Replies", "Reply Rate %",
+        "Notes", "Tasks", "Public Profile", "Signed Up", "Last Login", "Plan Expires",
+    ])
+    for u in users:
+        a = _user_activity(db, u)
+        w.writerow([
+            u.name, u.email, u.role, u.plan, u.plan_status or "active", "yes" if u.is_active else "no",
+            a["companies"], a["emails_generated"], a["emails_sent"], a["replies"], a["reply_rate"],
+            a["notes"], a["tasks"],
+            f"/u/{u.username}" if u.username and u.is_public else "",
+            u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
+            u.last_login.strftime("%Y-%m-%d") if u.last_login else "",
+            u.plan_expires_at.strftime("%Y-%m-%d") if u.plan_expires_at else "",
+        ])
+    out.seek(0)
+    filename = f"archon_users_{datetime.utcnow().strftime('%Y-%m-%d')}.csv"
+    return StreamingResponse(
+        _io.BytesIO(out.getvalue().encode("utf-8-sig")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+# ─────────────────────────────────────────
 # PUBLIC PROFILE
 # ─────────────────────────────────────────
 class PortfolioImage(BaseModel):

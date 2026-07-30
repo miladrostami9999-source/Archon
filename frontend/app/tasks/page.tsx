@@ -136,7 +136,7 @@ export default function TasksPage() {
 
         {/* HEADER */}
         <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
+          position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 32px', borderBottom: '1px solid var(--border)',
           background: 'var(--bg-main)', backdropFilter: 'blur(12px)',

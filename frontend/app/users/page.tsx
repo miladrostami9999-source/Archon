@@ -26,6 +26,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [detail, setDetail] = useState<any | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
   const [addForm, setAddForm] = useState({ name: '', email: '', password: '', plan: 'basic' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -40,6 +42,26 @@ export default function UsersPage() {
     setLoading(false)
   }
   useEffect(() => { fetchUsers() }, [])
+
+  // Export goes through axios so the auth header is sent
+  const exportUsers = async () => {
+    try {
+      const res = await axios.get(`${API}/auth/users/export`, { headers: headers(), responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = `archon_users_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+      URL.revokeObjectURL(url)
+    } catch { alert('Export failed') }
+  }
+
+  const openDetail = async (id: number) => {
+    setLoadingDetail(true); setDetail(null)
+    try {
+      const r = await axios.get(`${API}/auth/users/${id}/detail`, { headers: headers() })
+      setDetail(r.data)
+    } catch { alert('Could not load this user') }
+    setLoadingDetail(false)
+  }
 
   const createUser = async () => {
     if (!addForm.name || !addForm.email || !addForm.password) { setError('All fields required'); return }
@@ -78,6 +100,91 @@ export default function UsersPage() {
       <Sidebar />
 
       {/* DELETE MODAL */}
+      {(detail || loadingDetail) && (
+        <div onClick={() => setDetail(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '540px', maxHeight: '85vh', overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '18px', padding: '24px' }}>
+            {loadingDetail || !detail ? (
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>Loading...</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(79,123,247,0.3)' }}>
+                    {detail.profile?.avatar ? (
+                      <img src={detail.profile.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                        {detail.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{detail.name}</h2>
+                    <a href={`mailto:${detail.email}`} style={{ fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>{detail.email}</a>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: '#A78BFA', background: 'rgba(139,92,246,0.12)', textTransform: 'uppercase' }}>{detail.plan}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: detail.plan_status === 'active' ? '#34D399' : '#FBBF24', background: detail.plan_status === 'active' ? 'rgba(52,211,153,0.12)' : 'rgba(251,191,36,0.12)' }}>{detail.plan_status}</span>
+                      {!detail.is_active && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: '#F87171', background: 'rgba(248,113,113,0.12)' }}>disabled</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => setDetail(null)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}>X</button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '8px', marginBottom: '18px' }}>
+                  {[
+                    ['Companies', detail.activity.companies],
+                    ['Generated', detail.activity.emails_generated],
+                    ['Sent', detail.activity.emails_sent],
+                    ['Replies', detail.activity.replies],
+                    ['Reply rate', `${detail.activity.reply_rate}%`],
+                    ['Notes', detail.activity.notes],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} style={{ borderRadius: '10px', background: 'var(--bg-input)', padding: '10px' }}>
+                      <p style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text)', margin: 0 }}>{value as any}</p>
+                      <p style={{ fontSize: '10.5px', color: 'var(--text-dim)', margin: 0 }}>{label as any}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {(detail.profile?.bio || detail.profile?.location || detail.profile?.company) && (
+                  <div style={{ borderRadius: '12px', border: '1px solid var(--border)', padding: '14px', marginBottom: '14px' }}>
+                    {detail.profile.company && <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{detail.profile.company}</p>}
+                    {detail.profile.location && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 6px' }}>{detail.profile.location}</p>}
+                    {detail.profile.bio && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{detail.profile.bio}</p>}
+                    {detail.profile.skills?.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '10px' }}>
+                        {detail.profile.skills.slice(0, 10).map((sk: string) => (
+                          <span key={sk} style={{ fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-tag)', color: 'var(--text-muted)' }}>{sk}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                  <span>Signed up: {detail.created_at ? new Date(detail.created_at).toLocaleDateString() : '-'}</span>
+                  <span>Last login: {detail.last_login ? new Date(detail.last_login).toLocaleDateString() : 'never'}</span>
+                  <span>Plan expires: {detail.plan_expires_at ? new Date(detail.plan_expires_at).toLocaleDateString() : '-'}</span>
+                  <span>Portfolio projects: {detail.profile?.portfolio_count ?? 0}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <a href={`mailto:${detail.email}`}
+                    style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', textDecoration: 'none' }}>
+                    Email this user
+                  </a>
+                  {detail.public_url && (
+                    <a href={detail.public_url} target="_blank" rel="noreferrer"
+                      style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', textDecoration: 'none' }}>
+                      View public profile
+                    </a>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {deleteConfirm !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '32px 28px', maxWidth: '320px', width: 'calc(100% - 32px)', textAlign: 'center' }}>
@@ -95,15 +202,21 @@ export default function UsersPage() {
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0, overflowX: 'hidden' }}>
 
         {/* STICKY HEADER */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
+        <div style={{ position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>User Management</h1>
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{activeCount} active · {users.length} total</p>
           </div>
-          <button onClick={() => setShowAdd(!showAdd)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 14px' : '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,123,247,0.3)' }}>
-            + {isMobile ? 'Add' : 'Add User'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button onClick={exportUsers} title="Download all users as CSV"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 12px' : '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer' }}>
+              ⬇ {isMobile ? '' : 'Export'}
+            </button>
+            <button onClick={() => setShowAdd(!showAdd)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 14px' : '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,123,247,0.3)' }}>
+              + {isMobile ? 'Add' : 'Add User'}
+            </button>
+          </div>
         </div>
 
         <div style={{ maxWidth: '960px', margin: '0 auto', padding: isMobile ? '16px' : '24px 32px' }}>
@@ -275,6 +388,8 @@ export default function UsersPage() {
                           </>
                         ) : (
                           <>
+                            <button onClick={() => openDetail(u.id)}
+                              style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#A78BFA', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', fontWeight: 600 }}>View</button>
                             <button onClick={() => setEditUser(u)}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
                             <button onClick={() => updateUser(u.id, { is_active: !u.is_active })}

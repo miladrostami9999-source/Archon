@@ -27,6 +27,11 @@ const STATUS_META: Record<string, { color: string; label: string }> = {
   archive:  { color: '#EF4444', label: 'Archive' },
 }
 
+interface EmailAnalytics {
+  generated: number; sent: number; replied: number; drafts: number; reply_rate: number
+  monthly: { month: string; sent: number; replied: number }[]
+}
+
 const card: React.CSSProperties = {
   borderRadius: '12px',
   border: '1px solid var(--border)',
@@ -38,12 +43,14 @@ export default function Analytics() {
   const isMobile = useIsMobile()
 
   const [data, setData] = useState<Analytics | null>(null)
+  const [email, setEmail] = useState<EmailAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     axios.get(`${API}/companies/analytics/summary`)
       .then(res => { setData(res.data); setLoading(false) })
       .catch(() => setLoading(false))
+    axios.get(`${API}/auth/email-analytics`).then(r => setEmail(r.data)).catch(() => {})
   }, [])
 
   if (loading) return (
@@ -73,7 +80,7 @@ export default function Analytics() {
 
         {/* HEADER */}
         <div style={{
-          position: 'sticky', top: 0, zIndex: 20,
+          position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20,
           padding: '16px 32px', borderBottom: '1px solid var(--border)',
           background: 'var(--bg-main)', backdropFilter: 'blur(12px)',
           transition: 'background 0.25s, border-color 0.25s',
@@ -187,6 +194,52 @@ export default function Analytics() {
                 </div>
               )}
             </div>
+
+            {/* MY OUTREACH — this user's own numbers, not the whole platform's */}
+            {email && (
+              <div style={{ ...card, gridColumn: isMobile ? 'auto' : 'span 2' }}>
+                <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>My Outreach</h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px' }}>Your own emails — separate from everyone else on the platform.</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
+                  {[
+                    { label: 'Generated', value: email.generated, color: '#60A5FA' },
+                    { label: 'Sent', value: email.sent, color: '#A78BFA' },
+                    { label: 'Replies', value: email.replied, color: '#34D399' },
+                    { label: 'Reply rate', value: `${email.reply_rate}%`, color: email.reply_rate > 20 ? '#34D399' : '#F59E0B' },
+                  ].map(m => (
+                    <div key={m.label} style={{ borderRadius: '10px', background: 'var(--bg-input)', padding: '12px' }}>
+                      <p style={{ fontSize: '20px', fontWeight: 800, color: m.color, margin: 0 }}>{m.value}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px' }}>Last 6 months</p>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '90px' }}>
+                  {email.monthly.map(m => {
+                    const peak = Math.max(...email.monthly.map(x => x.sent), 1)
+                    return (
+                      <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '64px' }}>
+                          <div title={`${m.sent} sent, ${m.replied} replied`}
+                            style={{ width: '100%', height: `${Math.round((m.sent / peak) * 100)}%`, minHeight: m.sent ? '4px' : '2px', background: m.sent ? 'linear-gradient(180deg,#60A5FA,#4F7BF7)' : 'var(--border)', borderRadius: '4px 4px 0 0', position: 'relative' }}>
+                            {m.replied > 0 && (
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${Math.round((m.replied / Math.max(m.sent, 1)) * 100)}%`, background: '#34D399', borderRadius: '0 0 4px 4px' }} />
+                            )}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>{m.month.slice(5)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#4F7BF7', marginRight: '5px' }} />Sent</span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#34D399', marginRight: '5px' }} />Replied</span>
+                </div>
+              </div>
+            )}
 
             {/* COUNTRIES */}
             <div style={card}>

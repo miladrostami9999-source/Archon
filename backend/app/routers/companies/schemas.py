@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 
 
@@ -83,3 +83,25 @@ class SendEmailRequest(BaseModel):
     body: str
     campaign_id: Optional[int] = None
     attachments: Optional[list[EmailAttachment]] = None
+
+
+class DiscoverRequest(BaseModel):
+    country: Optional[str] = None
+    industry: Optional[str] = None
+    count: int = 5
+
+
+class DiscoveredCompany(BaseModel):
+    name: str
+    website: Optional[str] = None
+    email: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    linkedin: Optional[str] = None
+    instagram: Optional[str] = None
+
+
+class DiscoverSaveRequest(BaseModel):
+    companies: List[DiscoveredCompany] = []

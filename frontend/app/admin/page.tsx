@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import LeadDiscovery from '../components/LeadDiscovery'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -320,6 +321,8 @@ export default function AdminPanel() {
               </div>
             ))}
           </div>
+
+          <LeadDiscovery isMobile={isMobile} />
 
           {/* ── PLAN LIMITS EDITOR ── */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '28px' }}>Plan Limits</p>
