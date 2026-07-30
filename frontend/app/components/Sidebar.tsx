@@ -177,7 +177,7 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <aside style={{
-      position: 'fixed', left: 0, top: 0, height: '100vh', width: '224px',
+      position: 'fixed', left: 0, top: 0, height: '100dvh', maxHeight: '100vh', width: '224px',
       display: 'flex', flexDirection: 'column', zIndex: 30,
       background: sbg, borderRight: `1px solid ${b}`,
       transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.25s ease',
@@ -217,7 +217,7 @@ export default function Sidebar() {
       </nav>
 
       {/* FOOTER */}
-      <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}` }}>
+      <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}`, flexShrink: 0, maxHeight: '48vh', overflowY: 'auto' }}>
         <button onClick={() => setDark(!dark)}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '8px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
@@ -280,7 +280,7 @@ export default function Sidebar() {
           position: 'fixed', top: 0, left: 0, right: 0, height: '52px',
           background: sbg, borderBottom: `1px solid ${b}`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px', zIndex: 20,
+          padding: '0 16px', zIndex: 40,
         }}>
           <button onClick={() => setMobileOpen(true)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: tm, padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>

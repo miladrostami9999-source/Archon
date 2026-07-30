@@ -212,97 +212,153 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
 
 /* ══════════ RESPONSIVE ══════════ */
 @media(max-width:900px){
-  /* Header: the desktop row overflowed on phones — shrink everything and let
-     the brand truncate rather than pushing the CTA off-screen. */
-  header.top-nav{height:56px;padding:0 14px;gap:8px;}
-  .brand{font-size:14px;gap:7px;min-width:0;}
-  .brand-mark-sm{width:24px;height:24px;font-size:11px;flex-shrink:0;}
-  .nav-right{gap:6px;flex-shrink:0;}
-  .icon-btn{width:32px;height:32px;font-size:13px;}
-  .nav-right .btn{padding:8px 12px;font-size:12.5px;border-radius:9px;}
+  /* Goal: every floor fits one screen, like desktop — no scrolling. The budget
+     is roughly 100vh minus the 52px header and the ~104px nav bar, so type and
+     card padding shrink and the denser floors go to two columns. */
+  header.top-nav{height:52px;padding:0 12px;gap:6px;}
+  .brand{font-size:13.5px;gap:6px;min-width:0;}
+  .brand-mark-sm{width:23px;height:23px;font-size:10.5px;flex-shrink:0;}
+  .nav-right{gap:5px;flex-shrink:0;}
+  .icon-btn{width:29px;height:29px;font-size:12px;}
+  .nav-right .btn{padding:7px 10px;font-size:12px;border-radius:8px;}
 
-  /* Floors: start content at the top instead of centring it in a tall box —
-     centring left a large dead gap above the hero on short screens. */
-  .floor{top:56px;bottom:132px;padding:18px 18px 8px;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .floor{top:52px;bottom:104px;padding:10px 14px;align-items:center;overflow:hidden;}
   .floor-inner{max-width:100%;}
-  .f-eyebrow{font-size:10.5px;padding:6px 12px;margin-bottom:14px;letter-spacing:.06em;}
+  .f-eyebrow{font-size:9.5px;padding:4px 10px;margin-bottom:9px;letter-spacing:.05em;gap:6px;}
+  .f-eyebrow .dot{width:5px;height:5px;}
 
-  #floor-1 .floor-inner{grid-template-columns:1fr;gap:20px;}
-  .hero-visual-sm{max-width:200px;margin:0 auto;order:-1;}
-  #floor-1 h1{font-size:27px;line-height:1.22;margin-bottom:12px;}
-  body.lang-fa #floor-1 h1{font-size:23px;line-height:1.5;}
-  #floor-1 p.lead{font-size:14.5px;margin-bottom:20px;line-height:1.7;}
-  body.lang-fa #floor-1 p.lead{font-size:14.5px;line-height:1.9;}
-  #floor-1 .btn-lg{padding:11px 18px;font-size:13.5px;}
+  /* FLOOR 1 — hero */
+  #floor-1 .floor-inner{grid-template-columns:1fr;gap:12px;}
+  .hero-visual-sm{max-width:150px;margin:0 auto;order:-1;}
+  #floor-1 h1{font-size:25px;line-height:1.2;margin-bottom:9px;}
+  body.lang-fa #floor-1 h1{font-size:21px;line-height:1.45;}
+  #floor-1 p.lead{font-size:13.5px;margin-bottom:14px;line-height:1.6;}
+  body.lang-fa #floor-1 p.lead{font-size:13.5px;line-height:1.85;}
+  #floor-1 .btn-lg{padding:10px 16px;font-size:13px;}
 
-  #floor-2 .f-title,#floor-3 .f-title,#floor-4 .f-title,#floor-5 .f-title,#floor-6 .f-title{font-size:22px;margin-bottom:16px;line-height:1.3;}
-  body.lang-fa #floor-2 .f-title,body.lang-fa #floor-3 .f-title,body.lang-fa #floor-4 .f-title,body.lang-fa #floor-5 .f-title,body.lang-fa #floor-6 .f-title{font-size:19px;line-height:1.55;}
-  #floor-3 .f-sub,#floor-5 .f-sub,#floor-6 .f-sub{font-size:13.5px;margin-bottom:16px;}
+  /* Shared section headings */
+  #floor-2 .f-title,#floor-3 .f-title,#floor-4 .f-title,#floor-5 .f-title,#floor-6 .f-title{font-size:19px;margin-bottom:10px;line-height:1.25;letter-spacing:-.01em;}
+  body.lang-fa #floor-2 .f-title,body.lang-fa #floor-3 .f-title,body.lang-fa #floor-4 .f-title,body.lang-fa #floor-5 .f-title,body.lang-fa #floor-6 .f-title{font-size:16.5px;line-height:1.5;}
+  #floor-3 .f-sub,#floor-5 .f-sub,#floor-6 .f-sub{font-size:12px;margin-bottom:10px;line-height:1.45;}
 
-  .problem-grid{grid-template-columns:1fr 1fr;}
-  .problem-cell{padding:14px 12px;}
-  .problem-cell strong{font-size:14px;}
-  .problem-cell p{font-size:12.5px;}
+  /* FLOOR 2 — problem: 2x2 keeps all four visible */
+  .problem-grid{grid-template-columns:1fr 1fr;border-radius:11px;}
+  .problem-cell{padding:10px 9px;}
+  .problem-cell .num{font-size:9.5px;margin-bottom:5px;}
+  .problem-cell strong{font-size:12.5px;margin-bottom:4px;}
+  .problem-cell p{font-size:11px;line-height:1.4;}
 
-  .feat-grid{grid-template-columns:1fr 1fr;gap:9px;}
-  .feat-card{padding:12px;}
-  .feat-card h3{font-size:13.5px;}
-  .feat-card p{font-size:12px;}
-  .feat-icon{width:28px;height:28px;margin-bottom:8px;}
+  /* FLOOR 3 — toolkit: 2 cols x 3 rows */
+  .feat-grid{grid-template-columns:1fr 1fr;gap:7px;}
+  .feat-card{padding:9px 8px;border-radius:10px;}
+  .feat-icon{width:22px;height:22px;margin-bottom:6px;border-radius:7px;}
+  .feat-icon svg{width:12px;height:12px;}
+  .feat-card h3{font-size:11.5px;margin-bottom:3px;line-height:1.25;}
+  .feat-card p{font-size:10.5px;line-height:1.35;}
 
+  /* FLOOR 4 — steps */
   .steps{max-width:100%;}
-  .step{gap:13px;padding-bottom:16px;}
-  .step h4{font-size:15px;}
-  .step p{font-size:13px;}
+  .step{gap:10px;padding-bottom:11px;}
+  .step::before{left:13px;top:29px;}
+  html[dir="rtl"] .step::before{left:auto;right:13px;}
+  .step-num{width:27px;height:27px;font-size:10.5px;border-radius:8px;}
+  .step h4{font-size:13.5px;margin-bottom:2px;}
+  .step p{font-size:11.5px;line-height:1.35;}
 
-  .mp-grid{grid-template-columns:1fr;gap:10px;}
-  .mp-card{padding:16px;}
+  /* FLOOR 5 — marketplace */
+  .mp-grid{grid-template-columns:1fr;gap:8px;}
+  .mp-card{padding:11px 12px;border-radius:12px;}
+  .mp-role{margin-bottom:6px;gap:8px;}
+  .mp-role-icon{width:26px;height:26px;font-size:12px;border-radius:7px;}
+  .mp-card h3{font-size:13px;}
+  .mp-card p{font-size:11.5px;line-height:1.45;margin-bottom:7px;}
+  .mp-list{gap:3px;}
+  .mp-list li{font-size:11px;gap:5px;}
+  .badge-soon{font-size:7.5px;padding:1px 5px;}
 
-  .price-grid{grid-template-columns:1fr;gap:10px;max-width:340px;margin:0 auto;}
-  .price-card{padding:16px;}
-  .plan-price{font-size:27px;margin-bottom:10px;}
-  .plan-features li{font-size:13px;}
+  /* FLOOR 6 — pricing: the tallest floor. Name and price share a row and the
+     feature list is trimmed to two items so all three plans plus the trial
+     line fit without scrolling, in English and the taller Persian text. */
+  #floor-6 .f-title{font-size:17px;margin-bottom:6px;}
+  body.lang-fa #floor-6 .f-title{font-size:15.5px;}
+  #floor-6 .f-sub{font-size:11px;margin-bottom:8px;}
+  #floor-6 .f-eyebrow{margin-bottom:7px;}
+  .price-grid{grid-template-columns:1fr;gap:6px;max-width:330px;margin:0 auto;}
+  .price-card{padding:9px 11px;border-radius:10px;}
+  .plan-name{font-size:9px;margin-bottom:0;}
+  .plan-price{font-size:17px;margin-bottom:5px;}
+  .plan-price span{font-size:10px;}
+  .plan-features{gap:2px;margin-bottom:6px;}
+  .plan-features li{font-size:10.5px;gap:5px;}
+  .plan-features li:nth-child(3){display:none;}
+  .plan-features li svg{width:9px;height:9px;margin-top:1px;}
+  .price-card .btn{padding:7px 12px;font-size:11.5px;}
+  .f-badge{font-size:7.5px;padding:2px 8px;top:-7px;}
+  /* name left, price right — saves a whole line per card */
+  .price-card{display:grid;grid-template-areas:'name price' 'feat feat' 'cta cta';grid-template-columns:1fr auto;align-items:baseline;column-gap:8px;}
+  .plan-name{grid-area:name;}
+  .plan-price{grid-area:price;}
+  .plan-features{grid-area:feat;}
+  .price-card .btn{grid-area:cta;}
 
-  /* Workflow nav: labels and descriptions don't fit, so keep just the numbered
-     steps and the arrows. */
-  .workflow-bar{bottom:26px;gap:6px;}
+  /* Workflow nav: numbers and arrows only */
+  .workflow-bar{bottom:22px;gap:5px;}
   .workflow-track{padding:0 4px;}
   .wf-node{width:auto;}
-  .wf-desc{display:none;}
-  .wf-label{display:none;}
-  .wf-circle{width:34px;height:34px;font-size:12px;border-width:1.5px;}
-  .wf-node.active .wf-circle{transform:scale(1.22);box-shadow:0 0 0 4px var(--line-dim),0 4px 14px rgba(79,123,247,.4);}
-  .wf-line{top:17px;left:34px;right:34px;}
-  html[dir="rtl"] .wf-line{left:34px;right:34px;}
-  .wf-arrow svg{width:20px;height:20px;}
-  .wf-arrows{gap:26px;}
+  .wf-desc,.wf-label{display:none;}
+  .wf-circle{width:31px;height:31px;font-size:11px;border-width:1.5px;}
+  .wf-node.active .wf-circle{transform:scale(1.2);box-shadow:0 0 0 4px var(--line-dim),0 4px 12px rgba(79,123,247,.4);}
+  .wf-line{top:15px;left:31px;right:31px;}
+  html[dir="rtl"] .wf-line{left:31px;right:31px;}
+  .wf-arrow svg{width:19px;height:19px;}
+  .wf-arrows{gap:24px;}
 
-  #langGate{gap:30px;padding:24px;}
-  .gate-cards{flex-direction:column;gap:14px;width:100%;max-width:280px;}
-  .gate-card{width:100%;padding:22px 20px;}
-  .gate-flag{font-size:30px;margin-bottom:10px;}
-  .gate-card h3{font-size:17px;}
-  .gate-brand{font-size:18px;}
-  .gate-hint{font-size:11px;text-align:center;padding:0 20px;}
+  #langGate{gap:26px;padding:22px;}
+  .gate-cards{flex-direction:column;gap:12px;width:100%;max-width:270px;}
+  .gate-card{width:100%;padding:18px 20px;}
+  .gate-flag{font-size:26px;margin-bottom:8px;}
+  .gate-card h3{font-size:16px;}
+  .gate-card p{font-size:11.5px;}
+  .gate-brand{font-size:17px;}
+  .gate-hint{font-size:10.5px;text-align:center;padding:0 16px;}
 }
 @media(max-width:560px){
   .brand span:not(.brand-mark-sm){display:none;}   /* keep just the mark */
-  .problem-grid{grid-template-columns:1fr;}
-  .feat-grid{grid-template-columns:1fr;}
-  .floor{bottom:120px;padding:14px 14px 8px;}
-  #floor-1 h1{font-size:24px;}
-  body.lang-fa #floor-1 h1{font-size:21px;}
-  .wf-circle{width:30px;height:30px;font-size:11px;}
-  .wf-line{top:15px;left:30px;right:30px;}
-  html[dir="rtl"] .wf-line{left:30px;right:30px;}
-  .wf-arrows{gap:22px;}
+  #floor-1 h1{font-size:23px;}
+  body.lang-fa #floor-1 h1{font-size:20px;}
+  .hero-visual-sm{max-width:132px;}
+  .feat-card p{font-size:10px;}
+  .wf-circle{width:29px;height:29px;font-size:10.5px;}
+  .wf-line{top:14px;left:29px;right:29px;}
+  html[dir="rtl"] .wf-line{left:29px;right:29px;}
+  .wf-arrows{gap:20px;}
 }
-/* Short landscape phones: reclaim the space the nav bar reserves */
-@media(max-height:520px){
-  .floor{bottom:96px;}
-  .workflow-bar{bottom:14px;}
-  .wf-circle{width:28px;height:28px;font-size:10.5px;}
-  .wf-line{top:14px;left:28px;right:28px;}
+/* Short screens (small or landscape phones): trim the fixed chrome, and cut
+   the pricing floor down further — it's the tallest and overflowed in Persian
+   on a 360x640 device. */
+@media(max-height:700px){
+  .floor{bottom:88px;padding:8px 12px;}
+  .workflow-bar{bottom:12px;}
+  .wf-circle{width:27px;height:27px;font-size:10px;}
+  .wf-line{top:13px;left:27px;right:27px;}
+  html[dir="rtl"] .wf-line{left:27px;right:27px;}
+  #floor-1 h1{font-size:21px;}
+  .hero-visual-sm{max-width:110px;}
+
+  #floor-6 .f-eyebrow{display:none;}
+  #floor-6 .f-sub{display:none;}
+  #floor-6 .f-title{font-size:15px;margin-bottom:6px;}
+  body.lang-fa #floor-6 .f-title{font-size:14px;}
+  .price-grid{gap:5px;}
+  .price-card{padding:7px 10px;}
+  .plan-price{font-size:15.5px;margin-bottom:4px;}
+  .plan-features li{font-size:10px;}
+  .plan-features li:nth-child(2){display:none;}   /* keep one headline feature */
+  .price-card .btn{padding:6px 10px;font-size:11px;}
+
+  #floor-3 .f-sub,#floor-5 .f-sub{display:none;}
+  .feat-card{padding:7px;}
+  .feat-card p{font-size:9.5px;}
 }
 @media(prefers-reduced-motion:reduce){
   .bp-line{stroke-dashoffset:0;animation:none;}

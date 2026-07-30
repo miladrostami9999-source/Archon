@@ -387,7 +387,7 @@ export default function CompanyDetail() {
       )}
 
       {/* MAIN */}
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, height: '100vh', overflow: 'hidden' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflow: 'hidden' }}>
 
         {/* TOP BAR */}
         <div style={{

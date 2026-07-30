@@ -224,10 +224,10 @@ export default function AdminPanel() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, paddingTop: isMobile ? '52px' : 0, height: '100vh', overflowY: 'auto' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
 
         {/* STICKY HEADER */}
-        <div style={{ position: 'sticky', top: isMobile ? '52px' : 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', transition: 'background 0.25s' }}>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Platform management and system tools</p>

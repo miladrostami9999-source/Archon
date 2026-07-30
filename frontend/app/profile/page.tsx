@@ -430,7 +430,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0, height: '100vh', overflowY: 'auto' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
 
           {/* PROFILE HERO */}
