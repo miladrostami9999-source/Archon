@@ -122,6 +122,29 @@ def _purge_user_data(db: Session, user: User):
     db.flush()
 
 
+def activate_plan(db: Session, user: User, plan: str | None = None):
+    """Mark a plan paid-for and start a fresh period."""
+    from app.services.limits import get_plan_limit
+    if plan:
+        user.plan = plan
+    now = datetime.utcnow()
+    user.plan_status = "active"
+    user.plan_started_at = now
+    user.plan_expires_at = now + timedelta(days=get_plan_limit(db, user.plan)["period_days"])
+    return user
+
+
+def require_active_plan(current_user: User = Depends(get_current_user)) -> User:
+    """Gate for features that consume quota. A pending account can sign in and
+    look around, but can't add companies or send email until payment clears."""
+    if current_user.role != "admin" and current_user.plan_status == "pending":
+        raise HTTPException(
+            status_code=403,
+            detail="Your plan is awaiting confirmation. You can explore Archon meanwhile — this unlocks once we confirm your payment.",
+        )
+    return current_user
+
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -181,6 +204,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "plan": current_user.plan, "is_active": current_user.is_active,
         "created_at": current_user.created_at, "last_login": current_user.last_login,
         "plan_expires_at": current_user.plan_expires_at.isoformat() if current_user.plan_expires_at else None,
+        "plan_status": current_user.plan_status or "active",
         "limits": limits,
     }
 
@@ -202,6 +226,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
     return [{
         "id": u.id, "name": u.name, "email": u.email,
         "role": u.role, "plan": u.plan, "is_active": u.is_active,
+        "plan_status": u.plan_status or "active",
         "created_at": u.created_at, "last_login": u.last_login,
     } for u in users]
 
@@ -232,11 +257,7 @@ def update_user(
     if data.plan is not None:
         # Setting a plan (even re-selecting the same one) acts as a renewal:
         # a fresh billing window is stamped so an expired user regains access.
-        from app.services.limits import get_plan_limit
-        user.plan = data.plan
-        now = datetime.utcnow()
-        user.plan_started_at = now
-        user.plan_expires_at = now + timedelta(days=get_plan_limit(db, data.plan)["period_days"])
+        activate_plan(db, user, data.plan)
     if data.is_active is not None: user.is_active = data.is_active
     db.commit()
     return {"message": "User updated"}
@@ -520,9 +541,7 @@ def approve_payment(request_id: int, admin: User = Depends(require_admin), db: S
         raise HTTPException(status_code=404, detail="User not found")
 
     now = datetime.utcnow()
-    user.plan = pr.plan
-    user.plan_started_at = now
-    user.plan_expires_at = now + timedelta(days=get_plan_limit(db, pr.plan)["period_days"])
+    activate_plan(db, user, pr.plan)
     pr.status = "approved"
     pr.reviewed_at = now
     db.commit()
@@ -802,56 +821,50 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     if existing:
         return {"message": "You're already on the list — we'll be in touch soon.", "already": True}
 
-    # Self-serve plans get an account immediately. Per-user data is isolated
-    # and quotas are enforced, so instant access is safe — but paid plans
-    # still go through the waitlist until Stripe can actually charge for them.
-    if (req.plan or "basic") in SELF_SERVE_PLANS:
-        from app.services.limits import get_plan_limit
-        plan = req.plan or "trial"
-        now = datetime.utcnow()
-        user = User(
-            name=req.name.strip(),
-            email=email,
-            password_hash=hash_password(req.password),
-            plan=plan,
-            role="member",
-            is_active=True,
-            plan_started_at=now,
-            plan_expires_at=now + timedelta(days=get_plan_limit(db, plan)["period_days"]),
-        )
-        db.add(user)
-        # Record it as an approved waitlist entry too, so the admin still has
-        # one place to see everyone who signed up.
-        db.add(WaitlistEntry(
-            name=user.name, email=email, password_hash=user.password_hash, plan=plan,
-            company=(req.company or "").strip() or None,
-            note=(req.note or "").strip() or None,
-            status="approved",
-        ))
-        db.commit()
-        db.refresh(user)
-        _notify_admin_signup(user.name, email, plan, req.company, req.note, instant=True)
-        return {
-            "message": "Your account is ready — signing you in…",
-            "already": False,
-            "instant": True,
-            "token": create_token({"user_id": user.id, "email": user.email, "role": user.role}),
-            "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "plan": user.plan},
-        }
+    # Everyone gets an account and can sign in straight away — per-user data is
+    # isolated, so exploring is harmless. The free trial is usable immediately;
+    # paid plans start "pending" and unlock quota features once an admin
+    # confirms payment, which keeps them from getting a paid tier for free.
+    from app.services.limits import get_plan_limit
+    plan = req.plan or "basic"
+    instant_use = plan in SELF_SERVE_PLANS
+    now = datetime.utcnow()
 
-    entry = WaitlistEntry(
+    user = User(
         name=req.name.strip(),
         email=email,
         password_hash=hash_password(req.password),
-        plan=(req.plan or "basic"),
+        plan=plan,
+        role="member",
+        is_active=True,
+        plan_status="active" if instant_use else "pending",
+        plan_started_at=now if instant_use else None,
+        plan_expires_at=now + timedelta(days=get_plan_limit(db, plan)["period_days"]) if instant_use else None,
+    )
+    db.add(user)
+    # Mirror into the waitlist so the admin has one list of every signup, with
+    # paid plans left pending for approval.
+    db.add(WaitlistEntry(
+        name=user.name, email=email, password_hash=user.password_hash, plan=plan,
         company=(req.company or "").strip() or None,
         note=(req.note or "").strip() or None,
-    )
-    db.add(entry)
+        status="approved" if instant_use else "pending",
+    ))
     db.commit()
+    db.refresh(user)
 
-    _notify_admin_signup(entry.name, entry.email, entry.plan, entry.company, entry.note, instant=False)
-    return {"message": "You're on the list! We'll email you when your account is ready.", "already": False}
+    _notify_admin_signup(user.name, email, plan, req.company, req.note, instant=instant_use)
+    return {
+        "message": (
+            "Your account is ready — signing you in…" if instant_use
+            else "Your account is ready. You can explore now; we'll unlock your plan once payment is confirmed."
+        ),
+        "already": False,
+        "instant": True,
+        "plan_status": user.plan_status,
+        "token": create_token({"user_id": user.id, "email": user.email, "role": user.role}),
+        "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "plan": user.plan},
+    }
 
 
 @router.get("/waitlist")
@@ -880,10 +893,37 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
     if not entry:
         raise HTTPException(status_code=404, detail="Waitlist entry not found")
 
-    if db.query(User).filter(User.email == entry.email).first():
+    # Signups now create the account up front, so approving usually means
+    # activating an existing pending user rather than creating one.
+    existing = db.query(User).filter(User.email == entry.email).first()
+    if existing:
+        activate_plan(db, existing, entry.plan or existing.plan)
         entry.status = "approved"
         db.commit()
-        raise HTTPException(status_code=400, detail="A user with this email already exists.")
+        login_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + "/login"
+        emailed = False
+        try:
+            send_email(
+                to_email=existing.email,
+                subject="Your Archon plan is active",
+                html_body=(
+                    f"<p>Hi {existing.name},</p>"
+                    f"<p>Your <strong>{existing.plan}</strong> plan is now active — everything is unlocked.</p>"
+                    f"<p><a href=\"{login_url}\">Open Archon</a></p>"
+                    f"<p>— Archon, by Armila Design</p>"
+                ),
+                text_body=f"Your {existing.plan} plan is now active. {login_url}",
+            )
+            emailed = True
+        except Exception as e:
+            print(f"Activation email failed: {e}")
+        return {
+            "message": "Plan activated",
+            "user_id": existing.id,
+            "email": existing.email,
+            "temp_password": None,
+            "emailed": emailed,
+        }
 
     # Prefer the password the user set at signup; only generate one for old
     # entries created before signup collected a password.

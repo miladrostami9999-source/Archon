@@ -55,6 +55,9 @@ class User(Base):
     # ── SUBSCRIPTION ──
     plan_started_at = Column(DateTime)  # when the current plan period began
     plan_expires_at = Column(DateTime)  # access is blocked past this (null = no expiry, e.g. admin)
+    # "active" = plan is paid for/granted. "pending" = the account exists and can
+    # explore the app, but quota features stay locked until an admin approves.
+    plan_status     = Column(String, default="active")
 
 # ─────────────────────────────────────────
 # TABLE 2 — COMPANIES
@@ -398,6 +401,10 @@ def init_db():
                 if col not in user_cols:
                     conn.execute(_text(f"ALTER TABLE users ADD COLUMN {col} TIMESTAMP"))
                     conn.commit()
+            if "plan_status" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN plan_status VARCHAR DEFAULT 'active'"))
+                conn.execute(_text("UPDATE users SET plan_status = 'active' WHERE plan_status IS NULL"))
+                conn.commit()
             if _inspector.has_table("waitlist"):
                 waitlist_cols = [c["name"] for c in _inspector.get_columns("waitlist")]
                 if "password_hash" not in waitlist_cols:

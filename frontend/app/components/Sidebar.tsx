@@ -178,20 +178,21 @@ export default function Sidebar() {
   const SidebarContent = () => (
     <aside style={{
       position: 'fixed', left: 0, top: 0, height: '100dvh', maxHeight: '100vh', width: '224px',
-      display: 'flex', flexDirection: 'column', zIndex: 30,
+      display: 'flex', flexDirection: 'column', zIndex: 50,
       background: sbg, borderRight: `1px solid ${b}`,
       transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.25s ease',
       transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
     }}>
       {/* LOGO */}
       <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <a href="/dashboard" onClick={() => setMobileOpen(false)}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', boxShadow: '0 2px 8px rgba(79,123,247,0.35)', flexShrink: 0 }}>A</div>
           <div>
             <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0 }}>Archon</p>
             <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
           </div>
-        </div>
+        </a>
         {/* Close button on mobile */}
         {isMobile && (
           <button onClick={() => setMobileOpen(false)}
@@ -286,10 +287,10 @@ export default function Sidebar() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: tm, padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             <HamburgerIcon />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
             <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
             <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
-          </div>
+          </a>
           {/* Account menu — logout used to live only at the bottom of the drawer,
               which was easy to miss on a phone. */}
           <div style={{ position: 'relative' }}>
@@ -341,7 +342,7 @@ export default function Sidebar() {
       {/* OVERLAY */}
       {isMobile && mobileOpen && (
         <div onClick={() => setMobileOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 25 }} />
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 45 }} />
       )}
 
       {/* SIDEBAR */}

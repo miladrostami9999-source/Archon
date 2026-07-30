@@ -36,10 +36,34 @@ function Meter({ label, used, limit, remaining, unit }: { label: string; used: n
 
 export default function UsageWidget() {
   const [u, setU] = useState<Usage | null>(null)
+  const [pending, setPending] = useState(false)
 
   useEffect(() => {
     axios.get(`${API}/auth/usage`).then(r => setU(r.data)).catch(() => {})
+    axios.get(`${API}/auth/me`).then(r => setPending(r.data.plan_status === 'pending')).catch(() => {})
   }, [])
+
+  // Paid signups can sign in and explore right away, but quota features stay
+  // locked until payment is confirmed — say so rather than letting them hit
+  // a 403 with no explanation.
+  if (pending) {
+    return (
+      <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(251,191,36,0.08)', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '18px' }}>⏳</span>
+        <div style={{ flex: 1, minWidth: '220px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', margin: 0 }}>
+            Your {u?.plan || 'plan'} plan is awaiting confirmation
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+            Look around as much as you like. Adding companies and sending email unlock once we confirm your payment.
+          </p>
+        </div>
+        <a href="/upgrade" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          Complete payment
+        </a>
+      </div>
+    )
+  }
 
   if (!u) return null
   // Nothing useful to show if everything is unlimited (e.g. admin/agency)

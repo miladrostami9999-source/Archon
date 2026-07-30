@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.models.database import get_db, Company, History, User, UserCompanyState
-from app.routers.auth import get_current_user, require_admin
+from app.routers.auth import get_current_user, require_admin, require_active_plan
 from .schemas import CompanyCreate, CompanyUpdate
 from .utils import (
     to_dict, calculate_score, company_to_dict, get_or_create_state,
@@ -106,7 +106,7 @@ def get_company(company_id: int, current_user: User = Depends(get_current_user),
 
 
 @router.post("/")
-def create_company(data: CompanyCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_company(data: CompanyCreate, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     from app.services.limits import can_add_company, get_plan_limit
     if not can_add_company(db, current_user):
         cap = get_plan_limit(db, current_user.plan)["max_companies"]
@@ -181,7 +181,7 @@ def _guard_new_engagement(db, user, company_id):
 
 
 @router.patch("/{company_id}/status")
-def update_status(company_id: int, status: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_status(company_id: int, status: str, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -201,7 +201,7 @@ def update_status(company_id: int, status: str, current_user: User = Depends(get
 
 
 @router.patch("/{company_id}/favorite")
-def toggle_favorite(company_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def toggle_favorite(company_id: int, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")

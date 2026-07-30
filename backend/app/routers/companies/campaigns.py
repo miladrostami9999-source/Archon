@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.models.database import get_db, Company, Campaign, History, User
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, require_active_plan
 from app.services.claude import generate_email as claude_generate_email
 from .schemas import EmailRequest
 from .utils import to_dict
@@ -45,7 +45,7 @@ def update_campaign(company_id: int, campaign_id: int, status: str, current_user
 
 
 @router.post("/{company_id}/generate-email")
-def gen_email(company_id: int, data: EmailRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def gen_email(company_id: int, data: EmailRequest, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
