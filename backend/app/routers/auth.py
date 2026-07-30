@@ -326,12 +326,25 @@ def get_billing_plans(current_user: User = Depends(get_current_user), db: Sessio
         key=lambda p: order.index(p["plan"]) if p["plan"] in order else 99,
     )
     settings = {s.key: s.value for s in db.query(AppSetting).all()}
+    from app.services.exchange import get_usd_to_toman
     return {
         "current_plan": current_user.plan,
         "plans": plans,
         "instructions_en": settings.get("payment_instructions_en", ""),
         "instructions_fa": settings.get("payment_instructions_fa", ""),
+        "card_number": settings.get("pay_card_number", ""),
+        "card_holder": settings.get("pay_card_holder", ""),
+        "paypal_email": settings.get("pay_paypal_email", ""),
+        "exchange": get_usd_to_toman(db),
     }
+
+
+@router.get("/billing/exchange-rate")
+def exchange_rate(refresh: bool = False, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Live USD→Toman rate so Toman prices track the market instead of being
+    stale numbers typed in by hand."""
+    from app.services.exchange import get_usd_to_toman
+    return get_usd_to_toman(db, force=refresh)
 
 
 class PaymentRequestCreate(BaseModel):
@@ -340,6 +353,7 @@ class PaymentRequestCreate(BaseModel):
     currency: str = "IRR"
     method: Optional[str] = None
     reference: Optional[str] = None
+    receipt_url: Optional[str] = None
     note: Optional[str] = None
 
 
@@ -364,10 +378,29 @@ def create_payment_request(data: PaymentRequestCreate, current_user: User = Depe
         currency=(data.currency or "IRR").upper(),
         method=(data.method or "").strip() or None,
         reference=data.reference.strip(),
+        receipt_url=(data.receipt_url or "").strip() or None,
         note=(data.note or "").strip() or None,
     )
     db.add(pr)
     db.commit()
+
+    # Confirm to the payer that we have it and it's being checked
+    try:
+        send_email(
+            to_email=current_user.email,
+            subject="We received your payment — verifying now",
+            html_body=(
+                f"<p>Hi {current_user.name},</p>"
+                f"<p>Thanks — we've received your payment details for the "
+                f"<strong>{data.plan}</strong> plan and are verifying them now. "
+                f"You'll get another email the moment your plan is active (usually within a few hours).</p>"
+                f"<p>Reference: {pr.reference}</p>"
+                f"<p>— Archon, by Armila Design</p>"
+            ),
+            text_body=f"We received your payment for the {data.plan} plan (ref {pr.reference}) and are verifying it.",
+        )
+    except Exception as e:
+        print(f"Payer confirmation email failed: {e}")
 
     admin_email = os.getenv("ADMIN_NOTIFY_EMAIL") or os.getenv("RESEND_FROM_EMAIL")
     if admin_email:
@@ -409,6 +442,7 @@ def list_payment_requests(admin: User = Depends(require_admin), db: Session = De
     return [{
         "id": r.id, "plan": r.plan, "amount": r.amount, "currency": r.currency,
         "method": r.method, "reference": r.reference, "note": r.note,
+        "receipt_url": r.receipt_url,
         "status": r.status, "created_at": r.created_at,
         "user_name": users[r.user_id].name if r.user_id in users else "—",
         "user_email": users[r.user_id].email if r.user_id in users else "—",
@@ -489,19 +523,34 @@ def get_payment_settings(admin: User = Depends(require_admin), db: Session = Dep
     return {
         "instructions_en": settings.get("payment_instructions_en", ""),
         "instructions_fa": settings.get("payment_instructions_fa", ""),
+        "card_number": settings.get("pay_card_number", ""),
+        "card_holder": settings.get("pay_card_holder", ""),
+        "paypal_email": settings.get("pay_paypal_email", ""),
+        "manual_rate": settings.get("usd_toman_rate_manual", ""),
     }
 
 
 class PaymentSettingsUpdate(BaseModel):
     instructions_en: str
     instructions_fa: str
+    card_number: Optional[str] = None
+    card_holder: Optional[str] = None
+    paypal_email: Optional[str] = None
+    manual_rate: Optional[str] = None
 
 
 @router.put("/settings/payment")
 def update_payment_settings(data: PaymentSettingsUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     from app.models.database import AppSetting
-    for key, value in (("payment_instructions_en", data.instructions_en),
-                       ("payment_instructions_fa", data.instructions_fa)):
+    pairs = [("payment_instructions_en", data.instructions_en),
+             ("payment_instructions_fa", data.instructions_fa)]
+    for key, value in (("pay_card_number", data.card_number),
+                       ("pay_card_holder", data.card_holder),
+                       ("pay_paypal_email", data.paypal_email),
+                       ("usd_toman_rate_manual", data.manual_rate)):
+        if value is not None:
+            pairs.append((key, value.strip()))
+    for key, value in pairs:
         row = db.query(AppSetting).filter(AppSetting.key == key).first()
         if not row:
             row = AppSetting(key=key)
@@ -873,6 +922,30 @@ async def upload_image(
     content = await file.read()
     try:
         url = storage.upload_image(content, file.content_type or "", prefix=f"users/{current_user.id}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+    return {"url": url}
+
+
+@router.post("/upload/receipt")
+async def upload_receipt(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Proof-of-payment upload. Accepts PDFs as well as images, since receipts
+    are often exported as documents."""
+    if not storage.is_configured():
+        raise HTTPException(status_code=503, detail="File storage is not configured on the server")
+
+    content = await file.read()
+    try:
+        url = storage.upload_image(
+            content, file.content_type or "",
+            prefix=f"receipts/{current_user.id}", allow_documents=True,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

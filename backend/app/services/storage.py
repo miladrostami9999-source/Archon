@@ -12,6 +12,9 @@ ALLOWED_CONTENT_TYPES = {
     "image/webp": "webp",
     "image/gif": "gif",
 }
+# Payment receipts are often exported as PDFs, so those are allowed too — but
+# only where a document makes sense, not for avatars/portfolio images.
+DOCUMENT_CONTENT_TYPES = {"application/pdf": "pdf"}
 MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024  # 8 MB per image
 
 
@@ -34,8 +37,9 @@ def _client():
     )
 
 
-def upload_image(file_bytes: bytes, content_type: str, prefix: str = "uploads") -> str:
-    """Upload an image to R2 and return its public URL.
+def upload_image(file_bytes: bytes, content_type: str, prefix: str = "uploads",
+                 allow_documents: bool = False) -> str:
+    """Upload a file to R2 and return its public URL.
 
     Raises ValueError for validation problems (unsupported type / too big)
     so the caller can turn them into a 400.
@@ -43,9 +47,12 @@ def upload_image(file_bytes: bytes, content_type: str, prefix: str = "uploads") 
     if not is_configured():
         raise RuntimeError("R2 storage is not configured on the server")
 
-    ext = ALLOWED_CONTENT_TYPES.get(content_type)
+    allowed = dict(ALLOWED_CONTENT_TYPES)
+    if allow_documents:
+        allowed.update(DOCUMENT_CONTENT_TYPES)
+    ext = allowed.get(content_type)
     if not ext:
-        raise ValueError(f"Unsupported image type: {content_type}")
+        raise ValueError(f"Unsupported file type: {content_type}")
 
     if len(file_bytes) > MAX_FILE_SIZE_BYTES:
         raise ValueError(

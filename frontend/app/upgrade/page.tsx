@@ -32,6 +32,11 @@ export default function UpgradePage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [current, setCurrent] = useState('')
   const [instructions, setInstructions] = useState({ en: '', fa: '' })
+  const [pay, setPay] = useState({ card_number: '', card_holder: '', paypal_email: '' })
+  const [rate, setRate] = useState<{ rate: number | null; source: string } | null>(null)
+  const [receipt, setReceipt] = useState<{ url: string; name: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [copied, setCopied] = useState('')
   const [lang, setLang] = useState<'en' | 'fa'>('en')
   const [mine, setMine] = useState<MyRequest[]>([])
   const [selected, setSelected] = useState<Plan | null>(null)
@@ -44,10 +49,46 @@ export default function UpgradePage() {
     axios.get(`${API}/auth/billing/plans`).then(r => {
       setPlans(r.data.plans); setCurrent(r.data.current_plan)
       setInstructions({ en: r.data.instructions_en, fa: r.data.instructions_fa })
+      setPay({ card_number: r.data.card_number || '', card_holder: r.data.card_holder || '', paypal_email: r.data.paypal_email || '' })
+      setRate(r.data.exchange || null)
     }).catch(() => {})
     axios.get(`${API}/auth/billing/requests/mine`).then(r => setMine(r.data)).catch(() => {})
   }
   useEffect(load, [])
+
+  // Toman amounts follow the live USD rate rather than a hand-typed number
+  // that goes stale, but the field stays editable in case the user paid a
+  // slightly different amount.
+  const amountFor = (p: Plan, currency: string) => {
+    if (currency === 'USD') return p.price_usd ? String(p.price_usd) : ''
+    if (p.price_irr > 0) return String(p.price_irr)              // explicit Toman price wins
+    if (p.price_usd && rate?.rate) return String(Math.round(p.price_usd * rate.rate))
+    return ''
+  }
+
+  // Explicit Toman price if the admin set one, otherwise convert from USD live
+  const tomanFor = (p: Plan): number | null => {
+    if (p.price_irr > 0) return p.price_irr
+    if (p.price_usd && rate?.rate) return Math.round(p.price_usd * rate.rate)
+    return null
+  }
+
+  const changeCurrency = (currency: string) => {
+    setForm(f => ({ ...f, currency, amount: selected ? amountFor(selected, currency) : f.amount }))
+  }
+
+  const uploadReceipt = async (file: File) => {
+    setUploading(true); setError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await axios.post(`${API}/auth/upload/receipt`, fd)
+      setReceipt({ url: r.data.url, name: file.name })
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Could not upload the receipt.')
+    }
+    setUploading(false)
+  }
 
   const submit = async () => {
     if (!selected) return
@@ -60,11 +101,13 @@ export default function UpgradePage() {
         currency: form.currency,
         method: form.method,
         reference: form.reference,
+        receipt_url: receipt?.url || null,
         note: form.note,
       })
       setDone(r.data.message)
       setSelected(null)
       setForm({ currency: 'IRR', amount: '', method: '', reference: '', note: '' })
+      setReceipt(null)
       load()
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Something went wrong.')
@@ -120,13 +163,13 @@ export default function UpgradePage() {
                     {isCurrent && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: '#34D399', background: 'rgba(52,211,153,0.12)' }}>CURRENT</span>}
                   </div>
                   <div style={{ marginBottom: '10px' }}>
-                    {p.price_irr > 0 && (
+                    {tomanFor(p) !== null && (
                       <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>
-                        {fmt(p.price_irr)} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>Toman</span>
+                        {fmt(tomanFor(p)!)} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>Toman</span>
                       </div>
                     )}
                     {p.price_usd > 0 && (
-                      <div style={{ fontSize: p.price_irr > 0 ? '12.5px' : '18px', fontWeight: p.price_irr > 0 ? 500 : 800, color: p.price_irr > 0 ? 'var(--text-muted)' : 'var(--text)' }}>
+                      <div style={{ fontSize: tomanFor(p) !== null ? '12.5px' : '18px', fontWeight: tomanFor(p) !== null ? 500 : 800, color: tomanFor(p) !== null ? 'var(--text-muted)' : 'var(--text)' }}>
                         ${p.price_usd}
                       </div>
                     )}
@@ -140,7 +183,7 @@ export default function UpgradePage() {
                       ✓ {p.max_emails_per_month === -1 ? 'Unlimited' : p.max_emails_per_month} emails
                     </li>
                   </ul>
-                  <button onClick={() => { setSelected(p); setDone(''); setForm(f => ({ ...f, amount: String(p.price_irr > 0 ? p.price_irr : p.price_usd), currency: p.price_irr > 0 ? 'IRR' : 'USD' })) }}
+                  <button onClick={() => { setSelected(p); setDone(''); setForm(f => ({ ...f, currency: 'IRR', amount: amountFor(p, 'IRR') })) }}
                     disabled={!!pending}
                     style={{ width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.5 : 1 }}>
                     {isCurrent ? 'Renew' : 'Choose'}
@@ -168,6 +211,36 @@ export default function UpgradePage() {
                 </div>
               </div>
 
+              {(pay.card_number || pay.paypal_email) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {pay.card_number && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                      <div>
+                        <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Card to card (Iran)</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.06em', direction: 'ltr' }}>{pay.card_number}</div>
+                        {pay.card_holder && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{pay.card_holder}</div>}
+                      </div>
+                      <button onClick={() => { navigator.clipboard.writeText(pay.card_number); setCopied('card'); setTimeout(() => setCopied(''), 2000) }}
+                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', cursor: 'pointer' }}>
+                        {copied === 'card' ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  )}
+                  {pay.paypal_email && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'rgba(79,123,247,0.06)', border: '1px solid rgba(79,123,247,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                      <div>
+                        <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>PayPal</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', direction: 'ltr' }}>{pay.paypal_email}</div>
+                      </div>
+                      <button onClick={() => { navigator.clipboard.writeText(pay.paypal_email); setCopied('paypal'); setTimeout(() => setCopied(''), 2000) }}
+                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(79,123,247,0.3)', background: 'rgba(79,123,247,0.1)', color: '#60A5FA', cursor: 'pointer' }}>
+                        {copied === 'paypal' ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <pre style={{
                 whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '12.5px', lineHeight: 1.8,
                 color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)',
@@ -186,7 +259,7 @@ export default function UpgradePage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Currency</label>
-                  <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} style={input}>
+                  <select value={form.currency} onChange={e => changeCurrency(e.target.value)} style={input}>
                     <option value="IRR">Toman (IRR)</option>
                     <option value="USD">USD</option>
                   </select>
@@ -200,6 +273,31 @@ export default function UpgradePage() {
                   <input value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} style={input} placeholder="Receipt or tracking number" />
                 </div>
               </div>
+              {form.currency === 'IRR' && rate?.rate && (
+                <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '0 0 12px' }}>
+                  Converted at {fmt(rate.rate)} Toman / $1 (live · {rate.source}). Adjust the amount if you paid a different figure.
+                </p>
+              )}
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Payment receipt (optional)</label>
+                {receipt ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: '8px', padding: '10px 12px' }}>
+                    <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📎 {receipt.name}
+                    </a>
+                    <button onClick={() => setReceipt(null)}
+                      style={{ fontSize: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}>Remove</button>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px dashed var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '12.5px', cursor: uploading ? 'wait' : 'pointer' }}>
+                    <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} disabled={uploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.target.value = '' }} />
+                    {uploading ? 'Uploading…' : '📎 Attach a screenshot or PDF of the transfer'}
+                  </label>
+                )}
+              </div>
+
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Note (optional)</label>
                 <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={2} style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }} />

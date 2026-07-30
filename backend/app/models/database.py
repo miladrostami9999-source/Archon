@@ -251,6 +251,7 @@ class PaymentRequest(Base):
     currency    = Column(String, default="IRR")      # IRR (Toman) | USD
     method      = Column(String)                     # card-to-card, bank transfer, PayPal…
     reference   = Column(String)                     # tracking number / receipt id
+    receipt_url = Column(String)                     # uploaded proof of payment (R2)
     note        = Column(Text)
     status      = Column(String, default="pending", index=True)  # pending | approved | rejected
     admin_note  = Column(Text)
@@ -267,7 +268,11 @@ class AppSetting(Base):
 
 
 # Shown to users on the upgrade page; the admin edits these in the Admin Panel.
+# Payment details live here rather than in code so they never end up in git.
 DEFAULT_SETTINGS = {
+    "pay_card_number": "",
+    "pay_card_holder": "",
+    "pay_paypal_email": "",
     "payment_instructions_en": (
         "Transfer the plan amount using one of the methods below, then submit the "
         "tracking number here. We'll verify and activate your plan (usually within a few hours).\n\n"
@@ -407,6 +412,12 @@ def init_db():
                 waitlist_cols = [c["name"] for c in _inspector.get_columns("waitlist")]
                 if "password_hash" not in waitlist_cols:
                     conn.execute(_text("ALTER TABLE waitlist ADD COLUMN password_hash VARCHAR"))
+                    conn.commit()
+
+            if _inspector.has_table("payment_requests"):
+                pr_cols = [c["name"] for c in _inspector.get_columns("payment_requests")]
+                if "receipt_url" not in pr_cols:
+                    conn.execute(_text("ALTER TABLE payment_requests ADD COLUMN receipt_url VARCHAR"))
                     conn.commit()
 
             if _inspector.has_table("plan_limits"):

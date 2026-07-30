@@ -8,7 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface PayReq {
   id: number; plan: string; amount: number | null; currency: string
-  method: string | null; reference: string; note: string | null
+  method: string | null; reference: string; note: string | null; receipt_url: string | null
   status: string; created_at: string; user_name: string; user_email: string
 }
 
@@ -27,7 +27,11 @@ export default function PaymentsPage() {
   const [rejecting, setRejecting] = useState<number | null>(null)
   const [rejectNote, setRejectNote] = useState('')
   const [msg, setMsg] = useState('')
-  const [instr, setInstr] = useState({ instructions_en: '', instructions_fa: '' })
+  const [instr, setInstr] = useState({
+    instructions_en: '', instructions_fa: '',
+    card_number: '', card_holder: '', paypal_email: '', manual_rate: '',
+  })
+  const [rate, setRate] = useState<{ rate: number | null; source: string } | null>(null)
   const [savingInstr, setSavingInstr] = useState(false)
 
   const load = () => {
@@ -38,7 +42,8 @@ export default function PaymentsPage() {
   }
   useEffect(() => {
     load()
-    axios.get(`${API}/auth/settings/payment`).then(r => setInstr(r.data)).catch(() => {})
+    axios.get(`${API}/auth/settings/payment`).then(r => setInstr(s => ({ ...s, ...r.data }))).catch(() => {})
+    axios.get(`${API}/auth/billing/exchange-rate`).then(r => setRate(r.data)).catch(() => {})
   }, [])
 
   const approve = async (id: number) => {
@@ -130,6 +135,12 @@ export default function PaymentsPage() {
                           {r.method ? ` · ${r.method}` : ''}
                           {' · ref '}<strong>{r.reference}</strong>
                         </div>
+                        {r.receipt_url && (
+                          <a href={r.receipt_url} target="_blank" rel="noreferrer"
+                            style={{ display: 'inline-block', marginTop: '6px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>
+                            📎 View receipt
+                          </a>
+                        )}
                         {r.note && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>“{r.note}”</div>}
                       </div>
                       {r.status === 'pending' && (
@@ -163,8 +174,35 @@ export default function PaymentsPage() {
           {/* PAYMENT INSTRUCTIONS EDITOR */}
           <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Payment instructions</p>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
-            Shown to users on the upgrade page. Put your card number / transfer details here.
+            Shown to users on the upgrade page. These are stored in the database, not in code, so they never end up in the repository.
           </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card number (Iran)</label>
+              <input value={instr.card_number} onChange={e => setInstr(s => ({ ...s, card_number: e.target.value }))} placeholder="6037-XXXX-XXXX-XXXX" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Card holder name</label>
+              <input value={instr.card_holder} onChange={e => setInstr(s => ({ ...s, card_holder: e.target.value }))} placeholder="نام صاحب کارت" style={{ ...input, resize: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>PayPal email</label>
+              <input value={instr.paypal_email} onChange={e => setInstr(s => ({ ...s, paypal_email: e.target.value }))} placeholder="you@example.com" style={{ ...input, resize: 'none' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '0 0 220px' }}>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Fallback USD → Toman rate</label>
+              <input value={instr.manual_rate} onChange={e => setInstr(s => ({ ...s, manual_rate: e.target.value }))} placeholder="e.g. 190000" style={{ ...input, resize: 'none' }} />
+            </div>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '0 0 10px', flex: 1, minWidth: '200px' }}>
+              {rate?.rate
+                ? `Live rate: ${rate.rate.toLocaleString('en-US')} Toman / $1 (source: ${rate.source}). Used automatically for plans with no Toman price.`
+                : 'Live rate unavailable — the fallback above is used.'}
+            </p>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>English</label>
