@@ -46,7 +46,8 @@ def list_sources(admin: User = Depends(require_admin)):
             f"Using {provider.title()} Search — roughly $0.01 per hunt."
             if provider else
             "Using Anthropic's built-in web search — around $0.50 per 5 companies. "
-            "Set BRAVE_SEARCH_API_KEY on the server to cut that by ~30x."
+            "Set SERPER_API_KEY on the server to cut that by ~30x "
+            "(serper.dev gives 2,500 free queries, no card needed)."
         ),
     }
     return data

@@ -11,12 +11,15 @@ into the context in the first place. So we run the searches ourselves through a
 commodity search API, hand the model a title, a URL and a two-line snippet per
 result, and let it decide what to look at. Same job, ~2% of the tokens.
 
-Providers, in order of preference:
-  * Brave  — 2,000 queries/month free, then ~$5 per 1,000
-  * Serper — ~$1 per 1,000, no free tier
+Providers (checked July 2026):
+  * Serper — 2,500 free queries, no credit card. Start here.
+  * Brave  — $5/1,000, with $5 of free credit a month (so ~1,000 free), but a
+             card is required even for the free credit.
   * neither configured → callers fall back to Anthropic's built-in tool
 
-Set `BRAVE_SEARCH_API_KEY` or `SERPER_API_KEY` to switch the cheap path on.
+Set `SERPER_API_KEY` or `BRAVE_SEARCH_API_KEY` to switch the cheap path on.
+Serper is checked second only because Brave's key is the more common one to
+already have; either alone is enough.
 """
 from __future__ import annotations
 
@@ -37,10 +40,10 @@ _UA = "Mozilla/5.0 (compatible; ArchonLeadHunter/1.0; +https://armiladesign.com)
 
 def provider() -> str | None:
     """Which cheap provider is configured, if any."""
-    if os.getenv("BRAVE_SEARCH_API_KEY"):
-        return "brave"
     if os.getenv("SERPER_API_KEY"):
         return "serper"
+    if os.getenv("BRAVE_SEARCH_API_KEY"):
+        return "brave"
     return None
 
 
