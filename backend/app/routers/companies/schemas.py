@@ -127,12 +127,37 @@ class HuntRequest(BaseModel):
     hunt_id: Optional[int] = None      # set when re-running a saved hunt
 
 
+class ScoutedCompany(BaseModel):
+    """What stage 1 knows: enough to decide whether to research further."""
+    name: str
+    website: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    segment: Optional[str] = None
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    note: Optional[str] = None
+
+
+class EnrichRequest(BaseModel):
+    """Stage 2 — research and score only the candidates the admin kept."""
+    companies: List[ScoutedCompany] = []
+    criteria: dict = {}
+    hunt_id: Optional[int] = None
+
+
 class HuntedCompany(DiscoveredCompany):
+    phone: Optional[str] = None
+    segment: Optional[str] = None
     source: Optional[str] = None
     source_url: Optional[str] = None
     evidence: Optional[str] = None
     confidence: Optional[str] = None
     why: Optional[str] = None
+    # Facts that feed the score. The score itself is recomputed server-side —
+    # whatever the client sends for it is ignored.
+    signals: List[str] = []
+    style_fit: Optional[int] = 0
     score: Optional[float] = None
 
 

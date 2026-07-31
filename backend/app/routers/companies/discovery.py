@@ -15,7 +15,7 @@ from app.models.database import (
 )
 from app.routers.auth import require_admin
 from app.services import discovery_sources
-from .schemas import HuntRequest, HuntSaveRequest, SavedHuntCreate
+from .schemas import HuntRequest, HuntSaveRequest, SavedHuntCreate, EnrichRequest
 from .utils import calculate_score
 
 router = APIRouter()
@@ -37,35 +37,46 @@ def list_sources(admin: User = Depends(require_admin)):
     return discovery_sources.catalog()
 
 
-@router.post("/discovery/hunt")
-def run_hunt(data: HuntRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Search the chosen sources and return candidates for review."""
-    from app.services.claude import hunt_leads
+def _known_index(db):
+    """Names and domains already in the catalog, for de-duplication.
 
-    criteria = data.model_dump()
-    run = DiscoveryRun(
-        user_id=admin.id, hunt_id=data.hunt_id,
-        criteria_json=json.dumps(criteria),
-    )
-
-    # Everything already known, so Claude is told what to skip and we can filter
-    # again on the way back — the model's own de-duplication is a hint, not a
-    # guarantee.
+    Claude is told what to skip, but that's a hint — a returned lead is always
+    checked again here before it reaches the admin.
+    """
     existing = db.query(Company.name, Company.domain, Company.website).all()
-    known_names = {(n or "").strip().lower() for n, _, _ in existing if n}
-    known_domains = set()
+    names = {(n or "").strip().lower() for n, _, _ in existing if n}
+    domains = set()
     for _, d, w in existing:
         for candidate in (d, _normalise_domain(w)):
             if candidate:
-                known_domains.add(candidate.strip().lower().removeprefix("www."))
+                domains.add(candidate.strip().lower().removeprefix("www."))
+    return names, domains
+
+
+# ── Stage 1: scout ─────────────────────────────────────────────────────────
+@router.post("/discovery/scout")
+def scout(data: HuntRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Find who exists. Cheap and wide — no research, no emails, no scoring.
+
+    Most of what comes back gets rejected, so researching everything up front
+    is the expensive way round. The admin picks survivors, then stage 2 spends
+    real tokens on those only.
+    """
+    from app.services.claude import scout_leads
+
+    criteria = data.model_dump()
+    run = DiscoveryRun(
+        user_id=admin.id, hunt_id=data.hunt_id, stage="scout",
+        criteria_json=json.dumps(criteria),
+    )
+    known_names, known_domains = _known_index(db)
 
     try:
-        found = hunt_leads(sorted(known_names)[:200], criteria)
+        found, usage = scout_leads(sorted(known_names)[:200], criteria)
     except Exception as e:
         run.error = str(e)[:500]
-        db.add(run)
-        db.commit()
-        raise HTTPException(status_code=500, detail=f"Hunt failed: {e}")
+        db.add(run); db.commit()
+        raise HTTPException(status_code=500, detail=f"Scout failed: {e}")
 
     fresh, duplicates = [], 0
     for item in found:
@@ -82,8 +93,8 @@ def run_hunt(data: HuntRequest, admin: User = Depends(require_admin), db: Sessio
         if domain:
             known_domains.add(domain)
 
-    run.found = len(found)
-    run.fresh = len(fresh)
+    run.found, run.fresh = len(found), len(fresh)
+    run.input_tokens, run.output_tokens = usage["input_tokens"], usage["output_tokens"]
     db.add(run)
 
     if data.hunt_id:
@@ -96,12 +107,82 @@ def run_hunt(data: HuntRequest, admin: User = Depends(require_admin), db: Sessio
     db.refresh(run)
 
     return {
-        "run_id": run.id,
-        "suggestions": fresh,
-        "found": len(found),
-        "new": len(fresh),
-        "duplicates": duplicates,
+        "run_id": run.id, "candidates": fresh,
+        "found": len(found), "new": len(fresh), "duplicates": duplicates,
+        "usage": usage,
     }
+
+
+# ── Stage 2: enrich + score ────────────────────────────────────────────────
+ENRICH_BATCH = 6   # companies per Claude call — one wide call beats N narrow ones
+MAX_ENRICH = 30    # a hard ceiling so one click can't run away with the budget
+
+
+@router.post("/discovery/enrich")
+def enrich(data: EnrichRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Research the approved candidates and score them.
+
+    Claude returns facts; `services/scoring.py` turns those into the number.
+    Keeping the arithmetic out of the model means the same company always
+    scores the same, and re-tuning a weight re-scores everything consistently.
+    """
+    from app.services.claude import enrich_leads
+    from app.services.scoring import score_lead
+
+    picks = data.companies[:MAX_ENRICH]
+    if not picks:
+        raise HTTPException(status_code=400, detail="Select at least one company to research.")
+
+    criteria = data.criteria or {}
+    run = DiscoveryRun(
+        user_id=admin.id, hunt_id=data.hunt_id, stage="enrich",
+        criteria_json=json.dumps({"criteria": criteria, "count": len(picks)}),
+    )
+
+    enriched: list[dict] = []
+    tokens = {"input_tokens": 0, "output_tokens": 0}
+    raw = [p.model_dump() for p in picks]
+
+    for start in range(0, len(raw), ENRICH_BATCH):
+        batch = raw[start:start + ENRICH_BATCH]
+        try:
+            results, usage = enrich_leads(batch, criteria)
+        except Exception as e:
+            # One bad batch shouldn't throw away the batches that worked.
+            run.error = str(e)[:500]
+            continue
+        tokens["input_tokens"] += usage["input_tokens"]
+        tokens["output_tokens"] += usage["output_tokens"]
+
+        by_name = {(r.get("name") or "").strip().lower(): r for r in results}
+        for scouted in batch:
+            found = by_name.get((scouted.get("name") or "").strip().lower())
+            merged = {**scouted, **{k: v for k, v in (found or {}).items() if v not in (None, "", [])}}
+            scored = score_lead(
+                segment=merged.get("segment"),
+                industry=merged.get("industry"),
+                company_size=merged.get("company_size"),
+                country=merged.get("country"),
+                email=merged.get("email"),
+                website=merged.get("website"),
+                linkedin=merged.get("linkedin"),
+                instagram=merged.get("instagram"),
+                signals=merged.get("signals") or [],
+                style_fit=merged.get("style_fit") or 0,
+            )
+            merged.update(scored)
+            merged["domain"] = _normalise_domain(merged.get("website"))
+            merged["enriched"] = found is not None
+            enriched.append(merged)
+
+    enriched.sort(key=lambda c: c.get("score") or 0, reverse=True)
+
+    run.found = len(picks)
+    run.fresh = sum(1 for c in enriched if c.get("enriched"))
+    run.input_tokens, run.output_tokens = tokens["input_tokens"], tokens["output_tokens"]
+    db.add(run); db.commit(); db.refresh(run)
+
+    return {"run_id": run.id, "companies": enriched, "usage": tokens}
 
 
 @router.post("/discovery/save")
@@ -122,6 +203,7 @@ def save_hunted(data: HuntSaveRequest, admin: User = Depends(require_admin), db:
 
         company = Company(
             name=name, website=item.website or None, email=item.email or None,
+            phone=item.phone or None,
             country=item.country or None, city=item.city or None,
             industry=item.industry or None, company_size=item.company_size or None,
             linkedin=item.linkedin or None, instagram=item.instagram or None,
@@ -131,7 +213,11 @@ def save_hunted(data: HuntSaveRequest, admin: User = Depends(require_admin), db:
             discovery_source=(item.source or "ai_hunt")[:200],
             ai_summary=item.evidence or None,
         )
-        company.opportunity_score = calculate_score(company)
+        # Re-score server-side rather than trusting the number the client sent
+        # back — the browser had the payload in hand and could have edited it.
+        company.opportunity_score = calculate_score(
+            company, signals=item.signals or [], style_fit=item.style_fit or 0,
+        )
         db.add(company)
         db.flush()
         db.add(History(
@@ -194,8 +280,10 @@ def list_runs(limit: int = 20, admin: User = Depends(require_admin), db: Session
     runs = db.query(DiscoveryRun).order_by(DiscoveryRun.created_at.desc()).limit(min(limit, 100)).all()
     return [{
         "id": r.id,
+        "stage": r.stage or "scout",
         "criteria": json.loads(r.criteria_json or "{}"),
         "found": r.found or 0, "fresh": r.fresh or 0, "added": r.added or 0,
+        "input_tokens": r.input_tokens or 0, "output_tokens": r.output_tokens or 0,
         "error": r.error,
         "created_at": r.created_at.isoformat() if r.created_at else None,
     } for r in runs]

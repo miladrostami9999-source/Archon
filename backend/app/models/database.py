@@ -78,6 +78,9 @@ class Company(Base):
     linkedin          = Column(String)
     ai_summary        = Column(Text)
     opportunity_score = Column(Float, default=0.0)
+    # Per-axis explanation of opportunity_score (JSON). Kept so the number can
+    # be argued with instead of trusted blindly — see services/scoring.py.
+    score_breakdown   = Column(Text)
     heat_level        = Column(String, default="cold")
     status            = Column(String, default="new", index=True)
     tags              = Column(Text)
@@ -323,10 +326,15 @@ class DiscoveryRun(Base):
     id            = Column(Integer, primary_key=True, index=True)
     user_id       = Column(Integer, ForeignKey("users.id"), index=True)
     hunt_id       = Column(Integer, ForeignKey("discovery_hunts.id"))
+    stage         = Column(String, default="scout")  # scout | enrich
     criteria_json = Column(Text)
     found         = Column(Integer, default=0)
     fresh         = Column(Integer, default=0)   # after removing catalog duplicates
     added         = Column(Integer, default=0)   # actually saved by the admin
+    # Token cost per stage, so the cheap scout pass and the expensive enrich
+    # pass can be compared and the spend kept honest.
+    input_tokens  = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
     error         = Column(Text)
     created_at    = Column(DateTime, default=datetime.utcnow, index=True)
 
@@ -456,6 +464,9 @@ def init_db():
             if "phone" not in company_cols:
                 conn.execute(_text("ALTER TABLE companies ADD COLUMN phone VARCHAR"))
                 conn.commit()
+            if "score_breakdown" not in company_cols:
+                conn.execute(_text("ALTER TABLE companies ADD COLUMN score_breakdown TEXT"))
+                conn.commit()
             for col in ("plan_started_at", "plan_expires_at"):
                 if col not in user_cols:
                     conn.execute(_text(f"ALTER TABLE users ADD COLUMN {col} TIMESTAMP"))
@@ -485,6 +496,16 @@ def init_db():
                 if "allowed_countries" not in pl_cols:
                     conn.execute(_text("ALTER TABLE plan_limits ADD COLUMN allowed_countries TEXT DEFAULT ''"))
                     conn.commit()
+
+            if _inspector.has_table("discovery_runs"):
+                dr_cols = [c["name"] for c in _inspector.get_columns("discovery_runs")]
+                if "stage" not in dr_cols:
+                    conn.execute(_text("ALTER TABLE discovery_runs ADD COLUMN stage VARCHAR DEFAULT 'scout'"))
+                    conn.commit()
+                for col in ("input_tokens", "output_tokens"):
+                    if col not in dr_cols:
+                        conn.execute(_text(f"ALTER TABLE discovery_runs ADD COLUMN {col} INTEGER DEFAULT 0"))
+                        conn.commit()
 
             # ── Multi-tenancy: per-user ownership on what used to be shared ──
             for table in ("notes", "campaigns", "history", "daily_tasks", "weekly_reports"):

@@ -336,14 +336,212 @@ def _bullets(items) -> str:
     return "\n".join(items) if items else "- (none specified)"
 
 
-def hunt_leads(existing_names: list, criteria: dict) -> list:
-    """Search named industry sources for firms worth adding to the catalog.
+def _usage(message) -> dict:
+    u = getattr(message, "usage", None)
+    return {
+        "input_tokens": getattr(u, "input_tokens", 0) or 0,
+        "output_tokens": getattr(u, "output_tokens", 0) or 0,
+    }
 
-    The old version handed Claude a country and an industry and let it pick
-    where to look, which meant it kept returning the same famous studios. This
-    version names the sources to search (award shortlists, national registries,
-    fair exhibitor lists, job boards…) and requires a citation per lead, so the
-    results are checkable and reach the long tail.
+
+def scout_leads(existing_names: list, criteria: dict) -> tuple[list, dict]:
+    """Stage 1 — find *who exists*, and nothing more.
+
+    Deliberately shallow: name, website, city, country and where it was found.
+    No email hunting, no site fetching, no per-company assessment. That keeps
+    a wide sweep cheap, because most of what comes back gets rejected — paying
+    to research 25 companies to keep 6 is the expensive way round.
+
+    Returns (leads, token usage).
+    """
+    from app.services.discovery_sources import describe_sources, describe_signals
+
+    known = ", ".join(existing_names[:200]) if existing_names else "none yet"
+    count = max(1, min(int(criteria.get("count") or 15), 40))
+
+    countries = (criteria.get("countries") or "").strip() or "any country, but prefer UAE, Saudi Arabia, Scandinavia, UK, Germany, Netherlands, Spain"
+    cities = (criteria.get("cities") or "").strip() or "any city"
+    segments = criteria.get("segments") or []
+    brief = (criteria.get("brief") or "").strip()
+
+    source_lines = describe_sources(criteria.get("sources") or [])
+    signal_lines = describe_signals(criteria.get("signals") or [])
+
+    search_plan = (
+        "Search these specific sources directly:\n" + _bullets(source_lines)
+        if source_lines else
+        "Search broadly, but prefer industry directories, award shortlists and "
+        "national architecture registries over generic web results."
+    )
+
+    prompt = f"""{ARMILA_DNA}
+
+Build a shortlist of {count} REAL companies that might commission architectural
+visualisation. This is a first pass: identify who exists. Do NOT research them
+in depth, do NOT look for email addresses, and do NOT visit their websites — a
+later pass does that only for the ones we choose to keep.
+
+## Where to look
+{search_plan}
+
+## Who to look for
+- Countries/regions: {countries}
+- Cities: {cities}
+- Business type: {', '.join(segments) if segments else 'architecture, interior design, or real-estate development'}
+
+## Signals worth noting if you happen to see them
+{_bullets(signal_lines)}
+
+## Extra brief
+{brief or '(none)'}
+
+## Already in our catalog — never return these
+{known}
+
+## Rules
+- Only companies you actually saw in a search result. Never invent one.
+- `source_url` must be the page you found them on. No citation, no lead.
+- Prefer firms that are not household names — the long tail converts better.
+- Return the full {count} if you can find them; fewer is fine, padding is not.
+
+## Output
+Return ONLY a JSON array, no prose and no markdown fence:
+[
+  {{
+    "name": "Company name",
+    "website": "https://... or null if not shown in the result",
+    "country": "Country",
+    "city": "City or null",
+    "segment": "best guess at business type",
+    "source": "where you found them, e.g. 'Dezeen Awards 2025 shortlist'",
+    "source_url": "the exact URL",
+    "note": "one short line on what they appear to do"
+  }}
+]"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        # Low effort and no thinking: this pass is list-building, not judgement.
+        # The reasoning budget belongs in the enrich stage, on far fewer rows.
+        output_config={"effort": "low"},
+        thinking={"type": "disabled"},
+        tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 18}],
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    if not isinstance(result, list):
+        raise ValueError("Scout did not return a list")
+    return result, _usage(message)
+
+
+def enrich_leads(leads: list, criteria: dict) -> tuple[list, dict]:
+    """Stage 2 — research only the companies that were kept.
+
+    Fetches each company's own site to find the contact details, size and
+    segment, and reports which buying signals are actually present. It does
+    **not** return a score: it returns facts, and `services/scoring.py` turns
+    those into a number. A model-produced 0-100 drifts between runs and can't
+    be re-tuned; a formula over facts can.
+
+    Batched so a handful of companies share one request instead of one call
+    each. Returns (enriched leads, token usage).
+    """
+    from app.services.discovery_sources import describe_signals
+
+    signal_lines = describe_signals(criteria.get("signals") or []) or describe_signals(
+        ["hiring_viz", "recent_award", "new_project", "exhibiting", "funding",
+         "dated_visuals", "no_inhouse", "active_social"]
+    )
+    brief = (criteria.get("brief") or "").strip()
+
+    roster = "\n".join(
+        f"{i + 1}. {l.get('name')} — {l.get('website') or 'website unknown'}"
+        f" — {', '.join(x for x in [l.get('city'), l.get('country')] if x) or 'location unknown'}"
+        for i, l in enumerate(leads)
+    )
+
+    prompt = f"""{ARMILA_DNA}
+
+Research these {len(leads)} companies so we can decide who to approach. Visit each
+company's own website (and LinkedIn if useful) and report what you actually find.
+
+## Companies
+{roster}
+
+## For each one, establish
+- A published contact email. Prefer a named person's address over a shared inbox.
+  Never guess or construct an address — if there isn't one published, return null.
+- Website, LinkedIn and Instagram URLs.
+- Team size: solo (1-2), small (3-20), medium (21-100), large (100+).
+- Business type and the kind of projects they do.
+- Which of these buying signals are genuinely present, with the evidence you read:
+{_bullets(signal_lines)}
+- `style_fit`, from -8 to +8: how close their work is to what Armila renders
+  well (minimalist Scandinavian, modern organic, warm minimalism). Positive if
+  their aesthetic matches and their current imagery looks weak enough that
+  better renders would visibly help; negative if their work is a poor stylistic
+  match or their existing visuals are already excellent. 0 if you can't tell.
+
+## Extra brief
+{brief or '(none)'}
+
+## Rules
+- Report only what you read on a real page. Null beats a plausible guess,
+  especially for email addresses.
+- `signals` must contain only the keys listed above, and only ones you can
+  point to evidence for.
+- Do not score the company. Report the facts; we compute the score.
+
+## Output
+Return ONLY a JSON array in the same order as the list above, no prose:
+[
+  {{
+    "name": "Company name (as given)",
+    "email": "published email or null",
+    "website": "https://... or null",
+    "linkedin": "URL or null",
+    "instagram": "URL or null",
+    "phone": "published phone or null",
+    "country": "Country",
+    "city": "City or null",
+    "industry": "one of: Architecture, Interior Design, Real Estate, CGI, Visualization, Animation, Construction",
+    "segment": "more specific business type",
+    "company_size": "solo|small|medium|large",
+    "signals": ["signal keys you verified"],
+    "evidence": "the specific facts you read that matter for outreach",
+    "style_fit": -8..8,
+    "confidence": "high|medium|low",
+    "why": "one sentence on why they're worth an email from Armila"
+  }}
+]"""
+
+    with client.messages.stream(
+        model="claude-sonnet-4-6",
+        max_tokens=16000,
+        thinking={"type": "adaptive"},
+        tools=[
+            {"type": "web_search_20260209", "name": "web_search", "max_uses": 15},
+            {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 25},
+        ],
+        messages=[{"role": "user", "content": prompt}],
+    ) as stream:
+        message = stream.get_final_message()
+
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    if not isinstance(result, list):
+        raise ValueError("Enrichment did not return a list")
+    return result, _usage(message)
+
+
+def hunt_leads(existing_names: list, criteria: dict) -> list:
+    """One-shot deep hunt — search and research in a single pass.
+
+    Kept for the cases where the extra tokens are worth skipping the review
+    step. The staged `scout_leads` → `enrich_leads` path is cheaper for
+    anything wide, because it only researches what survives the first cut.
     """
     from app.services.discovery_sources import describe_sources, describe_signals
 

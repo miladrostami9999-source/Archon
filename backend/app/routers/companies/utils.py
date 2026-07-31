@@ -96,22 +96,25 @@ def to_dict(obj):
     return result
 
 
-def calculate_score(company) -> float:
-    score = 0.0
-    if company.email:
-        score += 25
-    if company.website:
-        score += 10
-    if company.linkedin:
-        score += 10
-    size_scores = {"solo": 15, "small": 20, "medium": 15, "large": 10}
-    score += size_scores.get(company.company_size or "", 0)
-    relevant = ["CGI", "Visualization", "Architecture", "Interior Design", "Real Estate", "Animation"]
-    if company.industry in relevant:
-        score += 20
-    if company.ai_summary:
-        score += 5
-    return min(score, 100.0)
+def calculate_score(company, signals=None, style_fit: int = 0) -> float:
+    """Opportunity score for a company. See `app.services.scoring` for the model.
+
+    Also writes the per-axis breakdown onto the row so the number is explainable
+    in the UI rather than an unarguable magic figure.
+    """
+    import json as _json
+    from app.services.scoring import score_company
+
+    result = score_company(company, signals=signals, style_fit=style_fit)
+    try:
+        company.score_breakdown = _json.dumps({
+            "grade": result["grade"],
+            "verdict": result["verdict"],
+            "breakdown": result["breakdown"],
+        })
+    except Exception:
+        pass  # scoring must never be the reason a save fails
+    return result["score"]
 
 
 def row_to_dict(row):

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.models.database import get_db, Company, UserCompanyState, User, History
+from app.models.database import get_db, Company, UserCompanyState, User
 from app.routers.auth import require_admin, require_feature
-from .schemas import SearchRequest, DiscoverRequest, DiscoverSaveRequest
+from .schemas import SearchRequest
 from .utils import to_dict, calculate_score, company_to_dict
 
 router = APIRouter()
@@ -110,74 +110,5 @@ def smart_search(data: SearchRequest, current_user: User = Depends(require_featu
         return {"companies": filtered, "total": len(filtered), "query": data.query}
 
 
-@router.post("/discover")
-def discover_leads(data: DiscoverRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Ask Claude to find new companies worth adding to the shared catalog.
-
-    Admin-only because it writes to the catalog everyone sees. Suggestions are
-    returned for review rather than saved directly, and anything already known
-    (by name or domain) is filtered out first.
-    """
-    from app.services.claude import discover_leads as ai_discover
-
-    existing = db.query(Company.name, Company.domain, Company.website).all()
-    existing_names = [e[0] for e in existing if e[0]]
-    known_names = {n.strip().lower() for n in existing_names}
-    known_domains = {(d or "").strip().lower() for _, d, _ in existing if d}
-    for _, _, w in existing:
-        if w:
-            known_domains.add(w.replace("https://", "").replace("http://", "").strip("/").lower())
-
-    try:
-        found = ai_discover(existing_names, {
-            "country": data.country, "industry": data.industry, "count": data.count,
-        })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lead discovery failed: {str(e)}")
-
-    fresh = []
-    for item in found:
-        name = (item.get("name") or "").strip()
-        if not name or name.lower() in known_names:
-            continue
-        site = (item.get("website") or "").replace("https://", "").replace("http://", "").strip("/").lower()
-        if site and site in known_domains:
-            continue
-        fresh.append(item)
-        known_names.add(name.lower())
-
-    return {"suggestions": fresh, "found": len(found), "new": len(fresh)}
-
-
-@router.post("/discover/save")
-def save_discovered(data: DiscoverSaveRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Add reviewed suggestions to the catalog."""
-    added, skipped = 0, 0
-    for item in data.companies:
-        name = (item.name or "").strip()
-        if not name:
-            continue
-        if db.query(Company).filter(Company.name.ilike(name)).first():
-            skipped += 1
-            continue
-        domain = (item.website or "").replace("https://", "").replace("http://", "").strip("/") or None
-        if domain and db.query(Company).filter(Company.domain == domain).first():
-            skipped += 1
-            continue
-        company = Company(
-            name=name, website=item.website or None, email=item.email or None,
-            country=item.country or None, city=item.city or None,
-            industry=item.industry or None, company_size=item.company_size or None,
-            linkedin=item.linkedin or None, instagram=item.instagram or None,
-            domain=domain, discovery_source="ai_discovery",
-        )
-        company.opportunity_score = calculate_score(company)
-        db.add(company)
-        db.flush()
-        db.add(History(
-            company_id=company.id, user_id=admin.id,
-            event_type="discovered", description="Found by AI lead discovery",
-        ))
-        added += 1
-    db.commit()
-    return {"added": added, "skipped": skipped, "message": f"Added {added} companies, skipped {skipped} duplicates"}
+# Lead sourcing lives in `discovery.py` now — the old single-shot /discover
+# endpoints were superseded by the staged scout → enrich → save flow.
