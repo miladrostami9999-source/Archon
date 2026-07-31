@@ -374,6 +374,24 @@ def scout_leads(existing_names: list, criteria: dict) -> tuple[list, dict]:
         "national architecture registries over generic web results."
     )
 
+    # The operator's own words come first when they've written any. Every other
+    # field is optional, so a brief-only hunt has to work on its own — burying
+    # it under a list of defaults would make it the weakest input rather than
+    # the strongest.
+    brief_block = (
+        f"## What we're after (the operator's own words — treat this as the brief)\n{brief}\n"
+        if brief else ""
+    )
+
+    rules = [
+        "- Only companies you actually saw in a search result. Never invent one.",
+        "- `source_url` must be the page you found them on. No citation, no lead.",
+        "- Prefer firms that are not household names — the long tail converts better.",
+        f"- Return the full {count} if you can find them; fewer is fine, padding is not.",
+    ]
+    if criteria.get("require_website"):
+        rules.append("- Skip anything you can't find a website for.")
+
     prompt = f"""{ARMILA_DNA}
 
 Build a shortlist of {count} REAL companies that might commission architectural
@@ -381,6 +399,7 @@ visualisation. This is a first pass: identify who exists. Do NOT research them
 in depth, do NOT look for email addresses, and do NOT visit their websites — a
 later pass does that only for the ones we choose to keep.
 
+{brief_block}
 ## Where to look
 {search_plan}
 
@@ -392,17 +411,11 @@ later pass does that only for the ones we choose to keep.
 ## Signals worth noting if you happen to see them
 {_bullets(signal_lines)}
 
-## Extra brief
-{brief or '(none)'}
-
 ## Already in our catalog — never return these
 {known}
 
 ## Rules
-- Only companies you actually saw in a search result. Never invent one.
-- `source_url` must be the page you found them on. No citation, no lead.
-- Prefer firms that are not household names — the long tail converts better.
-- Return the full {count} if you can find them; fewer is fine, padding is not.
+{chr(10).join(rules)}
 
 ## Output
 Return ONLY a JSON array, no prose and no markdown fence:

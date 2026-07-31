@@ -43,6 +43,8 @@ interface Enriched extends Scouted {
   why?: string | null; style_fit?: number
   score: number; grade: string; verdict: string; breakdown: ScoreAxis[]
   enriched?: boolean
+  /** Optional rules from the setup form this company didn't meet. */
+  fails_rules?: string[]
 }
 
 interface SavedHunt {
@@ -70,12 +72,65 @@ const CONFIDENCE_COLOR: Record<string, string> = { high: '#34D399', medium: '#FB
 
 type Stage = 'setup' | 'scouted' | 'enriched'
 
+/**
+ * One-click starting points.
+ *
+ * The full filter set is powerful but it's a lot to face on an empty page, so
+ * these do the setup for the searches actually worth running, and stay editable
+ * afterwards. Everything they set is optional — a preset is a shortcut, not a
+ * requirement.
+ */
+const PRESETS: { label: string; blurb: string; patch: Partial<Criteria> }[] = [
+  {
+    label: '🔥 Hiring a visualiser',
+    blurb: 'The strongest buying signal there is — they need the capacity now',
+    patch: {
+      signals: ['hiring_viz', 'no_inhouse'],
+      sources: ['archinect_jobs', 'linkedin_jobs', 'cgarchitect_jobs'],
+      segments: ['Architecture studio', 'Interior design studio'],
+    },
+  },
+  {
+    label: '🏗 Gulf developers launching',
+    blurb: 'Biggest budgets, and every launch needs marketing imagery',
+    patch: {
+      countries: 'United Arab Emirates, Saudi Arabia, Qatar',
+      segments: ['Real estate developer'],
+      signals: ['new_project', 'exhibiting'],
+      sources: ['gulf_developers', 'cityscape', 'big5', 'property_press'],
+    },
+  },
+  {
+    label: '🏆 Award shortlists',
+    blurb: 'They just won something and need press images',
+    patch: {
+      segments: ['Architecture studio', 'Interior design studio'],
+      signals: ['recent_award'],
+      sources: ['waf', 'dezeen_awards', 'architizer_a', 'mies', 'riba_awards'],
+    },
+  },
+  {
+    label: '🎯 Small studios, no in-house 3D',
+    blurb: 'The bread and butter — they outsource by default',
+    patch: {
+      company_sizes: ['small', 'solo'],
+      segments: ['Architecture studio', 'Interior design studio'],
+      signals: ['no_inhouse', 'dated_visuals'],
+      sources: ['riba_arb', 'bak_bda', 'cscae', 'bna', 'nordic_bodies', 'world_architects'],
+    },
+  },
+]
+
 export default function LeadHunter() {
   const isMobile = useIsMobile()
 
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [criteria, setCriteria] = useState<Criteria>(EMPTY)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+  // Refinement is collapsed by default: the brief alone is a valid search, and
+  // showing every filter at once made the page read as a form to complete.
+  const [refineOpen, setRefineOpen] = useState(false)
+  const [openSection, setOpenSection] = useState<string | null>(null)
 
   const [stage, setStage] = useState<Stage>('setup')
   const [scouted, setScouted] = useState<Scouted[]>([])
@@ -132,6 +187,20 @@ export default function LeadHunter() {
     const next = new Set(p); next.has(i) ? next.delete(i) : next.add(i); return next
   })
 
+  const applyPreset = (patch: Partial<Criteria>) => {
+    setCriteria(c => ({ ...EMPTY, brief: c.brief, count: c.count, ...patch }))
+    setRefineOpen(true)
+    setMsg('Preset loaded — edit anything below, or just hit Scout.')
+  }
+
+  /** How many filters are set, for the "Refine" summary. */
+  const activeFilters = useMemo(() => {
+    const n = criteria.sources.length + criteria.segments.length + criteria.project_types.length
+      + criteria.company_sizes.length + criteria.signals.length
+      + (criteria.countries ? 1 : 0) + (criteria.cities ? 1 : 0) + (criteria.languages ? 1 : 0)
+    return n
+  }, [criteria])
+
   // ── stage 1 ───────────────────────────────────────────────────────────────
   const runScout = async () => {
     setScouting(true); setMsg(''); setScouted([]); setEnriched([]); setScoutStats(null)
@@ -171,9 +240,11 @@ export default function LeadHunter() {
         input_tokens: s.input_tokens + r.data.usage.input_tokens,
         output_tokens: s.output_tokens + r.data.usage.output_tokens,
       }))
-      // Pre-tick anything that scored well enough to be worth an email.
+      // Pre-tick what's worth an email and meets whatever rules were set, so
+      // the common case is "glance, then Add" rather than ticking 20 boxes.
+      const floor = criteria.min_score || 48
       setKeep(new Set(r.data.companies
-        .map((c: Enriched, i: number) => (c.score >= 48 ? i : -1))
+        .map((c: Enriched, i: number) => (c.score >= floor && !(c.fails_rules?.length) ? i : -1))
         .filter((i: number) => i >= 0)))
       setStage('enriched')
       loadRuns()
@@ -246,6 +317,34 @@ export default function LeadHunter() {
         color: on ? '#60A5FA' : 'var(--text-muted)', textAlign: 'left',
       }}>{children}</button>
   )
+
+  /** A collapsed filter group that shows what's set without being opened. */
+  const Section = ({ id, title, hint, summary, children }: {
+    id: string; title: string; hint: string; summary: string; children: React.ReactNode
+  }) => {
+    const open = openSection === id
+    const isSet = summary !== 'Any'
+    return (
+      <div style={{ borderTop: '1px solid var(--border)' }}>
+        <button type="button" onClick={() => setOpenSection(open ? null : id)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 2px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-dim)', width: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+              {title} <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-dim)' }}>· {hint}</span>
+            </p>
+            <p style={{
+              fontSize: '11.5px', margin: '2px 0 0', color: isSet ? '#60A5FA' : 'var(--text-dim)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{summary}</p>
+          </div>
+        </button>
+        {open && <div style={{ padding: '2px 0 16px 20px' }}>{children}</div>}
+      </div>
+    )
+  }
+
+  const listSummary = (items: string[], fallback = 'Any') => items.length ? items.join(', ') : fallback
 
   const summary = useMemo(() => {
     const bits: string[] = []
@@ -340,139 +439,194 @@ export default function LeadHunter() {
                 {/* ══ STAGE 1: SETUP ══ */}
                 {stage === 'setup' && (
                   <>
-                    <div style={card}>
-                      <p style={sectionLabel}>Who are you looking for</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Countries / regions</label>
-                          <input value={criteria.countries} onChange={e => set('countries', e.target.value)} placeholder="UAE, Saudi Arabia, Denmark" style={input} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Cities</label>
-                          <input value={criteria.cities} onChange={e => set('cities', e.target.value)} placeholder="Dubai, Riyadh, Copenhagen" style={input} />
-                        </div>
-                      </div>
+                    {/* THE SEARCH. Everything else on this page is optional. */}
+                    <div style={{ ...card, padding: '20px' }}>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '3px' }}>
+                        What are you hunting for?
+                      </label>
+                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 10px', lineHeight: 1.6 }}>
+                        Describe it in plain words. This is the only field that matters — and even
+                        it can be left blank for a broad sweep.
+                      </p>
+                      <textarea value={criteria.brief} onChange={e => set('brief', e.target.value)} rows={3}
+                        placeholder="small interior studios in Dubai that are hiring a visualiser&#10;or: Scandinavian architecture practices doing warm minimalist housing"
+                        style={{ ...input, fontSize: '13.5px', padding: '12px 13px', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }} />
 
-                      <p style={sectionLabel}>Business type</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                        {catalog?.segments.map(s => <Chip key={s} on={criteria.segments.includes(s)} onClick={() => toggleIn('segments', s)}>{s}</Chip>)}
-                      </div>
-
-                      <p style={sectionLabel}>Project types they work on</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                        {catalog?.project_types.map(p => <Chip key={p} on={criteria.project_types.includes(p)} onClick={() => toggleIn('project_types', p)}>{p}</Chip>)}
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
-                        <div>
-                          <p style={sectionLabel}>Company size</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {catalog?.company_sizes.map(s => <Chip key={s.key} on={criteria.company_sizes.includes(s.key)} onClick={() => toggleIn('company_sizes', s.key)}>{s.label}</Chip>)}
-                          </div>
-                        </div>
-                        <div>
-                          <p style={sectionLabel}>Site / content language</p>
-                          <input value={criteria.languages} onChange={e => set('languages', e.target.value)} placeholder="English, Arabic, German" style={input} />
-                        </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
+                        <button onClick={runScout} disabled={scouting}
+                          style={{ padding: '12px 26px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
+                          {scouting ? 'Scouting…' : '🔍 Scout for leads'}
+                        </button>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                          Find
+                          <input type="number" min={1} max={40} value={criteria.count}
+                            onChange={e => set('count', Math.min(40, Math.max(1, parseInt(e.target.value || '15', 10))))}
+                            style={{ ...input, width: '62px', padding: '8px 9px', textAlign: 'center' }} />
+                          companies
+                        </label>
+                        <div style={{ flex: 1 }} />
+                        {activeFilters > 0 && (
+                          <button onClick={() => { setCriteria({ ...EMPTY, brief: criteria.brief, count: criteria.count }); setActiveHunt(null) }}
+                            style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            Clear {activeFilters} filter{activeFilters === 1 ? '' : 's'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    <div style={card}>
-                      <p style={sectionLabel}>Buying signals to prioritise</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 10px', lineHeight: 1.6 }}>
-                        These weigh heavily in the score. A firm that just won an award, launched a
-                        project, or is hiring a visualiser has a reason to reply this month.
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {catalog?.signals.map(s => (
-                          <Chip key={s.key} on={criteria.signals.includes(s.key)} onClick={() => toggleIn('signals', s.key)} title={s.hint}>{s.label}</Chip>
+                    {/* PRESETS — a running start for the searches worth running */}
+                    <div>
+                      <p style={{ ...sectionLabel, marginBottom: '8px' }}>Or start from one of these</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '8px' }}>
+                        {PRESETS.map(p => (
+                          <button key={p.label} onClick={() => applyPreset(p.patch)}
+                            style={{
+                              textAlign: 'left', padding: '13px 15px', borderRadius: '11px', cursor: 'pointer',
+                              border: '1px solid var(--border)', background: 'var(--bg-card)',
+                            }}>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{p.label}</p>
+                            <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '3px 0 0', lineHeight: 1.5 }}>{p.blurb}</p>
+                          </button>
                         ))}
                       </div>
                     </div>
 
-                    <div style={card}>
-                      <p style={sectionLabel}>Where to hunt</p>
-                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 12px', lineHeight: 1.6 }}>
-                        Naming sources is what gets you past the same twenty famous studios. Leave
-                        everything unticked for a broad search.
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {catalog?.groups.map(g => {
-                          const open = !!openGroups[g.key]
-                          const onCount = g.sources.filter(s => criteria.sources.includes(s.key)).length
-                          return (
-                            <div key={g.key} style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 13px', background: 'var(--bg-input)' }}>
-                                <button type="button" onClick={() => setOpenGroups(o => ({ ...o, [g.key]: !open }))}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '12px', padding: 0 }}>{open ? '▾' : '▸'}</button>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
-                                    {g.label}
-                                    {onCount > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#60A5FA', background: 'rgba(79,123,247,0.14)', padding: '2px 7px', borderRadius: '999px' }}>{onCount}</span>}
-                                  </p>
-                                  <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '2px 0 0', lineHeight: 1.5 }}>{g.blurb}</p>
-                                </div>
-                                <button type="button" onClick={() => toggleWholeGroup(g)}
-                                  style={{ fontSize: '11px', fontWeight: 600, color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                  {onCount === g.sources.length ? 'None' : 'All'}
-                                </button>
+                    {/* REFINE — collapsed, because none of it is required */}
+                    <div style={{ ...card, padding: '4px 18px 6px' }}>
+                      <button type="button" onClick={() => setRefineOpen(o => !o)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 2px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-dim)', width: '10px' }}>{refineOpen ? '▾' : '▸'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Narrow it down</p>
+                          <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '2px 0 0' }}>
+                            All optional — {activeFilters > 0 ? `${activeFilters} set` : 'nothing set, searching broadly'}
+                          </p>
+                        </div>
+                      </button>
+
+                      {refineOpen && (
+                        <div style={{ paddingBottom: '6px' }}>
+                          <Section id="where" title="Where" hint="countries, cities, language"
+                            summary={[criteria.countries, criteria.cities, criteria.languages].filter(Boolean).join(' · ') || 'Any'}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Countries / regions</label>
+                                <input value={criteria.countries} onChange={e => set('countries', e.target.value)} placeholder="UAE, Denmark" style={input} />
                               </div>
-                              {open && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '11px 13px' }}>
-                                  {g.sources.map(s => <Chip key={s.key} on={criteria.sources.includes(s.key)} onClick={() => toggleIn('sources', s.key)} title={s.hint}>{s.label}</Chip>)}
-                                </div>
-                              )}
+                              <div>
+                                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Cities</label>
+                                <input value={criteria.cities} onChange={e => set('cities', e.target.value)} placeholder="Dubai, Riyadh" style={input} />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Site language</label>
+                                <input value={criteria.languages} onChange={e => set('languages', e.target.value)} placeholder="English, Arabic" style={input} />
+                              </div>
                             </div>
-                          )
-                        })}
-                      </div>
+                          </Section>
+
+                          <Section id="who" title="Who" hint="business type, projects, size"
+                            summary={listSummary([...criteria.segments, ...criteria.project_types, ...criteria.company_sizes])}>
+                            <p style={{ ...sectionLabel, marginTop: '6px' }}>Business type</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                              {catalog?.segments.map(s => <Chip key={s} on={criteria.segments.includes(s)} onClick={() => toggleIn('segments', s)}>{s}</Chip>)}
+                            </div>
+                            <p style={sectionLabel}>Project types</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                              {catalog?.project_types.map(p => <Chip key={p} on={criteria.project_types.includes(p)} onClick={() => toggleIn('project_types', p)}>{p}</Chip>)}
+                            </div>
+                            <p style={sectionLabel}>Company size</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {catalog?.company_sizes.map(s => <Chip key={s.key} on={criteria.company_sizes.includes(s.key)} onClick={() => toggleIn('company_sizes', s.key)}>{s.label}</Chip>)}
+                            </div>
+                          </Section>
+
+                          <Section id="signals" title="Buying signals" hint="weigh heavily in the score"
+                            summary={listSummary(catalog?.signals.filter(s => criteria.signals.includes(s.key)).map(s => s.label) || [])}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '6px 0 10px', lineHeight: 1.6 }}>
+                              A firm that just won an award, launched a project, or is hiring a
+                              visualiser has a reason to reply this month.
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {catalog?.signals.map(s => (
+                                <Chip key={s.key} on={criteria.signals.includes(s.key)} onClick={() => toggleIn('signals', s.key)} title={s.hint}>{s.label}</Chip>
+                              ))}
+                            </div>
+                          </Section>
+
+                          <Section id="sources" title="Where to hunt" hint={`${catalog?.groups.reduce((n, g) => n + g.sources.length, 0) || 0} sources`}
+                            summary={criteria.sources.length ? `${criteria.sources.length} selected` : 'Any'}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '6px 0 10px', lineHeight: 1.6 }}>
+                              Naming sources is what gets you past the same twenty famous studios.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {catalog?.groups.map(g => {
+                                const open = !!openGroups[g.key]
+                                const onCount = g.sources.filter(s => criteria.sources.includes(s.key)).length
+                                return (
+                                  <div key={g.key} style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input)' }}>
+                                      <button type="button" onClick={() => setOpenGroups(o => ({ ...o, [g.key]: !open }))}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '12px', padding: 0 }}>{open ? '▾' : '▸'}</button>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+                                          {g.label}
+                                          {onCount > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#60A5FA', background: 'rgba(79,123,247,0.14)', padding: '2px 7px', borderRadius: '999px' }}>{onCount}</span>}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0', lineHeight: 1.5 }}>{g.blurb}</p>
+                                      </div>
+                                      <button type="button" onClick={() => toggleWholeGroup(g)}
+                                        style={{ fontSize: '11px', fontWeight: 600, color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        {onCount === g.sources.length ? 'None' : 'All'}
+                                      </button>
+                                    </div>
+                                    {open && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '11px 12px' }}>
+                                        {g.sources.map(s => <Chip key={s.key} on={criteria.sources.includes(s.key)} onClick={() => toggleIn('sources', s.key)} title={s.hint}>{s.label}</Chip>)}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </Section>
+
+                          <Section id="rules" title="Rules" hint="what to skip"
+                            summary={[
+                              criteria.require_website ? 'needs a website' : '',
+                              criteria.require_email ? 'needs an email' : '',
+                              criteria.min_score ? `score ≥ ${criteria.min_score}` : '',
+                            ].filter(Boolean).join(' · ') || 'Any'}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '6px' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={criteria.require_website} onChange={e => set('require_website', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
+                                Skip companies with no website
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={criteria.require_email} onChange={e => set('require_email', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
+                                Skip companies with no published email
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                                Minimum score
+                                <input type="number" min={0} max={100} value={criteria.min_score}
+                                  onChange={e => set('min_score', Math.min(100, Math.max(0, parseInt(e.target.value || '0', 10))))}
+                                  style={{ ...input, width: '74px', padding: '7px 9px', textAlign: 'center' }} />
+                              </label>
+                            </div>
+                          </Section>
+                        </div>
+                      )}
                     </div>
 
-                    <div style={card}>
-                      <p style={sectionLabel}>Rules & brief</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>How many to scout</label>
-                          <input type="number" min={1} max={40} value={criteria.count}
-                            onChange={e => set('count', Math.min(40, Math.max(1, parseInt(e.target.value || '15', 10))))} style={input} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Minimum score</label>
-                          <input type="number" min={0} max={100} value={criteria.min_score}
-                            onChange={e => set('min_score', Math.min(100, Math.max(0, parseInt(e.target.value || '0', 10))))} style={input} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', justifyContent: 'flex-end', paddingBottom: '2px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={criteria.require_website} onChange={e => set('require_website', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
-                            Must have a website
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={criteria.require_email} onChange={e => set('require_email', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
-                            Must have an email
-                          </label>
-                        </div>
-                      </div>
-                      <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Extra brief (optional)</label>
-                      <textarea value={criteria.brief} onChange={e => set('brief', e.target.value)} rows={3}
-                        placeholder="e.g. boutique studios doing warm minimalist interiors, skip anyone doing their own CGI in-house"
-                        style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }} />
-
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '14px' }}>
-                        <button onClick={runScout} disabled={scouting}
-                          style={{ padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
-                          {scouting ? 'Scouting…' : '🔍 Scout for leads'}
-                        </button>
-                        <button onClick={() => { setCriteria(EMPTY); setActiveHunt(null); setMsg('') }}
-                          style={{ padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>Reset</button>
-                        <div style={{ flex: 1 }} />
-                        <input value={huntName} onChange={e => setHuntName(e.target.value)} placeholder="Name this hunt to save it" style={{ ...input, width: isMobile ? '100%' : '230px' }} />
-                        <button onClick={saveHunt}
-                          style={{ padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Save hunt</button>
-                      </div>
-                      <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '12px 0 0', lineHeight: 1.6 }}>
-                        Scouting only collects names, sites and where they were found — it&apos;s the cheap
-                        pass. Nothing is researched or added until you say so.
+                    {/* FOOTER — saving a hunt is housekeeping, not part of the search */}
+                    <div style={{ display: 'flex', gap: '9px', alignItems: 'center', flexWrap: 'wrap', paddingBottom: '30px' }}>
+                      <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0, flex: 1, minWidth: '220px', lineHeight: 1.6 }}>
+                        Scouting only collects names, sites and where they were found — the cheap pass.
+                        Nothing is researched or added until you say so.
                       </p>
+                      <input value={huntName} onChange={e => setHuntName(e.target.value)} placeholder="Name this hunt to reuse it"
+                        style={{ ...input, width: isMobile ? '100%' : '210px', padding: '8px 10px' }} />
+                      <button onClick={saveHunt}
+                        style={{ padding: '9px 14px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Save hunt</button>
                     </div>
                   </>
                 )}
@@ -584,6 +738,9 @@ export default function LeadHunter() {
                                   {c.enriched === false && (
                                     <span style={{ fontSize: '10px', fontWeight: 700, color: '#FB923C' }}>not researched</span>
                                   )}
+                                  {c.fails_rules?.map(f => (
+                                    <span key={f} style={{ fontSize: '10px', fontWeight: 600, color: '#FB923C', background: 'rgba(251,146,60,0.1)', padding: '2px 7px', borderRadius: '999px' }}>{f}</span>
+                                  ))}
                                 </div>
                                 <p style={{ fontSize: '12px', color: '#60A5FA', margin: '2px 0 0', fontWeight: 600 }}>{c.verdict}</p>
                                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0' }}>

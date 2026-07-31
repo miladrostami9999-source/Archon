@@ -173,6 +173,18 @@ def enrich(data: EnrichRequest, admin: User = Depends(require_admin), db: Sessio
             merged.update(scored)
             merged["domain"] = _normalise_domain(merged.get("website"))
             merged["enriched"] = found is not None
+            # The optional rules from the setup form apply here, where the facts
+            # they talk about finally exist. Flagged rather than dropped — the
+            # admin decides, and a silently shortened list is confusing.
+            fails = []
+            if criteria.get("require_email") and not merged.get("email"):
+                fails.append("no published email")
+            if criteria.get("require_website") and not merged.get("website"):
+                fails.append("no website")
+            min_score = int(criteria.get("min_score") or 0)
+            if min_score and (merged.get("score") or 0) < min_score:
+                fails.append(f"below your minimum score of {min_score}")
+            merged["fails_rules"] = fails
             enriched.append(merged)
 
     enriched.sort(key=lambda c: c.get("score") or 0, reverse=True)

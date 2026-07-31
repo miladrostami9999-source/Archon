@@ -5,7 +5,9 @@ celery==5.4.0
 redis==5.0.4
 httpx==0.27.0
 python-dotenv==1.0.1
-anthropic==0.28.0
+# 0.28.0 predates adaptive thinking, the effort parameter and the 2026 web
+# search/fetch tools — passing those to it raises "unexpected keyword argument".
+anthropic==0.112.0
 pydantic==2.7.0
 alembic==1.13.1
 psycopg2-binary==2.9.12
