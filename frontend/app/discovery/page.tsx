@@ -16,6 +16,7 @@ interface SizeOption { key: string; label: string }
 interface Catalog {
   groups: SourceGroup[]; segments: string[]; project_types: string[]
   signals: Signal[]; company_sizes: SizeOption[]
+  search: { provider: string; cheap: boolean; note: string }
 }
 
 interface Criteria {
@@ -422,9 +423,24 @@ export default function LeadHunter() {
                   })}
                 </div>
 
+                {/* Which search path is live — pressing Scout costs very
+                    different amounts depending on this. */}
+                {catalog?.search && !catalog.search.cheap && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'rgba(251,146,60,0.07)', border: '1px solid rgba(251,146,60,0.2)',
+                  }}>
+                    <span style={{ fontSize: '15px' }}>💸</span>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, flex: 1, minWidth: '220px', lineHeight: 1.6 }}>
+                      {catalog.search.note}
+                    </p>
+                  </div>
+                )}
                 {(spend.input_tokens > 0 || spend.output_tokens > 0) && (
                   <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
                     Tokens this session: {spend.input_tokens.toLocaleString()} in · {spend.output_tokens.toLocaleString()} out
+                    {catalog?.search?.cheap && ` · via ${catalog.search.provider}`}
                   </p>
                 )}
 

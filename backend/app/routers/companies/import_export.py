@@ -29,20 +29,30 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
             if not name:
                 continue
 
-            domain = row.get('domain', '').strip() or None
+            website = row.get('website', '').strip() or None
+            domain = (row.get('domain', '').strip() or None)
+            if not domain and website:
+                domain = (
+                    website.replace('https://', '').replace('http://', '')
+                    .split('/')[0].strip().lower().removeprefix('www.')
+                ) or None
 
-            # duplicate check
-            if domain:
-                existing = db.query(Company).filter(Company.domain == domain).first()
-                if existing:
-                    skipped += 1
-                    continue
+            # Duplicate check on both keys. Domain alone missed anything
+            # imported without one, which let the same studio in repeatedly
+            # from different source lists.
+            if domain and db.query(Company).filter(Company.domain == domain).first():
+                skipped += 1
+                continue
+            if db.query(Company).filter(Company.name.ilike(name)).first():
+                skipped += 1
+                continue
 
             company = Company(
                 name=name,
                 domain=domain,
-                website=row.get('website', '').strip() or None,
+                website=website,
                 email=row.get('email', '').strip() or None,
+                phone=row.get('phone', '').strip() or None,
                 country=row.get('country', '').strip() or None,
                 city=row.get('city', '').strip() or None,
                 industry=row.get('industry', '').strip() or None,
@@ -50,8 +60,18 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
                 linkedin=row.get('linkedin', '').strip() or None,
                 instagram=row.get('instagram', '').strip() or None,
                 tags=row.get('tags', '').strip() or None,
+                # Optional columns from the Lead Hunter CSV, so a hunted row
+                # imported by hand scores the same as one added in-app rather
+                # than losing its signals and landing at the bottom.
+                discovery_source=(row.get('source', '').strip() or 'csv_import')[:200],
+                ai_summary=row.get('evidence', '').strip() or None,
             )
-            company.opportunity_score = calculate_score(company)
+            signals = [s.strip() for s in (row.get('signals') or '').replace(',', ';').split(';') if s.strip()]
+            try:
+                style_fit = int(float(row.get('style_fit') or 0))
+            except ValueError:
+                style_fit = 0
+            company.opportunity_score = calculate_score(company, signals=signals, style_fit=style_fit)
             db.add(company)
             db.flush()
 
@@ -59,7 +79,7 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
                 company_id=company.id,
                 user_id=admin.id,
                 event_type="discovered",
-                description="Company imported from CSV"
+                description=f"Imported from CSV — {row.get('source', '').strip() or 'manual list'}"
             )
             db.add(history)
             added += 1

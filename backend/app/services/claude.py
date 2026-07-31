@@ -344,6 +344,45 @@ def _usage(message) -> dict:
     }
 
 
+def build_search_queries(criteria: dict, limit: int = 12) -> list[str]:
+    """Turn the hunt criteria into concrete search-engine queries.
+
+    Written by hand rather than by the model: these are mechanical
+    combinations, and paying Claude to produce "interior design studio Dubai
+    site:dezeen.com" would cost more than running the search.
+    """
+    from app.services.discovery_sources import source_domains, signal_queries
+
+    places = [p.strip() for p in (
+        (criteria.get("cities") or "") + "," + (criteria.get("countries") or "")
+    ).split(",") if p.strip()] or [""]
+    segments = criteria.get("segments") or ["architecture studio", "interior design studio"]
+    domains = source_domains(criteria.get("sources") or [])
+
+    queries: list[str] = []
+    # Source-scoped queries first — a site: filter on an award shortlist or a
+    # registry is what reaches past the famous studios.
+    for domain in domains:
+        for place in places[:2]:
+            queries.append(f"site:{domain} {segments[0]} {place}".strip())
+    # Then the plain combinations, which cover firms no directory lists.
+    for seg in segments[:3]:
+        for place in places[:3]:
+            queries.append(f"{seg} {place}".strip())
+    # Then any buying-signal phrasing, which is where the best leads hide.
+    for place in places[:2]:
+        for phrase in signal_queries(criteria.get("signals") or []):
+            queries.append(f"{phrase} {place}".strip())
+
+    seen, out = set(), []
+    for q in queries:
+        q = " ".join(q.split())
+        if q and q not in seen:
+            seen.add(q)
+            out.append(q)
+    return out[:limit]
+
+
 def scout_leads(existing_names: list, criteria: dict) -> tuple[list, dict]:
     """Stage 1 — find *who exists*, and nothing more.
 
@@ -352,7 +391,103 @@ def scout_leads(existing_names: list, criteria: dict) -> tuple[list, dict]:
     a wide sweep cheap, because most of what comes back gets rejected — paying
     to research 25 companies to keep 6 is the expensive way round.
 
+    Runs the searches through a commodity search API when one is configured
+    (see services/websearch.py) and only shows the model snippets, which is
+    ~30x cheaper than Anthropic's server-side web search. Falls back to the
+    built-in tool when no search key is set, so the feature still works.
+
     Returns (leads, token usage).
+    """
+    from app.services import websearch
+
+    if websearch.is_configured():
+        return _scout_cheap(existing_names, criteria)
+    return _scout_builtin(existing_names, criteria)
+
+
+def _scout_cheap(existing_names: list, criteria: dict) -> tuple[list, dict]:
+    """Scout using our own search calls — the model only ever sees snippets."""
+    from app.services import websearch
+
+    count = max(1, min(int(criteria.get("count") or 15), 40))
+    queries = build_search_queries(criteria, limit=min(12, 4 + count // 3))
+    hits = websearch.search_many(queries, per_query=8)
+
+    if not hits:
+        return [], {"input_tokens": 0, "output_tokens": 0}
+
+    known = ", ".join(existing_names[:200]) if existing_names else "none yet"
+    brief = (criteria.get("brief") or "").strip()
+    segments = criteria.get("segments") or []
+
+    # Snippets only — a title, a URL and two lines. This is the whole saving.
+    results_block = "\n".join(
+        f"{i + 1}. {h['title']}\n   {h['url']}\n   {h['snippet'][:220]}"
+        for i, h in enumerate(hits[:80])
+    )
+
+    prompt = f"""{ARMILA_DNA}
+
+Below are real web search results. Pick out up to {count} distinct COMPANIES from
+them that could plausibly commission architectural visualisation, and return
+them as structured data. You are reading results, not searching — work only
+from what is written below.
+
+{f"## The brief{chr(10)}{brief}{chr(10)}" if brief else ""}
+## What we're looking for
+- Countries/regions: {(criteria.get('countries') or '').strip() or 'any'}
+- Cities: {(criteria.get('cities') or '').strip() or 'any'}
+- Business type: {', '.join(segments) if segments else 'architecture, interior design, or real-estate development'}
+
+## Already in our catalog — never return these
+{known}
+
+## Search results
+{results_block}
+
+## Rules
+- One entry per company, not per result. Merge duplicates.
+- Skip results that aren't a company: articles about a project, directories,
+  award pages themselves, job boards, marketplaces, Wikipedia.
+- `source_url` must be one of the URLs above — the one you took them from.
+- `website` should be the company's own domain when a result reveals it,
+  otherwise null. Do not invent one.
+- Infer country/city only when the result says so; otherwise null.
+
+## Output
+Return ONLY a JSON array, no prose and no markdown fence:
+[
+  {{
+    "name": "Company name",
+    "website": "https://... or null",
+    "country": "Country or null",
+    "city": "City or null",
+    "segment": "best guess at business type",
+    "source": "which listing or page this came from",
+    "source_url": "the URL from the list above",
+    "note": "one short line on what they appear to do"
+  }}
+]"""
+
+    # Haiku is plenty for pulling structured records out of text, and costs a
+    # third of Sonnet. The judgement calls happen in the enrich stage.
+    message = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    if not isinstance(result, list):
+        raise ValueError("Scout did not return a list")
+    return result, _usage(message)
+
+
+def _scout_builtin(existing_names: list, criteria: dict) -> tuple[list, dict]:
+    """Fallback scout using Anthropic's server-side web search.
+
+    Correct but expensive — a measured run cost $0.58 for five companies. Set
+    BRAVE_SEARCH_API_KEY to take the cheap path instead.
     """
     from app.services.discovery_sources import describe_sources, describe_signals
 
@@ -452,15 +587,113 @@ Return ONLY a JSON array, no prose and no markdown fence:
 def enrich_leads(leads: list, criteria: dict) -> tuple[list, dict]:
     """Stage 2 — research only the companies that were kept.
 
-    Fetches each company's own site to find the contact details, size and
-    segment, and reports which buying signals are actually present. It does
-    **not** return a score: it returns facts, and `services/scoring.py` turns
-    those into a number. A model-produced 0-100 drifts between runs and can't
-    be re-tuned; a formula over facts can.
+    Establishes contact details, size and segment, and reports which buying
+    signals are actually present. It does **not** return a score: it returns
+    facts, and `services/scoring.py` turns those into a number. A
+    model-produced 0-100 drifts between runs and can't be re-tuned; a formula
+    over facts can.
 
-    Batched so a handful of companies share one request instead of one call
-    each. Returns (enriched leads, token usage).
+    When a search key is configured we fetch the pages ourselves and hand the
+    model trimmed text, which is far cheaper than letting it pull whole pages
+    into context. Otherwise it falls back to Anthropic's web_fetch tool.
+
+    Returns (enriched leads, token usage).
     """
+    from app.services import websearch
+
+    if websearch.is_configured():
+        return _enrich_cheap(leads, criteria)
+    return _enrich_builtin(leads, criteria)
+
+
+def _enrich_cheap(leads: list, criteria: dict) -> tuple[list, dict]:
+    """Enrich from pages we fetched ourselves."""
+    from app.services import websearch
+    from app.services.discovery_sources import describe_signals
+
+    signal_lines = describe_signals(criteria.get("signals") or []) or describe_signals(
+        ["hiring_viz", "recent_award", "new_project", "exhibiting", "funding",
+         "dated_visuals", "no_inhouse", "active_social"]
+    )
+    brief = (criteria.get("brief") or "").strip()
+
+    dossiers, index = [], []
+    for lead in leads:
+        page = websearch.fetch_company_pages(lead.get("website") or "")
+        index.append(lead)
+        found_emails = ", ".join(page["emails"]) if page["emails"] else "none found in the page source"
+        dossiers.append(
+            f"### {len(index)}. {lead.get('name')}\n"
+            f"Location per the search result: "
+            f"{', '.join(x for x in [lead.get('city'), lead.get('country')] if x) or 'unknown'}\n"
+            f"Website: {lead.get('website') or 'unknown'}\n"
+            f"Email addresses found in the page source: {found_emails}\n"
+            f"Page text:\n{page['text'][:5000] or '(could not be read: ' + str(page['error']) + ')'}\n"
+        )
+
+    prompt = f"""{ARMILA_DNA}
+
+Below are {len(index)} companies with the text of their own websites. Work only from
+what is written here — do not guess anything the pages don't support.
+
+{f"## The brief{chr(10)}{brief}{chr(10)}" if brief else ""}
+## For each company, establish
+- The best contact email from the addresses listed for it. Prefer a named
+  person over a shared inbox. If none were found, return null — never invent one.
+- LinkedIn / Instagram URLs if the page text mentions them.
+- Team size: solo (1-2), small (3-20), medium (21-100), large (100+). Judge from
+  the team page, project volume and tone; null if there's genuinely no signal.
+- Business type and the projects they do.
+- Which buying signals the page actually evidences:
+{_bullets(signal_lines)}
+- `style_fit`, -8 to +8: how close their work is to what Armila renders well
+  (minimalist Scandinavian, modern organic, warm minimalism). Positive when the
+  aesthetic matches and their imagery looks like better renders would help;
+  negative for a poor stylistic match or already-excellent visuals. 0 if unclear.
+
+## Rules
+- Null beats a plausible guess, especially for emails.
+- `signals` may only contain keys from the list above, and only where the page
+  gives you evidence. Do not infer a signal from the company's existence.
+- `evidence` must quote or closely paraphrase something you actually read.
+- Do not score the company. Report facts; we compute the score.
+
+## Companies
+{chr(10).join(dossiers)}
+
+## Output
+Return ONLY a JSON array in the same order, no prose:
+[
+  {{
+    "name": "Company name (as given)",
+    "email": "best published email or null",
+    "linkedin": "URL or null", "instagram": "URL or null", "phone": "or null",
+    "country": "Country", "city": "City or null",
+    "industry": "one of: Architecture, Interior Design, Real Estate, CGI, Visualization, Animation, Construction",
+    "segment": "more specific business type",
+    "company_size": "solo|small|medium|large",
+    "signals": ["verified signal keys"],
+    "evidence": "the specific facts you read that matter for outreach",
+    "style_fit": -8..8,
+    "confidence": "high|medium|low",
+    "why": "one sentence on why they're worth an email from Armila"
+  }}
+]"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    if not isinstance(result, list):
+        raise ValueError("Enrichment did not return a list")
+    return result, _usage(message)
+
+
+def _enrich_builtin(leads: list, criteria: dict) -> tuple[list, dict]:
+    """Fallback enrichment using Anthropic's web_fetch tool — accurate, pricey."""
     from app.services.discovery_sources import describe_signals
 
     signal_lines = describe_signals(criteria.get("signals") or []) or describe_signals(

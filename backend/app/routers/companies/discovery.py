@@ -34,7 +34,22 @@ def _normalise_domain(website: str | None) -> str | None:
 def list_sources(admin: User = Depends(require_admin)):
     """The source/segment/signal picker. Data-driven so adding a source to
     `discovery_sources.py` shows up in the UI without a frontend change."""
-    return discovery_sources.catalog()
+    from app.services import websearch
+
+    data = discovery_sources.catalog()
+    # Which search path is live, so the cost of pressing Scout isn't a surprise.
+    provider = websearch.provider()
+    data["search"] = {
+        "provider": provider or "anthropic",
+        "cheap": bool(provider),
+        "note": (
+            f"Using {provider.title()} Search — roughly $0.01 per hunt."
+            if provider else
+            "Using Anthropic's built-in web search — around $0.50 per 5 companies. "
+            "Set BRAVE_SEARCH_API_KEY on the server to cut that by ~30x."
+        ),
+    }
+    return data
 
 
 def _known_index(db):

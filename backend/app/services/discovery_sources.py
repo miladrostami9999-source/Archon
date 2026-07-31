@@ -187,6 +187,69 @@ def describe_signals(keys: list[str]) -> list[str]:
     return lines
 
 
+# Domains for the sources that can be searched with a `site:` filter. Only the
+# ones with a single stable domain are listed — a `site:` query is worth far
+# more than a keyword hint, because it reaches the long tail a general search
+# never surfaces. Sources without an entry still work via their `hint`.
+SOURCE_DOMAINS = {
+    "archdaily": "archdaily.com", "dezeen": "dezeen.com", "architizer": "architizer.com",
+    "archello": "archello.com", "divisare": "divisare.com",
+    "world_architects": "world-architects.com", "architonic": "architonic.com",
+    "designboom": "designboom.com", "interior_design_mag": "interiordesign.net",
+    "waf": "worldarchitecturefestival.com", "dezeen_awards": "dezeen.com/awards",
+    "architizer_a": "architizer.com/awards", "mies": "miesarch.com",
+    "riba_awards": "architecture.com", "aia_awards": "aia.org",
+    "me_architect": "middleeastarchitect.com", "iconic": "iconic-world.com",
+    "riba_arb": "architecture.com", "aia_ncarb": "aia.org", "bak_bda": "bda-bund.de",
+    "cscae": "cscae.com", "cnappc": "awn.it", "bna": "bna.nl",
+    "nordic_bodies": "danskeark.dk", "ordre_fr": "architectes.org", "tr_chamber": "mo.org.tr",
+    "big5": "thebig5.ae", "cityscape": "cityscapeglobal.com", "mipim": "mipim.com",
+    "expo_real": "exporeal.net", "salone": "salonemilano.it",
+    "bau_batimat": "bau-muenchen.com", "downtown_design": "downtowndesign.com",
+    "behance": "behance.net", "artstation": "artstation.com",
+    "cgarchitect": "cgarchitect.com", "linkedin": "linkedin.com/company",
+    "instagram": "instagram.com", "houzz": "houzz.com",
+    "clutch": "clutch.co",
+    "enr": "enr.com", "property_press": "constructionweekonline.com",
+    "archinect_jobs": "archinect.com/jobs", "linkedin_jobs": "linkedin.com/jobs",
+    "cgarchitect_jobs": "cgarchitect.com",
+    "companies_house": "find-and-update.company-information.service.gov.uk",
+    "opencorporates": "opencorporates.com", "crunchbase": "crunchbase.com",
+}
+
+# Search phrasings that surface each buying signal. These are what a person
+# would actually type to find a firm in that situation.
+SIGNAL_QUERIES = {
+    "hiring_viz": ['architecture studio hiring "3D visualiser"', '"architectural visualizer" job'],
+    "recent_award": ["architecture award shortlist", "interior design award winner"],
+    "new_project": ["architecture studio announces new project", "development launch renders"],
+    "exhibiting": ["architecture exhibitor list", "design fair exhibitor"],
+    "funding": ["architecture studio new office opening", "design studio expansion"],
+    "dated_visuals": ["small architecture studio portfolio"],
+    "no_inhouse": ["boutique architecture studio team"],
+    "active_social": ["architecture studio instagram"],
+}
+
+
+def source_domains(keys: list[str]) -> list[str]:
+    """Searchable domains for the chosen sources, in the order given."""
+    out = []
+    for key in keys or []:
+        domain = SOURCE_DOMAINS.get(key)
+        if domain and domain not in out:
+            out.append(domain)
+    return out
+
+
+def signal_queries(keys: list[str]) -> list[str]:
+    out = []
+    for key in keys or []:
+        for q in SIGNAL_QUERIES.get(key, []):
+            if q not in out:
+                out.append(q)
+    return out
+
+
 def catalog() -> dict:
     """The whole picker, shaped for the frontend."""
     return {

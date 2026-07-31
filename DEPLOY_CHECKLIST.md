@@ -25,6 +25,9 @@
 - [x] `SMTP_EMAIL`, `SMTP_APP_PASSWORD`, `SMTP_SENDER_NAME` — ست شده (هنوز end-to-end تست ارسال نشده، بخش ۶ رو ببینید)
 - [x] `ALLOWED_ORIGINS` — به `https://archon-hazel.vercel.app` ست شد، CORS کار می‌کنه
 - [ ] `BACKUP_DIR=/data/backups` — **وضعیتش نامشخصه.** باید تأیید بشه (چک‌لیست تأیید در بخش ۶)
+- [ ] `BRAVE_SEARCH_API_KEY` — **اختیاری ولی به‌شدت توصیه‌شده.** Lead Hunter بدون این از web search داخلی Anthropic استفاده می‌کنه که **~$۰.۵۸ برای هر ۵ شرکت** خرج برمی‌داره (اندازه‌گیری‌شده). با این کلید همون کار حدود **$۰.۰۲** می‌شه. کلید رایگان از `brave.com/search/api` — ماهی ۲,۰۰۰ سرچ رایگان.
+  - جایگزین: `SERPER_API_KEY` (از `serper.dev`، حدود $۱ برای هر ۱۰۰۰ سرچ، بدون تیر رایگان)
+  - هیچ‌کدوم ست نباشه؟ فیچر همچنان کار می‌کنه، فقط گرونه — و صفحه‌ی `/discovery` یک بنر هشدار نشون می‌ده.
 
 **Vercel (Frontend):**
 - [x] `NEXT_PUBLIC_API_URL` در Vercel ست شد و به `https://archon-production-b8a6.up.railway.app` وصله — تأیید شد، فرانت درست به بک‌اند وصل می‌شه
