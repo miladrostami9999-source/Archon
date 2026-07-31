@@ -3,7 +3,12 @@
 > این فایل خلاصه‌ی وضعیت پروژه‌ست. هر وقت گفتید «استاتوس رو ثبت کن»، این فایل رو با آخرین وضعیت آپدیت می‌کنم.
 > طراحی شده که قابل کپی/انتقال به یک AI دیگه باشه برای مشاوره — همه چیز خودایستا و بدون نیاز به context قبلی نوشته می‌شه.
 
-**آخرین آپدیت:** 2026-07-24 — ✅ **Phase 5 (بخش کدنویسی) تکمیل شد.** Multi-tenant، لیمیت‌های واقعی، پلن رایگان، signup فوری، پرداخت دستی با نرخ ارز زنده، AI Lead Discovery، آنالیتیکس شخصی و ابزارهای ادمین — همه عملیاتی روی `app.armiladesign.com`. دو مورد باقی‌مانده نیاز به اقدام بیرون از کد دارن.
+**آخرین آپدیت:** 2026-07-31 — ✅ **Phase 5 (بخش کدنویسی) تکمیل شد + سه باگ UI رفع شد.** Multi-tenant، لیمیت‌های واقعی، پلن رایگان، signup فوری، پرداخت دستی با نرخ ارز زنده، AI Lead Discovery، آنالیتیکس شخصی و ابزارهای ادمین — همه عملیاتی روی `app.armiladesign.com`. دو مورد باقی‌مانده نیاز به اقدام بیرون از کد دارن (بخش ۳). آخرین commit: `80e131e` (پوش‌شده روی `main`).
+
+**آخرین سشن (2026-07-31) چه‌کاری کرد:**
+1. **باگ ریشه‌ای اسکرول ساید بار پیدا و رفع شد.** علت واقعی این بود که `globals.css` هر صفحه رو داخل `.page-enter` می‌پیچید که انیمیشنش با `forwards` روی `transform: translateY(0)` ثابت می‌موند. یک `transform` غیر-`none` روی هر المان، یک containing‌block جدید برای همه‌ی فرزندان `position: fixed` می‌سازه — پس ساید‌بار با اینکه `fixed` بود، در واقع نسبت به همون wrapper فیکس بود نه viewport، و با اسکرول صفحه جابجا می‌شد. رفع شد با حذف `transform` از انیمیشن (فقط فِید opacity). این فیکس ریشه‌ایه و باید مشکل رو کامل حل کنه (فایل: `frontend/app/globals.css`).
+2. **دکمه‌ی «Email this user» در بخش Users درست شد.** قبلاً یک لینک ساده‌ی `mailto:` بود که اگه روی سیستم کاربر کلاینت ایمیل پیش‌فرض ست نشده باشه (خیلی رایجه، مخصوصاً برای کسایی که فقط از جیمیل تو مرورگر استفاده می‌کنن)، هیچ اتفاقی نمی‌افته. الان علاوه بر باز کردن mailto، ایمیل رو هم در کلیپ‌بورد کپی می‌کنه و پیام تأیید نشون می‌ده (فایل: `frontend/app/users/page.tsx`).
+3. **صفحه‌ی Analytics بازطراحی شد** — به‌جای یک گرید سه‌ستونه‌ی نامنظم (با یک کارت span-2 که ردیف رو به‌هم می‌ریخت)، الان بخش‌بندی واضحه: کارت‌های KPI بالا → Pipeline Funnel → **My Outreach** (آمار شخصی خودت، تنها و کامل) → Email Campaign تیمی + Quick Insights (کنار هم) → Industries + Top Countries (کنار هم). در یک نگاه قابل فهمه (فایل: `frontend/app/analytics/page.tsx`).
 
 ---
 
@@ -127,6 +132,10 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 
 **مواردی که در نقشه راه اصلی نبودن و از بحث‌های بعدی اضافه شدن:** Multi-tenant واقعی (قدم ۱)، پلن رایگان ۷ روزه (قدم ۳)، باز کردن signup واقعی (قدم ۴).
 
+### 🎯 قدم بعدی: تست کاربر و سپس تصمیم برای Phase 6
+
+سه باگ بخش ۱ (اسکرول ساید‌بار، دکمه‌ی ایمیل، صفحه‌ی Analytics) رفع، build شده، commit و push شدن — منتظر تست و تأیید Milad روی production/local. بعد از تأیید، آماده‌ی شروع **Phase 6 (Project Marketplace)** هستیم.
+
 **Phase 6 — Project Marketplace:** Freelancer/Client project board، Escrow + Milestone payment، Digital contracts، Job listings، Rating system، Community feed.
 
 **Phase 7 — Ecosystem & Scale:** AI project matching، Market Intelligence Reports، Mobile App، Data API ($299/mo)، Verified Badge Program، Enterprise plans.
@@ -157,7 +166,8 @@ Archon یک CRM/Business Development OS برای استودیوهای معمار
 - `migrate_to_postgres.py` جدول `weekly_reports` رو migrate نمی‌کرد (قفل ۷روزه‌ی گزارش هفتگی گم می‌شد بعد از مهاجرت) — رفع شد.
 - `DEPLOY_CHECKLIST.md` ساخته شد — چک‌لیست کامل قبل از Deploy (env vars، migration، DNS، smoke tests، rollback) و کاملاً بازبینی/تست شد
 - Backup path هاردکد بود و روی Railway (filesystem ephemeral) با هر redeploy پاک می‌شد — الان از `BACKUP_DIR` env var پشتیبانی می‌کنه؛ نیاز به ساخت Railway Volume + تنظیم env var قبل از Deploy واقعی (جزئیات در DEPLOY_CHECKLIST.md بخش ۶)
-- Sidebar جابجایی هنگام اسکرول (minHeight→height + overflow:hidden)
+- Sidebar جابجایی هنگام اسکرول — چند تلاش اولیه (minHeight→height، z-index) فقط علائم رو کم کردن؛ علت ریشه‌ای (transform روی `.page-enter` که containing block فیکس‌ها رو می‌شکست) در 2026-07-31 پیدا و رفع شد، جزئیات در بالای فایل
+- دکمه‌ی «Email this user» که با mailto: بدون کلاینت پیش‌فرض هیچ کاری نمی‌کرد — کپی به کلیپ‌بورد به‌عنوان fallback اضافه شد (2026-07-31)
 - Score circle strokeDasharray بدون ضریب مقیاس
 - حذف Note امکان‌پذیر نبود (DELETE endpoint اضافه شد)
 - `class_mapper` import اشتباه در تفکیک companies.py (از `sqlalchemy.orm` نه `sqlalchemy`)
