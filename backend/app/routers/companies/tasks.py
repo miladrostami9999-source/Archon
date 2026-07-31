@@ -3,19 +3,32 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Company, DailyTask, User
-from app.routers.auth import get_current_user
+from app.models.database import get_db, Company, DailyTask, User, UserCompanyState
+from app.routers.auth import get_current_user, require_active_plan
 from .schemas import TaskGenerateRequest, PersonalTaskCreate
-from .utils import to_dict
+from .utils import to_dict, company_to_dict
 
 router = APIRouter()
 
 
 @router.post("/tasks/generate")
-def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     from app.services.claude import generate_daily_tasks
-    companies = db.query(Company).all()
-    company_list = [to_dict(c) for c in companies]
+
+    # Only the user's own unlocked companies. Feeding the whole catalog to
+    # Claude and handing back the summary was a way to read rows the plan
+    # hasn't paid for — and it billed us for tokens on companies the user
+    # can't act on anyway.
+    rows = db.query(Company, UserCompanyState).join(
+        UserCompanyState,
+        (UserCompanyState.company_id == Company.id) & (UserCompanyState.user_id == current_user.id),
+    ).all()
+    company_list = [company_to_dict(c, s) for c, s in rows]
+    if not company_list:
+        raise HTTPException(
+            status_code=400,
+            detail="Unlock a few companies first — daily tasks are built from the ones in your pipeline.",
+        )
 
     try:
         tasks = generate_daily_tasks(company_list, lang=data.lang)

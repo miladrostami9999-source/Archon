@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Company, Campaign, WeeklyReport, UserCompanyState, User
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, require_feature
 from .schemas import ReportRequest
 from .utils import to_dict, company_to_dict
 
@@ -43,7 +43,7 @@ def get_weekly_report_status(current_user: User = Depends(get_current_user), db:
 
 
 @router.post("/report/weekly")
-def generate_weekly_report(request: ReportRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def generate_weekly_report(request: ReportRequest, current_user: User = Depends(require_feature("weekly_report")), db: Session = Depends(get_db)):
     from app.services.claude import generate_weekly_report as gen_report
 
     status = _report_status(db, current_user.id)
@@ -53,12 +53,14 @@ def generate_weekly_report(request: ReportRequest, current_user: User = Depends(
             detail=f"Weekly report already generated. Next one available after {status['next_available_at']}."
         )
 
-    # Companies with this user's own pipeline state layered on
-    state_by_company = {
-        s.company_id: s for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == current_user.id).all()
-    }
-    companies = db.query(Company).all()
-    companies_list = [company_to_dict(c, state_by_company.get(c.id)) for c in companies]
+    # The report covers this user's own pipeline — the companies they unlocked.
+    # It used to run over the entire catalog, which both leaked names the plan
+    # hadn't paid for and made the report meaningless once the catalog grew.
+    rows = db.query(Company, UserCompanyState).join(
+        UserCompanyState,
+        (UserCompanyState.company_id == Company.id) & (UserCompanyState.user_id == current_user.id),
+    ).all()
+    companies_list = [company_to_dict(c, s) for c, s in rows]
 
     status_counts = {}
     for c in companies_list:

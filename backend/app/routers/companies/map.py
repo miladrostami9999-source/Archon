@@ -2,18 +2,25 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Company, UserCompanyState, User
-from app.routers.auth import get_current_user
+from app.routers.auth import require_feature
+from app.services.access import access_state, mask_name
 
 router = APIRouter()
 
 
 @router.get("/map/data")
-def get_map_data(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_map_data(current_user: User = Depends(require_feature("market_map")), db: Session = Depends(get_db)):
     # Shared catalog, with this user's own status/heat layered on
+    access = access_state(db, current_user)
     state_by_company = {
         s.company_id: s for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == current_user.id).all()
     }
-    companies = db.query(Company).filter(Company.country != None).all()
+    query = db.query(Company).filter(Company.country != None)
+    # The map is a second window onto the same catalog, so it has to honour the
+    # plan's country scope — otherwise the trial lock is bypassed by opening /map.
+    if access.get("countries"):
+        query = query.filter(Company.country.in_(access["countries"]))
+    companies = query.all()
 
     country_data = {}
     for c in companies:
@@ -32,13 +39,16 @@ def get_map_data(current_user: User = Depends(get_current_user), db: Session = D
         d = country_data[country]
         d["count"] += 1
         d["total_score"] += c.opportunity_score or 0
+        # Counts and averages are aggregate and safe to show; a company name is
+        # identifying, so a locked account gets the same mask as in the list.
         d["companies"].append({
             "id": c.id,
-            "name": c.name,
+            "name": mask_name(c.name) if access.get("locked") else c.name,
             "status": status,
             "score": c.opportunity_score,
             "heat_level": heat,
             "industry": c.industry,
+            "locked": bool(access.get("locked")) or st is None,
         })
         d["statuses"][status] = d["statuses"].get(status, 0) + 1
         if heat == "hot":
@@ -52,7 +62,7 @@ def get_map_data(current_user: User = Depends(get_current_user), db: Session = D
             "avg_score": round(d["total_score"] / d["count"]) if d["count"] > 0 else 0,
             "hot": d["hot"],
             "statuses": d["statuses"],
-            "companies": sorted(d["companies"], key=lambda x: x["score"], reverse=True),
+            "companies": sorted(d["companies"], key=lambda x: x["score"] or 0, reverse=True),
         })
 
     return sorted(result, key=lambda x: x["count"], reverse=True)

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.models.database import get_db, Company, UserCompanyState, User, History
-from app.routers.auth import get_current_user, require_admin
+from app.routers.auth import require_admin, require_feature
 from .schemas import SearchRequest, DiscoverRequest, DiscoverSaveRequest
 from .utils import to_dict, calculate_score, company_to_dict
 
@@ -79,13 +79,22 @@ def recalculate_scores(admin: User = Depends(require_admin), db: Session = Depen
 
 
 @router.post("/search/smart")
-def smart_search(data: SearchRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def smart_search(data: SearchRequest, current_user: User = Depends(require_feature("ai_search")), db: Session = Depends(get_db)):
     from app.services.claude import smart_search as claude_smart_search
-    companies = db.query(Company).all()
+    from app.services.access import access_state
+
+    # AI search reads the whole catalog, so it has to respect the same country
+    # scope and masking as the list — otherwise it's a way to ask Claude for the
+    # rows the plan can't see.
+    access = access_state(db, current_user)
+    query = db.query(Company)
+    if access.get("countries"):
+        query = query.filter(Company.country.in_(access["countries"]))
+    companies = query.all()
     state_by_company = {
         s.company_id: s for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == current_user.id).all()
     }
-    company_list = [company_to_dict(c, state_by_company.get(c.id)) for c in companies]
+    company_list = [company_to_dict(c, state_by_company.get(c.id), access) for c in companies]
     try:
         result_ids = claude_smart_search(data.query, company_list)
         filtered = [c for c in company_list if c['id'] in result_ids]

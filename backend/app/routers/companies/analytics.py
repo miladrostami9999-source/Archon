@@ -10,14 +10,23 @@ router = APIRouter()
 
 @router.get("/analytics/summary")
 def get_analytics(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Catalog-level facts are shared
-    total = db.query(Company).count()
-    industries = db.query(
+    from app.services.access import access_state
+
+    # Catalog-level facts are shared, but scoped to the countries this plan can
+    # browse — otherwise the totals here describe a catalog the user can't open.
+    access = access_state(db, current_user)
+    scope = access.get("countries")
+
+    def catalog(q):
+        return q.filter(Company.country.in_(scope)) if scope else q
+
+    total = catalog(db.query(Company)).count()
+    industries = catalog(db.query(
         Company.industry, func.count(Company.id)
-    ).filter(Company.industry != None).group_by(Company.industry).all()
-    countries = db.query(
+    ).filter(Company.industry != None)).group_by(Company.industry).all()
+    countries = catalog(db.query(
         Company.country, func.count(Company.id)
-    ).filter(Company.country != None).group_by(Company.country).order_by(func.count(Company.id).desc()).limit(10).all()
+    ).filter(Company.country != None)).group_by(Company.country).order_by(func.count(Company.id).desc()).limit(10).all()
 
     # Pipeline stats are this user's own. Companies the user hasn't touched
     # count as "new", so status_counts still sums to the full catalog size.

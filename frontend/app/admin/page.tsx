@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
-import LeadDiscovery from '../components/LeadDiscovery'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -17,6 +16,8 @@ interface PlanLimit {
   period_days: number
   price_usd: number
   price_irr: number
+  /** Comma-separated country names; empty means the whole catalog. */
+  allowed_countries: string
 }
 
 interface Stats {
@@ -36,6 +37,7 @@ export default function AdminPanel() {
   const [backMsg, setBackMsg] = useState('')
   const [lastBackup, setLastBackup] = useState<string | null>(null)
   const [planLimits, setPlanLimits] = useState<PlanLimit[]>([])
+  const [catalogCountries, setCatalogCountries] = useState<{ name: string; count: number }[]>([])
   const [savingPlan, setSavingPlan] = useState<string | null>(null)
   const [limitMsg, setLimitMsg] = useState('')
   const [instr, setInstr] = useState({
@@ -71,6 +73,10 @@ export default function AdminPanel() {
     }).catch(() => {})
     axios.get(`${API}/auth/settings/payment`, { headers: headers() }).then(r => setInstr(s => ({ ...s, ...r.data }))).catch(() => {})
     axios.get(`${API}/auth/billing/exchange-rate`, { headers: headers() }).then(r => setRate(r.data)).catch(() => {})
+    // Real country names from the catalog, so the picker can't be set to a
+    // value that matches nothing.
+    axios.get(`${API}/auth/catalog/countries`, { headers: headers() })
+      .then(res => setCatalogCountries(res.data)).catch(() => {})
     axios.get(`${API}/auth/plan-limits`, { headers: headers() }).then(res => {
       setPlanLimits(res.data.sort((a: PlanLimit, b: PlanLimit) =>
         ['trial', 'basic', 'pro', 'agency'].indexOf(a.plan) - ['trial', 'basic', 'pro', 'agency'].indexOf(b.plan)))
@@ -102,6 +108,7 @@ export default function AdminPanel() {
         period_days: pl.period_days,
         price_usd: pl.price_usd,
         price_irr: pl.price_irr,
+        allowed_countries: pl.allowed_countries || '',
       }, { headers: headers() })
       setLimitMsg(`✓ ${pl.plan} limits saved`)
     } catch (e: any) {
@@ -110,8 +117,18 @@ export default function AdminPanel() {
     setSavingPlan(null)
   }
 
-  const setPl = (plan: string, field: keyof PlanLimit, value: number) => {
+  const setPl = (plan: string, field: keyof PlanLimit, value: number | string) => {
     setPlanLimits(prev => prev.map(p => p.plan === plan ? { ...p, [field]: value } : p))
+  }
+
+  // Toggling a country chip on/off in a plan's allow-list.
+  const toggleCountry = (plan: string, country: string) => {
+    setPlanLimits(prev => prev.map(p => {
+      if (p.plan !== plan) return p
+      const list = (p.allowed_countries || '').split(',').map(s => s.trim()).filter(Boolean)
+      const next = list.includes(country) ? list.filter(c => c !== country) : [...list, country]
+      return { ...p, allowed_countries: next.join(', ') }
+    }))
   }
 
   const runBackup = async () => {
@@ -322,13 +339,31 @@ export default function AdminPanel() {
             ))}
           </div>
 
-          <LeadDiscovery isMobile={isMobile} />
+          {/* Lead Hunter has its own page now — it outgrew a panel here. */}
+          <a href="/discovery" style={{
+            display: 'flex', alignItems: 'center', gap: '14px', marginTop: '28px',
+            padding: '18px', borderRadius: '14px', textDecoration: 'none',
+            border: '1px solid rgba(79,123,247,0.25)',
+            background: 'linear-gradient(135deg, rgba(79,123,247,0.07), rgba(124,58,237,0.07))',
+          }}>
+            <span style={{ fontSize: '26px' }}>🎯</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Lead Hunter</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '3px 0 0', lineHeight: 1.6 }}>
+                Hunt new companies across award shortlists, national registries, trade-fair exhibitor
+                lists, job boards and more — with a citation for every lead.
+              </p>
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#60A5FA', whiteSpace: 'nowrap' }}>Open →</span>
+          </a>
 
           {/* ── PLAN LIMITS EDITOR ── */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '28px' }}>Plan Limits</p>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
             Edit quotas per plan. Changes apply immediately to everyone on that plan. Use <strong>-1</strong> for unlimited.<br />
-            <strong>Max companies</strong> counts only companies a user actively works — changing a status, favoriting, or adding one. Just browsing the catalog never uses quota.
+            <strong>Max companies</strong> is how many companies the user can <strong>unlock</strong>. Unlocking reveals a company&apos;s
+            email, website, socials and contacts; everything else in the catalog stays visible but masked. Adding, starring
+            or moving a company through the pipeline also unlocks it.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', paddingBottom: '40px' }}>
             {planLimits.map(pl => (
@@ -352,6 +387,38 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
+
+                {/* ── COUNTRY SCOPE ── */}
+                <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                  <label style={{ display: 'block', fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '2px' }}>Countries this plan can see</label>
+                  <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
+                    {(pl.allowed_countries || '').trim()
+                      ? 'Companies outside these countries are hidden entirely — they don’t appear in the list, the map, or search.'
+                      : 'No restriction — this plan sees the whole catalog.'}
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                    {catalogCountries.map(c => {
+                      const on = (pl.allowed_countries || '').split(',').map(s => s.trim()).includes(c.name)
+                      return (
+                        <button key={c.name} type="button" onClick={() => toggleCountry(pl.plan, c.name)}
+                          style={{
+                            fontSize: '11px', padding: '4px 9px', borderRadius: '999px', cursor: 'pointer',
+                            border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
+                            background: on ? 'rgba(79,123,247,0.14)' : 'var(--bg-input)',
+                            color: on ? '#60A5FA' : 'var(--text-dim)',
+                          }}>
+                          {c.name} <span style={{ opacity: 0.6 }}>{c.count}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <input
+                    value={pl.allowed_countries || ''}
+                    onChange={e => setPl(pl.plan, 'allowed_countries', e.target.value)}
+                    placeholder="Empty = every country"
+                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', fontSize: '12.5px', color: 'var(--text)', outline: 'none' }} />
+                </div>
+
                 <button onClick={() => savePlanLimit(pl)} disabled={savingPlan === pl.plan}
                   style={{ marginTop: '14px', width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: savingPlan === pl.plan ? 0.6 : 1 }}>
                   {savingPlan === pl.plan ? 'Saving…' : 'Save'}

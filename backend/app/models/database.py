@@ -225,15 +225,26 @@ class PlanLimit(Base):
     period_days          = Column(Integer, default=30)       # length of a billing/trial window
     price_usd            = Column(Float, default=0)          # 0 = free / not purchasable
     price_irr            = Column(Float, default=0)          # Toman price for Iranian users
+    # Comma-separated country names this plan may browse; empty = the whole
+    # catalog. Keeps the trial to a sample so it can't be used as a free
+    # substitute for a paid plan.
+    allowed_countries    = Column(Text, default="")
     updated_at           = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # Defaults seeded on first run — from the roadmap + landing page.
+# `allowed_countries` seeds the trial to the roadmap's priority-1 markets plus
+# the UK (where most of the current catalog sits, so a trial still sees
+# something). The admin edits it per plan from the Admin Panel.
 DEFAULT_PLAN_LIMITS = {
-    "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7,  "price_usd": 0,  "price_irr": 0},
-    "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30, "price_usd": 19, "price_irr": 0},
-    "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30, "price_usd": 49, "price_irr": 0},
-    "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30, "price_usd": 99, "price_irr": 0},
+    "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7,  "price_usd": 0,  "price_irr": 0,
+               "allowed_countries": "United Arab Emirates, Saudi Arabia, United Kingdom"},
+    "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30, "price_usd": 19, "price_irr": 0,
+               "allowed_countries": ""},
+    "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30, "price_usd": 49, "price_irr": 0,
+               "allowed_countries": ""},
+    "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30, "price_usd": 99, "price_irr": 0,
+               "allowed_countries": ""},
 }
 
 
@@ -281,6 +292,43 @@ DEFAULT_SETTINGS = {
     "payment_instructions_en": "How to upgrade:\n\n1. Pick your plan above - the amount is shown in Toman and USD.\n2. Pay using one of the methods listed (card to card inside Iran, or PayPal).\n3. Attach a screenshot or PDF of the receipt below. A tracking number is optional if you attach a receipt.\n4. Submit - we verify and activate your plan, usually within a few hours.\n\nYou'll get an email when we receive it, and another the moment your plan is active.\nNeed help? Email us, or message the number below on Telegram or WhatsApp.",
     "payment_instructions_fa": 'مراحل ارتقای پلن:\n\n۱. پلن مورد نظر را از بالا انتخاب کنید — مبلغ به تومان و دلار نمایش داده می\u200cشود.\n۲. مبلغ را با یکی از روش\u200cهای زیر پرداخت کنید (کارت به کارت داخل ایران یا پی\u200cپال).\n۳. تصویر یا فایل PDF رسید را در فرم پایین پیوست کنید. اگر رسید را پیوست کنید، وارد کردن شماره پیگیری اختیاری است.\n۴. ثبت کنید — پس از بررسی، پلن شما فعال می\u200cشود (معمولاً ظرف چند ساعت).\n\nبه محض دریافت، یک ایمیل تأیید و پس از فعال\u200cسازی پلن، ایمیل دوم برایتان ارسال می\u200cشود.\nسوالی دارید؟ با ایمیل یا از طریق تلگرام و واتساپ با شماره زیر در تماس باشید.',
 }
+
+
+class DiscoveryHunt(Base):
+    """A saved set of lead-hunting criteria.
+
+    Hunts are worth keeping: "small interior studios in Riyadh that are hiring a
+    visualiser" is a search you want to re-run monthly, not retype. The criteria
+    are stored as JSON because the shape of the form will keep growing.
+    """
+    __tablename__ = "discovery_hunts"
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), index=True)
+    name          = Column(String, nullable=False)
+    criteria_json = Column(Text, nullable=False)
+    last_run_at   = Column(DateTime)
+    runs          = Column(Integer, default=0)
+    found_total   = Column(Integer, default=0)
+    added_total   = Column(Integer, default=0)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class DiscoveryRun(Base):
+    """One execution of a hunt — what was asked, what came back, what stuck.
+
+    Kept so the yield of each source can be compared over time; a source that
+    keeps returning duplicates isn't worth searching again.
+    """
+    __tablename__ = "discovery_runs"
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), index=True)
+    hunt_id       = Column(Integer, ForeignKey("discovery_hunts.id"))
+    criteria_json = Column(Text)
+    found         = Column(Integer, default=0)
+    fresh         = Column(Integer, default=0)   # after removing catalog duplicates
+    added         = Column(Integer, default=0)   # actually saved by the admin
+    error         = Column(Text)
+    created_at    = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 class WaitlistEntry(Base):
@@ -362,6 +410,17 @@ def _seed_plan_limits():
         for key, value in DEFAULT_SETTINGS.items():
             if not db.query(AppSetting).filter(AppSetting.key == key).first():
                 db.add(AppSetting(key=key, value=value))
+
+        # The country lock arrived after plan rows already existed, so the new
+        # column came back empty (= no restriction) everywhere. Apply the
+        # defaults exactly once; after that an empty value is the admin's
+        # deliberate choice and must be left alone.
+        if not db.query(AppSetting).filter(AppSetting.key == "country_lock_seeded").first():
+            for plan, vals in DEFAULT_PLAN_LIMITS.items():
+                row = db.query(PlanLimit).filter(PlanLimit.plan == plan).first()
+                if row and not (row.allowed_countries or "").strip():
+                    row.allowed_countries = vals.get("allowed_countries", "")
+            db.add(AppSetting(key="country_lock_seeded", value="1"))
         db.commit()
     except Exception as e:
         db.rollback()
@@ -423,6 +482,9 @@ def init_db():
                     if col not in pl_cols:
                         conn.execute(_text(f"ALTER TABLE plan_limits ADD COLUMN {col} FLOAT DEFAULT 0"))
                         conn.commit()
+                if "allowed_countries" not in pl_cols:
+                    conn.execute(_text("ALTER TABLE plan_limits ADD COLUMN allowed_countries TEXT DEFAULT ''"))
+                    conn.commit()
 
             # ── Multi-tenancy: per-user ownership on what used to be shared ──
             for table in ("notes", "campaigns", "history", "daily_tasks", "weekly_reports"):

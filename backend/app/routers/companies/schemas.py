@@ -105,3 +105,42 @@ class DiscoveredCompany(BaseModel):
 
 class DiscoverSaveRequest(BaseModel):
     companies: List[DiscoveredCompany] = []
+
+
+# ── Lead Hunter ────────────────────────────────────────────────────────────
+class HuntRequest(BaseModel):
+    """Criteria for one lead hunt. Every field is optional — an empty hunt is
+    a broad search, and each field narrows it."""
+    sources: List[str] = []            # keys from services/discovery_sources.py
+    countries: Optional[str] = None    # free text, comma separated
+    cities: Optional[str] = None
+    segments: List[str] = []           # business type
+    project_types: List[str] = []
+    company_sizes: List[str] = []
+    signals: List[str] = []            # buying-intent signals to prioritise
+    languages: Optional[str] = None
+    require_website: bool = True
+    require_email: bool = False
+    min_score: int = 0
+    count: int = 10
+    brief: Optional[str] = None        # free-text extra instruction
+    hunt_id: Optional[int] = None      # set when re-running a saved hunt
+
+
+class HuntedCompany(DiscoveredCompany):
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    evidence: Optional[str] = None
+    confidence: Optional[str] = None
+    why: Optional[str] = None
+    score: Optional[float] = None
+
+
+class HuntSaveRequest(BaseModel):
+    companies: List[HuntedCompany] = []
+    run_id: Optional[int] = None
+
+
+class SavedHuntCreate(BaseModel):
+    name: str
+    criteria: dict = {}

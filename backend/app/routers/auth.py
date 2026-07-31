@@ -6,6 +6,7 @@ from app.services.email_service import send_email
 from app.services import storage
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from jose import JWTError, jwt
@@ -99,10 +100,10 @@ def get_current_user(
     user = db.query(User).filter(User.id == payload.get("user_id")).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
-    # Subscription expiry — admins never expire; everyone else is blocked once
-    # their plan window has passed until it's renewed.
-    if user.role != "admin" and user.plan_expires_at and user.plan_expires_at < datetime.utcnow():
-        raise HTTPException(status_code=403, detail="Your subscription has expired. Please renew to continue.")
+    # Expiry is deliberately NOT a 401/403 here. Blocking every authenticated
+    # route locked expired users out of the upgrade and payment pages too — the
+    # one thing they still need to do. Expiry is enforced by
+    # `require_active_plan` on actions and by masking on reads instead.
     return user
 
 def _purge_user_data(db: Session, user: User):
@@ -135,14 +136,43 @@ def activate_plan(db: Session, user: User, plan: str | None = None):
 
 
 def require_active_plan(current_user: User = Depends(get_current_user)) -> User:
-    """Gate for features that consume quota. A pending account can sign in and
-    look around, but can't add companies or send email until payment clears."""
-    if current_user.role != "admin" and current_user.plan_status == "pending":
+    """Gate for anything that consumes quota or acts on a company.
+
+    A pending or expired account can still sign in, see the catalog in teaser
+    form, and reach the upgrade page — it just can't spend anything.
+    """
+    if current_user.role == "admin":
+        return current_user
+    if current_user.plan_status == "pending":
         raise HTTPException(
             status_code=403,
             detail="Your plan is awaiting confirmation. You can explore Archon meanwhile — this unlocks once we confirm your payment.",
         )
+    if current_user.plan_expires_at and current_user.plan_expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=403,
+            detail="Your plan has expired. Renew from the Upgrade page to continue.",
+        )
     return current_user
+
+
+def require_feature(flag: str):
+    """Enforce the per-plan feature flags that `/auth/me` already advertises.
+
+    These were published to the frontend but never checked server-side, so
+    every plan had every feature regardless of what it paid for.
+    """
+    def _check(current_user: User = Depends(require_active_plan)) -> User:
+        if current_user.role == "admin":
+            return current_user
+        limits = PLAN_LIMITS.get(current_user.plan, PLAN_LIMITS["basic"])
+        if not limits.get(flag, False):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Your {current_user.plan} plan doesn't include this feature. Upgrade to unlock it.",
+            )
+        return current_user
+    return _check
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
@@ -196,6 +226,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
     # Feature flags come from the static map; the numeric quotas come from the
     # admin-editable plan_limits table so edits show up here immediately.
     from app.services.limits import get_plan_limit
+    from app.services.access import access_state
     limits = dict(PLAN_LIMITS.get(current_user.plan, PLAN_LIMITS["basic"]))
     limits.update(get_plan_limit(db, current_user.plan))
     return {
@@ -206,6 +237,9 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "plan_expires_at": current_user.plan_expires_at.isoformat() if current_user.plan_expires_at else None,
         "plan_status": current_user.plan_status or "active",
         "limits": limits,
+        # Single source of truth for the lock banner and blurred fields — the
+        # frontend must never re-derive "is this account cut off" itself.
+        "access": access_state(db, current_user),
     }
 
 @router.post("/change-password")
@@ -235,12 +269,19 @@ def create_user(req: RegisterRequest, admin: User = Depends(require_admin), db: 
     existing = db.query(User).filter(User.email == req.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    if req.plan not in PLAN_LIMITS:
+        raise HTTPException(status_code=400, detail="Unknown plan")
     user = User(
         name=req.name, email=req.email,
         password_hash=hash_password(req.password),
         plan=req.plan, role="member", is_active=True,
     )
-    db.add(user); db.commit(); db.refresh(user)
+    db.add(user)
+    db.flush()
+    # Without this the account has no plan window at all, which read as
+    # "never expires" — an admin-created user got their plan for free, forever.
+    activate_plan(db, user, req.plan)
+    db.commit(); db.refresh(user)
     return {"message": "User created", "id": user.id}
 
 @router.patch("/users/{user_id}")
@@ -317,7 +358,10 @@ def get_plans():
 def get_my_usage(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Powers the dashboard credit widget — how much of the user's quota is left."""
     from app.services.limits import get_usage
-    return get_usage(db, current_user)
+    from app.services.access import access_state
+    usage = get_usage(db, current_user)
+    usage["access"] = access_state(db, current_user)
+    return usage
 
 
 @router.get("/plan-limits")
@@ -331,6 +375,7 @@ def list_plan_limits(admin: User = Depends(require_admin), db: Session = Depends
         "period_days": r.period_days,
         "price_usd": r.price_usd or 0,
         "price_irr": r.price_irr or 0,
+        "allowed_countries": r.allowed_countries or "",
     } for r in rows]
 
 
@@ -340,6 +385,8 @@ class PlanLimitUpdate(BaseModel):
     period_days: int
     price_usd: Optional[float] = None
     price_irr: Optional[float] = None
+    # Comma-separated country names; empty string means the whole catalog.
+    allowed_countries: Optional[str] = None
 
 
 @router.put("/plan-limits/{plan}")
@@ -365,8 +412,27 @@ def update_plan_limit(plan: str, data: PlanLimitUpdate, admin: User = Depends(re
         row.price_usd = max(0, data.price_usd)
     if data.price_irr is not None:
         row.price_irr = max(0, data.price_irr)
+    if data.allowed_countries is not None:
+        # Normalise so the stored value is a clean comma-separated list —
+        # the country filter compares against it directly.
+        row.allowed_countries = ", ".join(
+            c.strip() for c in data.allowed_countries.split(",") if c.strip()
+        )
     db.commit()
     return {"message": f"Updated {plan} limits", "plan": plan}
+
+
+@router.get("/catalog/countries")
+def catalog_countries(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Country names actually present in the catalog, so the admin picks from
+    real values instead of typing a name that matches nothing."""
+    from app.models.database import Company
+    rows = (
+        db.query(Company.country, func.count(Company.id))
+        .filter(Company.country.isnot(None), Company.country != "")
+        .group_by(Company.country).order_by(func.count(Company.id).desc()).all()
+    )
+    return [{"name": r[0], "count": r[1]} for r in rows]
 
 
 # ─────────────────────────────────────────

@@ -16,6 +16,8 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useAccess } from '../hooks/useAccess'
+import { LockBanner, CountryScopeNotice, LockedField, UnlockButton } from '../components/AccessLock'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const PAGE_SIZE = 20
@@ -43,6 +45,10 @@ interface Company {
   industry: string; company_size: string; email: string; status: string
   heat_level: string; opportunity_score: number; is_favorite: boolean
   ai_summary: string; tags: string; updated_at: string
+  /** Set by the API when this row's details are withheld. */
+  locked?: boolean
+  lock_reason?: 'pending_payment' | 'expired' | 'quota_exhausted' | 'not_unlocked' | null
+  unlocked?: boolean
 }
 
 interface ContextMenu { x: number; y: number; company: Company }
@@ -91,9 +97,14 @@ function KanbanCard({ company, onFavorite, onClick }: {
           }}>
             {getInitials(company.name)}
           </div>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{
+            fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            filter: company.lock_reason && company.lock_reason !== 'not_unlocked' ? 'blur(5px)' : undefined,
+          }}>
             {company.name}
           </p>
+          {company.locked && <span style={{ fontSize: '11px', flexShrink: 0 }} title="Locked">🔒</span>}
         </div>
         <button
           onClick={e => { e.stopPropagation(); onFavorite(e, company.id) }}
@@ -195,6 +206,8 @@ function KanbanColumn({ status, companies, onFavorite, onClick, isOver }: {
 // ─── MAIN DASHBOARD ────────────────────────────────────────────────────────
 export default function Dashboard() {
   const isMobile = useIsMobile()
+  const { access } = useAccess()
+  const [unlocking, setUnlocking] = useState<number | null>(null)
 
   const [companies, setCompanies] = useState<Company[]>([])
   const [allCompanies, setAllCompanies] = useState<Company[]>([])
@@ -307,8 +320,28 @@ export default function Dashboard() {
 
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation()
-    await axios.patch(`${API}/companies/${id}/favorite`)
+    try {
+      await axios.patch(`${API}/companies/${id}/favorite`)
+    } catch (err: any) {
+      // Favouriting a company you haven't unlocked spends a credit, so it can
+      // legitimately fail on a full plan — say why instead of silently no-oping.
+      alert(err.response?.data?.detail || 'Could not update this company.')
+      return
+    }
     fetchCompanies(); if (view === 'board') fetchAllCompanies()
+  }
+
+  // Spends one company credit and reveals the row's contact details.
+  const unlockCompany = async (id: number) => {
+    setUnlocking(id)
+    try {
+      await axios.post(`${API}/companies/${id}/unlock`)
+      await fetchCompanies()
+      if (view === 'board') fetchAllCompanies()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Could not unlock this company.')
+    }
+    setUnlocking(null)
   }
 
   const updateStatus = async (e: React.ChangeEvent<HTMLSelectElement>, id: number) => {
@@ -609,6 +642,8 @@ export default function Dashboard() {
         )}
 
         {/* PLAN USAGE — hidden for unlimited plans */}
+        <LockBanner access={access} />
+        <CountryScopeNotice access={access} />
         <UsageWidget />
 
         {/* AI SEARCH BAR */}
@@ -706,17 +741,38 @@ export default function Dashboard() {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</h3>
+                            <h3 style={{
+                              fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              // Names are only withheld when the whole account is
+                              // locked; a not-yet-unlocked row still shows its name
+                              // so you can decide whether to spend a credit on it.
+                              filter: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'blur(5px)' : undefined,
+                              userSelect: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'none' : undefined,
+                            }}>{c.name}</h3>
                             <span style={{ fontSize: '12px', opacity: 0.6 }}>{HEAT_ICON[c.heat_level]}</span>
                             {c.tags && c.tags.split(',').slice(0,2).map(tag => (
                               <span key={tag} style={{ fontSize: '10px', background: 'var(--bg-tag)', color: 'var(--text-dim)', padding: '2px 6px', borderRadius: '4px' }}>{tag.trim()}</span>
                             ))}
                           </div>
-                          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {[c.country, c.city, c.industry].filter(Boolean).join(' · ')}
-                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0 0' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {[c.country, c.city, c.industry].filter(Boolean).join(' · ')}
+                            </p>
+                            {c.locked
+                              ? <LockedField label="Email" placeholder="hello@studio.com" width={95} />
+                              : c.email && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>· {c.email}</span>}
+                          </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                          {c.locked && (
+                            <UnlockButton
+                              size="sm"
+                              reason={c.lock_reason ?? 'not_unlocked'}
+                              busy={unlocking === c.id}
+                              onUnlock={() => unlockCompany(c.id)}
+                            />
+                          )}
                           <div style={{ position: 'relative', width: '32px', height: '32px' }}>
                             <svg width="32" height="32" viewBox="0 0 32 32" style={{ transform: 'rotate(-90deg)' }}>
                               <circle cx="16" cy="16" r="13" fill="none" stroke="var(--border)" strokeWidth="2.5"/>

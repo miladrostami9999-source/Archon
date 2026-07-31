@@ -28,17 +28,48 @@ def get_or_create_state(db, user_id: int, company_id: int) -> UserCompanyState:
     return state
 
 
-def company_to_dict(company, state=None):
+def company_to_dict(company, state=None, access=None, unlocked=None):
     """Serialize a company, overlaying this user's own pipeline state.
 
     Users with no state row yet see the defaults, so the catalog looks
     untouched to them regardless of what anyone else has done with it.
+
+    `access` (from `app.services.access.access_state`) decides how much of the
+    row the caller may actually read. Pass it on every user-facing endpoint;
+    omitting it returns the unmasked record and is only correct for admin or
+    internal callers.
+
+    Three outcomes:
+      * no access given, or an unlimited account → the full record
+      * account locked (unpaid / expired / quota spent) → everything masked,
+        company name included
+      * account fine but this company not unlocked → a teaser: name, country,
+        city, industry, size and score stay, contact details are stripped
     """
+    from app.services.access import apply_mask
+
     result = to_dict(company)
     result["status"] = (state.status if state else None) or "new"
     result["heat_level"] = (state.heat_level if state else None) or "cold"
     result["is_favorite"] = bool(state.is_favorite) if state else False
     result["tags"] = state.tags if state else None
+    result["locked"] = False
+    result["lock_reason"] = None
+    result["unlocked"] = True
+
+    if not access or access.get("unlimited"):
+        return result
+
+    is_unlocked = state is not None if unlocked is None else unlocked
+
+    if access.get("locked"):
+        result = apply_mask(result, hide_name=True, reason=access.get("reason"))
+        result["unlocked"] = is_unlocked
+        return result
+
+    if not is_unlocked:
+        result = apply_mask(result, hide_name=False, reason="not_unlocked")
+        result["unlocked"] = False
     return result
 
 

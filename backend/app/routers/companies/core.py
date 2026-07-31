@@ -6,6 +6,7 @@ from datetime import datetime
 
 from app.models.database import get_db, Company, History, User, UserCompanyState
 from app.routers.auth import get_current_user, require_admin, require_active_plan
+from app.services.access import access_state
 from .schemas import CompanyCreate, CompanyUpdate
 from .utils import (
     to_dict, calculate_score, company_to_dict, get_or_create_state,
@@ -13,6 +14,19 @@ from .utils import (
 )
 
 router = APIRouter()
+
+
+def apply_country_scope(query, access):
+    """Restrict a Company query to the countries this plan may browse.
+
+    Applied in SQL rather than after the fact so `total`, pagination and the
+    map all agree — a filtered-out company must not even be counted, or the
+    user can infer the size of what they're missing.
+    """
+    countries = access.get("countries")
+    if countries:
+        query = query.filter(Company.country.in_(countries))
+    return query
 
 
 @router.get("/")
@@ -37,12 +51,15 @@ def get_companies(
       new   — most recently added first
       score — strict opportunity score, identical for everyone
     """
+    access = access_state(db, current_user)
+
     # LEFT JOIN so companies this user has never touched still appear
     state_join = and_(
         UserCompanyState.company_id == Company.id,
         UserCompanyState.user_id == current_user.id,
     )
     query = db.query(Company, UserCompanyState).outerjoin(UserCompanyState, state_join)
+    query = apply_country_scope(query, access)
 
     # Filters on per-user state fall back to the defaults for untouched rows
     if status:
@@ -90,19 +107,70 @@ def get_companies(
         query = query.order_by(tier.desc(), shuffle)
 
     rows = query.offset(skip).limit(limit).all()
-    return {"total": total, "companies": [company_to_dict(c, s) for c, s in rows]}
+    return {
+        "total": total,
+        "access": access,
+        "companies": [company_to_dict(c, s, access) for c, s in rows],
+    }
 
 
 @router.get("/{company_id}")
 def get_company(company_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    access = access_state(db, current_user)
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    # A company outside the plan's country scope must be indistinguishable from
+    # one that doesn't exist, or the plan boundary is trivially probed by id.
+    if access.get("countries") and company.country not in access["countries"]:
         raise HTTPException(status_code=404, detail="Company not found")
     state = db.query(UserCompanyState).filter(
         UserCompanyState.user_id == current_user.id,
         UserCompanyState.company_id == company_id,
     ).first()
-    return company_to_dict(company, state)
+    return company_to_dict(company, state, access)
+
+
+@router.post("/{company_id}/unlock")
+def unlock_company(company_id: int, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
+    """Spend one company credit to reveal a company's contact details.
+
+    Unlocking *is* creating the per-user state row, so the existing
+    `max_companies` quota counts unlocks with no extra bookkeeping. Already
+    unlocked companies are a no-op rather than an error, which keeps the button
+    idempotent if the user double-clicks.
+    """
+    from app.services.limits import can_add_company, get_plan_limit
+
+    access = access_state(db, current_user)
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if access.get("countries") and company.country not in access["countries"]:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    existing = db.query(UserCompanyState).filter(
+        UserCompanyState.user_id == current_user.id,
+        UserCompanyState.company_id == company_id,
+    ).first()
+    if not existing and not can_add_company(db, current_user):
+        cap = get_plan_limit(db, current_user.plan)["max_companies"]
+        raise HTTPException(
+            status_code=403,
+            detail=f"You've unlocked all {cap} companies your plan allows. Upgrade to unlock more.",
+        )
+
+    state = existing or get_or_create_state(db, current_user.id, company_id)
+    if not existing:
+        db.add(History(
+            company_id=company_id,
+            user_id=current_user.id,
+            event_type="unlocked",
+            description="Company unlocked",
+        ))
+    db.commit()
+    db.refresh(company)
+    return company_to_dict(company, state, access_state(db, current_user))
 
 
 @router.post("/")
@@ -111,6 +179,14 @@ def create_company(data: CompanyCreate, current_user: User = Depends(require_act
     if not can_add_company(db, current_user):
         cap = get_plan_limit(db, current_user.plan)["max_companies"]
         raise HTTPException(status_code=403, detail=f"You've reached your plan's limit of {cap} companies. Upgrade to add more.")
+    # Adding a company the plan can't browse would create a row the user is
+    # immediately filtered out of — say so instead of losing their work.
+    access = access_state(db, current_user)
+    if access.get("countries") and (data.country or "") not in access["countries"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Your plan covers {', '.join(access['countries'])}. Upgrade to add companies from other countries.",
+        )
     if data.domain:
         existing = db.query(Company).filter(Company.domain == data.domain).first()
         if existing:
@@ -136,7 +212,7 @@ def create_company(data: CompanyCreate, current_user: User = Depends(require_act
 
 
 @router.patch("/{company_id}")
-def update_company(company_id: int, data: CompanyUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_company(company_id: int, data: CompanyUpdate, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -147,12 +223,21 @@ def update_company(company_id: int, data: CompanyUpdate, current_user: User = De
     state = None
     state_updates = {k: v for k, v in update_data.items() if k in STATE_FIELDS}
     if state_updates:
+        _guard_new_engagement(db, current_user, company_id)
         state = get_or_create_state(db, current_user.id, company_id)
         for key, value in state_updates.items():
             setattr(state, key, value)
 
     catalog_updates = {k: v for k, v in update_data.items() if k not in STATE_FIELDS}
     if catalog_updates:
+        # The catalog is shared by every account, so a member editing it would
+        # rewrite what everyone else sees — including the score their own quota
+        # is spent against. Objective facts are the admin's to curate.
+        if current_user.role != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Company details are shared across all accounts and can only be edited by an admin. Use notes for your own record.",
+            )
         for key, value in catalog_updates.items():
             setattr(company, key, value)
         company.opportunity_score = calculate_score(company)
@@ -165,7 +250,7 @@ def update_company(company_id: int, data: CompanyUpdate, current_user: User = De
             UserCompanyState.user_id == current_user.id,
             UserCompanyState.company_id == company_id,
         ).first()
-    return company_to_dict(company, state)
+    return company_to_dict(company, state, access_state(db, current_user))
 
 
 def _guard_new_engagement(db, user, company_id):
@@ -180,12 +265,22 @@ def _guard_new_engagement(db, user, company_id):
         raise HTTPException(status_code=403, detail=f"You've reached your plan's limit of {cap} companies. Upgrade to work with more.")
 
 
+def assert_in_scope(db, user, company):
+    """404 for a company outside the plan's country scope, matching what the
+    list endpoint shows — a different status code would leak its existence."""
+    access = access_state(db, user)
+    if access.get("countries") and company.country not in access["countries"]:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return access
+
+
 @router.patch("/{company_id}/status")
 def update_status(company_id: int, status: str, current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
+    assert_in_scope(db, current_user, company)
     _guard_new_engagement(db, current_user, company_id)
     state = get_or_create_state(db, current_user.id, company_id)
     old_status = state.status or "new"
@@ -205,6 +300,7 @@ def toggle_favorite(company_id: int, current_user: User = Depends(require_active
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+    assert_in_scope(db, current_user, company)
     _guard_new_engagement(db, current_user, company_id)
     state = get_or_create_state(db, current_user.id, company_id)
     state.is_favorite = not bool(state.is_favorite)

@@ -2,7 +2,7 @@ import csv
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -79,7 +79,36 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
 
 @router.get("/export/csv")
 def export_csv(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    companies = db.query(Company).order_by(Company.opportunity_score.desc()).all()
+    """Export the caller's own unlocked companies.
+
+    This used to dump the entire catalog — every name, email and phone number —
+    to any authenticated account, which made a free trial a one-click way to
+    walk off with the whole database. A member now exports exactly what they
+    unlocked and paid for; only an admin gets the full catalog.
+    """
+    from app.models.database import UserCompanyState
+    from app.services.access import access_state
+
+    query = db.query(Company)
+    if current_user.role != "admin":
+        access = access_state(db, current_user)
+        if access.get("locked"):
+            raise HTTPException(status_code=403, detail=access.get("message") or "Export unavailable on this plan.")
+        query = query.join(
+            UserCompanyState,
+            (UserCompanyState.company_id == Company.id) & (UserCompanyState.user_id == current_user.id),
+        )
+        if access.get("countries"):
+            query = query.filter(Company.country.in_(access["countries"]))
+    companies = query.order_by(Company.opportunity_score.desc()).all()
+
+    # This user's own pipeline state — the shared `companies.status` column is a
+    # pre-multi-tenancy leftover and reflects whatever the original admin did.
+    states = {
+        s.company_id: s for s in db.query(UserCompanyState).filter(
+            UserCompanyState.user_id == current_user.id
+        ).all()
+    }
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -93,10 +122,13 @@ def export_csv(current_user: User = Depends(get_current_user), db: Session = Dep
 
     # Rows
     for c in companies:
+        st = states.get(c.id)
         writer.writerow([
             c.name, c.domain, c.website, c.email, c.country, c.city,
-            c.industry, c.company_size, c.linkedin, c.instagram, c.status,
-            c.heat_level, c.opportunity_score, c.tags, c.ai_summary, c.updated_at
+            c.industry, c.company_size, c.linkedin, c.instagram,
+            (st.status if st else None) or 'new',
+            (st.heat_level if st else None) or 'cold',
+            c.opportunity_score, (st.tags if st else None), c.ai_summary, c.updated_at
         ])
 
     output.seek(0)

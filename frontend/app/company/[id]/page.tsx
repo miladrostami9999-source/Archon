@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { LockedField, UnlockButton } from '../../components/AccessLock'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -33,6 +34,10 @@ interface Company {
   instagram: string; linkedin: string; ai_summary: string
   opportunity_score: number; heat_level: string; status: string
   is_favorite: boolean; tags: string
+  /** Set by the API when this row's details are withheld. */
+  locked?: boolean
+  lock_reason?: 'pending_payment' | 'expired' | 'quota_exhausted' | 'not_unlocked' | null
+  unlocked?: boolean
 }
 interface Contact { id: number; full_name: string; role: string; email: string; linkedin: string; is_primary: boolean }
 interface Note { id: number; content: string; language: string; pinned: boolean; created_at: string }
@@ -78,6 +83,7 @@ export default function CompanyDetail() {
   const [savingContact, setSavingContact] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
 
   const fetchCompany = async () => {
     try { const res = await axios.get(`${API}/companies/${id}`); setCompany(res.data) }
@@ -91,8 +97,28 @@ export default function CompanyDetail() {
 
   useEffect(() => { fetchCompany(); fetchContacts(); fetchNotes(); fetchHistory(); fetchCampaigns() }, [id])
 
-  const updateStatus = async (status: string) => { await axios.patch(`${API}/companies/${id}/status?status=${status}`); fetchCompany() }
-  const toggleFavorite = async () => { await axios.patch(`${API}/companies/${id}/favorite`); fetchCompany() }
+  // Moving a company through the pipeline, or starring it, engages with it —
+  // which spends a company credit if it isn't unlocked yet. Surface the 403.
+  const updateStatus = async (status: string) => {
+    try { await axios.patch(`${API}/companies/${id}/status?status=${status}`) }
+    catch (e: any) { alert(e.response?.data?.detail || 'Could not update status.'); return }
+    fetchCompany()
+  }
+  const toggleFavorite = async () => {
+    try { await axios.patch(`${API}/companies/${id}/favorite`) }
+    catch (e: any) { alert(e.response?.data?.detail || 'Could not update this company.'); return }
+    fetchCompany()
+  }
+  const unlockCompany = async () => {
+    setUnlocking(true)
+    try {
+      await axios.post(`${API}/companies/${id}/unlock`)
+      await Promise.all([fetchCompany(), fetchContacts()])
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Could not unlock this company.')
+    }
+    setUnlocking(false)
+  }
   const deleteCompany = async () => {
     setDeleting(true)
     try { await axios.delete(`${API}/companies/${id}`); window.location.href = '/dashboard' }
@@ -440,7 +466,11 @@ export default function CompanyDetail() {
 
               {/* INFO */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h1 style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{company.name}</h1>
+                <h1 style={{
+                  fontSize: isMobile ? '15px' : '18px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px',
+                  filter: company.lock_reason && company.lock_reason !== 'not_unlocked' ? 'blur(6px)' : undefined,
+                  userSelect: company.lock_reason && company.lock_reason !== 'not_unlocked' ? 'none' : undefined,
+                }}>{company.name}</h1>
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 8px' }}>
                   {[company.country, company.city, company.industry, company.company_size].filter(Boolean).join(' · ')}
                 </p>
@@ -484,8 +514,46 @@ export default function CompanyDetail() {
               </div>
             </div>
 
+            {/* LOCKED NOTICE — the contact block below is empty until unlocked */}
+            {company.locked && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+                marginTop: '16px', padding: '14px 16px', borderRadius: '10px',
+                background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)',
+              }}>
+                <span style={{ fontSize: '18px' }}>🔒</span>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', margin: 0 }}>
+                    {company.lock_reason === 'not_unlocked'
+                      ? 'Contact details are locked'
+                      : 'This company is locked'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0', lineHeight: 1.6 }}>
+                    {company.lock_reason === 'not_unlocked'
+                      ? 'Unlocking uses one company from your plan and reveals the email, website, socials and contacts.'
+                      : 'Sort your plan out and everything here comes back — nothing has been deleted.'}
+                  </p>
+                </div>
+                <UnlockButton
+                  reason={company.lock_reason ?? 'not_unlocked'}
+                  busy={unlocking}
+                  onUnlock={unlockCompany}
+                />
+              </div>
+            )}
+
             {/* CONTACT INFO */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+              {company.locked && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <span>✉</span><LockedField label="Email" placeholder="hello@studio.com" width={130} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <span>🌐</span><LockedField label="Website" placeholder="studio.com" width={100} />
+                  </div>
+                </>
+              )}
               {company.email && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   <span>✉</span>

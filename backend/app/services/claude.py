@@ -332,54 +332,134 @@ Return ONLY a JSON object with these fields (no markdown, no extra text):
     return parse_json_response(message.content[0].text)
 
 
-def discover_leads(existing_names: list, criteria: dict) -> list:
-    """Web-search for architecture/design firms that could be new leads.
+def _bullets(items) -> str:
+    return "\n".join(items) if items else "- (none specified)"
 
-    Existing names are passed so Claude can skip what's already in the catalog;
-    the caller de-duplicates again by name and domain before saving anything.
+
+def hunt_leads(existing_names: list, criteria: dict) -> list:
+    """Search named industry sources for firms worth adding to the catalog.
+
+    The old version handed Claude a country and an industry and let it pick
+    where to look, which meant it kept returning the same famous studios. This
+    version names the sources to search (award shortlists, national registries,
+    fair exhibitor lists, job boards…) and requires a citation per lead, so the
+    results are checkable and reach the long tail.
     """
-    known = ", ".join(existing_names[:150]) if existing_names else "none yet"
-    country = criteria.get("country") or "any country (prefer UAE, Saudi Arabia, Scandinavia, UK, Germany, Netherlands)"
-    industry = criteria.get("industry") or "architecture, interior design, real estate development, or CGI/visualization"
-    count = min(int(criteria.get("count") or 5), 10)
+    from app.services.discovery_sources import describe_sources, describe_signals
 
-    prompt = f"""Search the web and find {count} REAL companies that would be good potential clients for Armila Design, an architectural visualization studio that provides outsourced 3D rendering.
+    known = ", ".join(existing_names[:200]) if existing_names else "none yet"
+    count = max(1, min(int(criteria.get("count") or 10), 25))
 
-Target country/region: {country}
-Target industry: {industry}
+    countries = (criteria.get("countries") or "").strip() or "any country, but prefer UAE, Saudi Arabia, Scandinavia, UK, Germany, Netherlands, Spain"
+    cities = (criteria.get("cities") or "").strip() or "any city"
+    segments = criteria.get("segments") or []
+    project_types = criteria.get("project_types") or []
+    sizes = criteria.get("company_sizes") or []
+    languages = (criteria.get("languages") or "").strip()
+    brief = (criteria.get("brief") or "").strip()
 
-Already in our database — do NOT return any of these: {known}
+    source_lines = describe_sources(criteria.get("sources") or [])
+    signal_lines = describe_signals(criteria.get("signals") or [])
 
-Rules:
-- Only return companies you actually found through search and can verify exist. Never invent a company, website, or email.
-- Prefer firms that visibly produce buildings/interiors and would plausibly outsource visualization.
-- Leave a field as null if you could not find it. Do not guess emails.
+    search_plan = (
+        "Search these specific sources. Go to them directly rather than relying on a generic web search:\n"
+        + _bullets(source_lines)
+        if source_lines else
+        "No specific sources were chosen — search broadly, but prefer industry directories, "
+        "award shortlists and national architecture registries over generic web results."
+    )
 
-Return ONLY valid JSON, an array of exactly this shape:
+    requirements = []
+    if criteria.get("require_website"):
+        requirements.append("- Skip any company whose website you could not find and confirm resolves.")
+    if criteria.get("require_email"):
+        requirements.append("- Skip any company where you could not find a real published contact email.")
+    if criteria.get("min_score"):
+        requirements.append(f"- Skip anything you would score below {int(criteria['min_score'])}.")
+
+    prompt = f"""{ARMILA_DNA}
+
+You are hunting new business-development leads for Armila Design. Find {count} REAL
+companies that plausibly commission architectural visualisation and could become clients.
+
+## Where to look
+{search_plan}
+
+## Who to look for
+- Countries/regions: {countries}
+- Cities: {cities}
+- Business type: {', '.join(segments) if segments else 'architecture, interior design, real-estate development or related'}
+- Project types they work on: {', '.join(project_types) if project_types else 'any'}
+- Company size: {', '.join(sizes) if sizes else 'any'}
+- Website/content language: {languages or 'any'}
+
+## Buying signals to prioritise
+{_bullets(signal_lines)}
+
+## Extra brief from the operator
+{brief or '(none)'}
+
+## Already in our catalog — never return these
+{known}
+
+## Hard rules
+- Every company must be one you actually found in this session through search or by fetching a page. Never invent a company, a website, an email or a person.
+- `source` and `source_url` must point at the page where you found them. If you cannot cite it, drop the lead.
+- Never guess an email address. Only return one that is published on their own site or an official listing. Prefer a real inbox over a generic one, but a generic `info@` is fine.
+- `evidence` must be a specific fact you read — a project name, an award, a job posting, an exhibitor entry. Not a generic description.
+- Set `confidence` to "high" only when you verified the company on its own website.
+- Leave any field you could not confirm as null. A null is better than a plausible guess.
+- Prefer firms that are not already household names; the long tail converts better than the famous studios.
+{chr(10).join(requirements) if requirements else ''}
+
+## Output
+Return ONLY a valid JSON array, no prose and no markdown fence, of exactly this shape:
 [
   {{
     "name": "Company name",
     "website": "https://... or null",
-    "email": "public contact email or null",
+    "email": "published contact email or null",
     "country": "Country",
     "city": "City or null",
     "industry": "one of: Architecture, Interior Design, Real Estate, CGI, Visualization, Animation, Construction",
     "company_size": "solo|small|medium|large",
     "linkedin": "LinkedIn company URL or null",
     "instagram": "Instagram URL or null",
-    "why": "one sentence on why they're a good lead",
+    "source": "which source you found them in, e.g. 'Dezeen Awards 2025 shortlist'",
+    "source_url": "the exact URL you found them at",
+    "evidence": "the specific fact you read that makes them a lead",
+    "signals": ["matched signal labels, or []"],
+    "why": "one sentence on why they fit Armila specifically",
+    "confidence": "high|medium|low",
     "score": 0-100
   }}
 ]"""
 
-    message = client.messages.create(
+    # Streaming keeps the connection alive through a long multi-search turn —
+    # a hunt across several sources can run for minutes.
+    with client.messages.stream(
         model="claude-sonnet-4-6",
-        max_tokens=2500,
-        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 8}],
-        messages=[{"role": "user", "content": prompt}]
-    )
+        max_tokens=16000,
+        thinking={"type": "adaptive"},
+        tools=[
+            {"type": "web_search_20260209", "name": "web_search", "max_uses": 30},
+            {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 20},
+        ],
+        messages=[{"role": "user", "content": prompt}],
+    ) as stream:
+        message = stream.get_final_message()
+
     text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
     result = parse_json_response("\n".join(text_blocks))
     if not isinstance(result, list):
         raise ValueError("Lead discovery did not return a list")
     return result
+
+
+def discover_leads(existing_names: list, criteria: dict) -> list:
+    """Backwards-compatible entry point for the old country/industry form."""
+    return hunt_leads(existing_names, {
+        "countries": criteria.get("country"),
+        "segments": [criteria["industry"]] if criteria.get("industry") else [],
+        "count": criteria.get("count") or 5,
+    })

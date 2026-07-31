@@ -85,6 +85,12 @@ export default function WeeklyReport() {
       if (e.response?.status === 429) {
         setError(e.response.data.detail || 'Report already generated this week.')
         setIsLocked(true)
+      } else if (e.response?.status === 403) {
+        // Plan doesn't include weekly reports, plan expired, or payment
+        // pending — the API's message says which.
+        setError(e.response.data?.detail || 'Your plan doesn’t include weekly reports.')
+      } else if (e.response?.status === 400) {
+        setError(e.response.data?.detail || 'Nothing to report on yet.')
       } else {
         setError('Failed to generate. Check API key.')
       }

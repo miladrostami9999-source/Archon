@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { FeatureLocked } from '../components/AccessLock'
 import {
   ComposableMap,
   Geographies,
@@ -46,6 +47,7 @@ export default function MapPage() {
   const isMobile = useIsMobile()
   const [mapData, setMapData] = useState<CountryData[]>([])
   const [loading, setLoading] = useState(true)
+  const [blocked, setBlocked] = useState<string | null>(null)
   const [selected, setSelected] = useState<CountryData | null>(null)
   const [zoom, setZoom] = useState(1)
   const [center, setCenter] = useState<[number, number]>([10, 20])
@@ -65,7 +67,12 @@ export default function MapPage() {
   useEffect(() => {
     axios.get(`${API}/companies/map/data`)
       .then(res => { setMapData(res.data); setLoading(false) })
-      .catch(() => setLoading(false))
+      .catch(err => {
+        // Market Map is a paid feature; a 403 here means the plan doesn't
+        // include it, which is a different thing from the request failing.
+        if (err.response?.status === 403) setBlocked(err.response.data?.detail || '')
+        setLoading(false)
+      })
   }, [])
 
   const themeColors = getThemeColors(isDark)
@@ -274,6 +281,18 @@ export default function MapPage() {
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px', paddingTop: isMobile ? '52px' : 0 }}>
         <div className="spinner" />
         <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Loading map data...</p>
+      </div>
+    </div>
+  )
+
+  if (blocked !== null) return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
+      <Sidebar />
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', paddingTop: isMobile ? '52px' : 0 }}>
+        <FeatureLocked
+          title="Market Map is on Pro and Agency"
+          blurb={blocked || 'See where every company in the catalog sits, which countries are heating up, and where your pipeline is concentrated.'}
+        />
       </div>
     </div>
   )

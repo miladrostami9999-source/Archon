@@ -15,6 +15,20 @@ router = APIRouter()
 
 @router.get("/{company_id}/contacts")
 def get_contacts(company_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import UserCompanyState
+    from app.services.access import access_state
+
+    # A contact is a name and an email at a company — the most valuable thing
+    # in the catalog. It follows the company's own lock, not its own rule.
+    if current_user.role != "admin":
+        access = access_state(db, current_user)
+        unlocked = db.query(UserCompanyState).filter(
+            UserCompanyState.user_id == current_user.id,
+            UserCompanyState.company_id == company_id,
+        ).first()
+        if access.get("locked") or not unlocked:
+            return []
+
     contacts = db.query(Contact).filter(
         Contact.company_id == company_id
     ).order_by(Contact.is_primary.desc()).all()
