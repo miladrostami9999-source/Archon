@@ -138,11 +138,58 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '16px' }}>
-
-            {/* EMAIL STATS */}
+          {/* MY OUTREACH — this user's own numbers, kept separate and first since
+              it's the thing a member checks most often about their own work */}
+          {email && (
             <div style={card}>
-              <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Email Campaign</h2>
+              <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>My Outreach</h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px' }}>Your own emails — separate from everyone else on the platform.</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
+                {[
+                  { label: 'Generated', value: email.generated, color: '#60A5FA' },
+                  { label: 'Sent', value: email.sent, color: '#A78BFA' },
+                  { label: 'Replies', value: email.replied, color: '#34D399' },
+                  { label: 'Reply rate', value: `${email.reply_rate}%`, color: email.reply_rate > 20 ? '#34D399' : '#F59E0B' },
+                ].map(m => (
+                  <div key={m.label} style={{ borderRadius: '10px', background: 'var(--bg-input)', padding: '12px' }}>
+                    <p style={{ fontSize: '20px', fontWeight: 800, color: m.color, margin: 0 }}>{m.value}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px' }}>Last 6 months</p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '90px' }}>
+                {email.monthly.map(m => {
+                  const peak = Math.max(...email.monthly.map(x => x.sent), 1)
+                  return (
+                    <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '64px' }}>
+                        <div title={`${m.sent} sent, ${m.replied} replied`}
+                          style={{ width: '100%', height: `${Math.round((m.sent / peak) * 100)}%`, minHeight: m.sent ? '4px' : '2px', background: m.sent ? 'linear-gradient(180deg,#60A5FA,#4F7BF7)' : 'var(--border)', borderRadius: '4px 4px 0 0', position: 'relative' }}>
+                          {m.replied > 0 && (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${Math.round((m.replied / Math.max(m.sent, 1)) * 100)}%`, background: '#34D399', borderRadius: '0 0 4px 4px' }} />
+                          )}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>{m.month.slice(5)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#4F7BF7', marginRight: '5px' }} />Sent</span>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#34D399', marginRight: '5px' }} />Replied</span>
+              </div>
+            </div>
+          )}
+
+          {/* EMAIL STATS (platform-wide) + QUICK INSIGHTS side by side — both are
+              small at-a-glance summaries, so pairing them keeps the page scannable */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
+            <div style={card}>
+              <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Email Campaign (whole team)</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
                   { label: 'Generated', value: data.emails.total, color: '#4F7BF7' },
@@ -169,7 +216,29 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* INDUSTRIES */}
+            <div style={card}>
+              <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Quick Insights</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[
+                  { icon: '📬', label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
+                  { icon: '🎯', label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
+                  { icon: '⏳', label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
+                  { icon: '🤝', label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
+                ].map(item => (
+                  <div key={item.label} style={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '12px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '20px', margin: '0 0 4px' }}>{item.icon}</p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{item.value}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{item.label}</p>
+                    <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CATALOG BREAKDOWN — industries + countries paired since both are
+              "where is the catalog concentrated" views of the same shared data */}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
             <div style={card}>
               <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Industries</h2>
               {data.industries.length === 0 ? (
@@ -195,53 +264,6 @@ export default function Analytics() {
               )}
             </div>
 
-            {/* MY OUTREACH — this user's own numbers, not the whole platform's */}
-            {email && (
-              <div style={{ ...card, gridColumn: isMobile ? 'auto' : 'span 2' }}>
-                <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>My Outreach</h2>
-                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px' }}>Your own emails — separate from everyone else on the platform.</p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
-                  {[
-                    { label: 'Generated', value: email.generated, color: '#60A5FA' },
-                    { label: 'Sent', value: email.sent, color: '#A78BFA' },
-                    { label: 'Replies', value: email.replied, color: '#34D399' },
-                    { label: 'Reply rate', value: `${email.reply_rate}%`, color: email.reply_rate > 20 ? '#34D399' : '#F59E0B' },
-                  ].map(m => (
-                    <div key={m.label} style={{ borderRadius: '10px', background: 'var(--bg-input)', padding: '12px' }}>
-                      <p style={{ fontSize: '20px', fontWeight: 800, color: m.color, margin: 0 }}>{m.value}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{m.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px' }}>Last 6 months</p>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '90px' }}>
-                  {email.monthly.map(m => {
-                    const peak = Math.max(...email.monthly.map(x => x.sent), 1)
-                    return (
-                      <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '64px' }}>
-                          <div title={`${m.sent} sent, ${m.replied} replied`}
-                            style={{ width: '100%', height: `${Math.round((m.sent / peak) * 100)}%`, minHeight: m.sent ? '4px' : '2px', background: m.sent ? 'linear-gradient(180deg,#60A5FA,#4F7BF7)' : 'var(--border)', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                            {m.replied > 0 && (
-                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${Math.round((m.replied / Math.max(m.sent, 1)) * 100)}%`, background: '#34D399', borderRadius: '0 0 4px 4px' }} />
-                            )}
-                          </div>
-                        </div>
-                        <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>{m.month.slice(5)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
-                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#4F7BF7', marginRight: '5px' }} />Sent</span>
-                  <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#34D399', marginRight: '5px' }} />Replied</span>
-                </div>
-              </div>
-            )}
-
-            {/* COUNTRIES */}
             <div style={card}>
               <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Top Countries</h2>
               {data.top_countries.length === 0 ? (
@@ -261,26 +283,6 @@ export default function Analytics() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* QUICK INSIGHTS */}
-          <div style={card}>
-            <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Quick Insights</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px' }}>
-              {[
-                { icon: '📬', label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
-                { icon: '🎯', label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
-                { icon: '⏳', label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
-                { icon: '🤝', label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
-              ].map(item => (
-                <div key={item.label} style={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '12px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '24px', margin: '0 0 4px' }}>{item.icon}</p>
-                  <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{item.value}</p>
-                  <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{item.label}</p>
-                  <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{item.desc}</p>
-                </div>
-              ))}
             </div>
           </div>
 

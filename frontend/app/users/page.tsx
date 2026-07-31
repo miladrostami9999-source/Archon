@@ -35,6 +35,15 @@ export default function UsersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [filterPlan, setFilterPlan] = useState('')
+  const [copiedEmail, setCopiedEmail] = useState(false)
+
+  // mailto: silently does nothing if the OS has no default mail client set (common
+  // for webmail-only users) — so open it AND copy the address as a fallback the
+  // user can paste into Gmail/whatever they actually use.
+  const emailUser = (email: string) => {
+    navigator.clipboard?.writeText(email).then(() => { setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000) }).catch(() => {})
+    window.location.href = `mailto:${email}`
+  }
 
   const fetchUsers = async () => {
     try { const r = await axios.get(`${API}/auth/users`, { headers: headers() }); setUsers(r.data) }
@@ -168,10 +177,10 @@ export default function UsersPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <a href={`mailto:${detail.email}`}
-                    style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', textDecoration: 'none' }}>
-                    Email this user
-                  </a>
+                  <button onClick={() => emailUser(detail.email)}
+                    style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    {copiedEmail ? '✓ Email copied' : 'Email this user'}
+                  </button>
                   {detail.public_url && (
                     <a href={detail.public_url} target="_blank" rel="noreferrer"
                       style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', textDecoration: 'none' }}>
