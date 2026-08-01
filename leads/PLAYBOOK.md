@@ -56,11 +56,14 @@ The single best discovery pattern found. One page names 25–220 firms.
 | **Archello global list** | `archello.com/news/100-best-architecture-firms-in-the-world` | 100 |
 | **Architizer A+List** | `architizer.com` "A+List" / "firms to watch" — 220+ firms | 220 |
 | **Archello "50 best in the United States"** | same pattern, per-country | 50 |
+| **archisoup city lists** | `site:archisoup.com "architecture firms in <city>"` — confirmed fetchable directly, gives name + address + website per firm, no verification step needed for those fields. Covers most major US/UK cities (Austin, Boston, Chicago, Philadelphia, LA…) | 14–20/page |
 | **Design Middle East / Middle East Architect power lists** | annual "top firms" features | 20–50 |
 | **Construction Week "top developers to watch"** | Gulf developers, annual | 10–30 |
 
-⚠️ These pages **403 on direct fetch**. Get the names via `WebSearch` (the
-search index has the content), then verify each firm on its own site.
+⚠️ Archello and Architizer pages **403 on direct fetch** — get the names via
+`WebSearch` (the search index has the content), then verify each firm on its
+own site. **archisoup fetches fine directly** and already gives address +
+website, so it only needs a light verification pass (email, size, signals).
 
 ### Tier 2 — Registries & association directories
 
@@ -118,7 +121,30 @@ One firm at a time, but excellent for style-fit judgement and fresh
 `archdaily.com/office` (browsable A–Z, several thousand offices) · `dezeen.com` ·
 `designboom.com` · `divisare.com` · `world-architects.com` · `frameweb.com`
 
-### Tier 6 — Fairs, developers & tenders
+### Tier 6 — General web search & Google Maps (city-level coverage)
+
+For the small studios no publication or registry ever lists — the long tail
+inside one city.
+
+- **General web search** — `WebSearch` itself already behaves as a general
+  search engine and is the workhorse for everything above. For a specific city
+  with no listicle available, a plain query works: `"architecture studio
+  <city>"`, `"interior design studio <city>"`. It surfaces exactly this mix:
+  firm sites, local directories, and — critically — listicle articles like
+  archisoup's (Tier 1) that the more targeted `site:` queries miss because the
+  city wasn't known to have one yet.
+- **Google Maps — tested, does not work directly.** `WebFetch` on any
+  `google.com/maps/search/...` URL redirects to a `consent.google.com` wall and
+  returns nothing usable. Do not spend a call on it.
+  **The working substitute:** a plain city + segment `WebSearch` query surfaces
+  the same local businesses that Maps would — via directory pages, "near me"
+  aggregators, and local listicles — because Google's own general index and
+  Maps draw from the same business listings. Treat "search Google Maps for a
+  city" as "run a plain city-level WebSearch", not as a literal Maps fetch.
+- **Houzz, Clutch, DesignRush, GoodFirms** — filterable by city, though most
+  403 on direct fetch like the award directories; reach via `site:` search.
+
+### Tier 7 — Fairs, developers & tenders
 
 Everyone on an exhibitor list has a committed marketing budget and a date.
 
