@@ -67,12 +67,14 @@ One row per source actually used for a country. `—` = never tried.
 | archisoup city lists | 2026-08-01 | 2 | 39 (17 light + 22 re-verified) | Boston + Philadelphia done. Next: Chicago, LA, NYC, Seattle, Denver, Miami, Austin, Nashville |
 | AIA 2026 award winners | 2026-08-01 | 1 | 3 (Duvall Decker, Cotton Estes, Renée del Gaudio) | National + state chapter awards both worth mining further |
 | PR Newswire / Businesswire developer search | 2026-08-01 | 1 | 3 (Pearlstone, Signet, Matterhorn) | Real estate only — good source for the gapped segment |
+| Bisnow boutique developer search | 2026-08-01 | 1 | 3 (Continuum, Pure Development, The Abraham Companies) | NAIOP national award was too large (Ryan Companies) — chapter-level pages worth trying directly next, not just search |
+| Interior Design Magazine Rising Giants 2026 | 2026-08-01 | 1 | 5 (Meyer Design, Aria Group, EDG Design, Design Republic, Looney & Associates) | Direct fetch worked on the article page — a real Tier 1 source for interior design, same pattern as archisoup. Top 100 Giants list untried (likely too large/famous) — Rising Giants (#101-200) is the right band. Also gave 5 more names not yet processed: STG Design, KZF Design, Blink Design Group, Architecture Incorporated, Jeffrey Beers International |
 | Archello country/city lists | — | 0 | — | Not yet tried for a US city — high priority next |
 | Architizer A+List | — | 0 | — | |
 | AIA firm directory | — | 0 | — | |
-| ASID / IIDA directories | — | 0 | — | Interior design segment gap — high priority |
+| ASID / IIDA state chapter awards | — | 0 | — | Tried searching — chapter award-winner pages 403 direct; need the WebSearch-then-verify pattern like RIBA regional awards |
 | Archinect Jobs / Dezeen Jobs / LinkedIn Jobs (hiring_viz) | — | 0 | — | Only 0 hiring signals found so far — untapped |
-| Bisnow / Connect CRE / NAIOP (developer) | — | 0 | — | Real estate segment gap — high priority |
+| NAIOP chapter-level Developer of the Year | — | 0 | — | National award only found large firms; try state/regional chapters directly |
 | Behance / ArtStation / Houzz / Clutch | — | 0 | — | |
 | Fairs (Big 5 is Gulf-only — not applicable to US; use ICFF, NeoCon instead) | — | 0 | — | |
 
