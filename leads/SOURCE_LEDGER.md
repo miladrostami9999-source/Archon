@@ -68,12 +68,14 @@ One row per source actually used for a country. `—` = never tried.
 | AIA 2026 award winners | 2026-08-01 | 1 | 3 (Duvall Decker, Cotton Estes, Renée del Gaudio) | National + state chapter awards both worth mining further |
 | PR Newswire / Businesswire developer search | 2026-08-01 | 1 | 3 (Pearlstone, Signet, Matterhorn) | Real estate only — good source for the gapped segment |
 | Bisnow boutique developer search | 2026-08-01 | 1 | 3 (Continuum, Pure Development, The Abraham Companies) | NAIOP national award was too large (Ryan Companies) — chapter-level pages worth trying directly next, not just search |
-| Interior Design Magazine Rising Giants 2026 | 2026-08-01 | 1 | 5 (Meyer Design, Aria Group, EDG Design, Design Republic, Looney & Associates) | Direct fetch worked on the article page — a real Tier 1 source for interior design, same pattern as archisoup. Top 100 Giants list untried (likely too large/famous) — Rising Giants (#101-200) is the right band. Also gave 5 more names not yet processed: STG Design, KZF Design, Blink Design Group, Architecture Incorporated, Jeffrey Beers International |
+| Interior Design Magazine Rising Giants 2026 | 2026-08-01 | 1 | 10 (Meyer Design, Aria Group, EDG Design, Design Republic, Looney & Associates, STG Design, KZF Design, Architecture Incorporated, Jeffrey Beers International, BLINK Design Group) | Direct fetch worked on the article page — a real Tier 1 source for interior design, same pattern as archisoup. List fully processed now (10/10 named firms used). Top 100 Giants list untried (likely too large/famous) — Rising Giants (#101-200) is the right band |
+| **AIA state/regional chapter award pages** (tested: AIA Triangle NC) | 2026-08-01 | 1 | 8 (in situ studio, EVOKE Studio, The Raleigh Architecture Co., Katherine Hogan Architects, ThoughtCraft Architects, Charlton Architecture — 6 kept, 2 more names logged but not yet processed: Studio 310, Habanero Architecture) | **New confirmed Tier 3 source, same pattern as RIBA regional awards** — one chapter page named ~15 firms across categories, most genuinely small. Every US state/city has an AIA chapter with its own annual awards page — this is a large untapped vein, try a different chapter/city each run |
+| Bisnow boutique developer search | 2026-08-01 | 1 | 3 (Continuum, Pure Development, The Abraham Companies) | NAIOP national award was too large (Ryan Companies) — chapter-level pages worth trying directly next, not just search |
 | Archello country/city lists | — | 0 | — | Not yet tried for a US city — high priority next |
 | Architizer A+List | — | 0 | — | |
-| AIA firm directory | — | 0 | — | |
+| AIA national firm directory | — | 0 | — | |
 | ASID / IIDA state chapter awards | — | 0 | — | Tried searching — chapter award-winner pages 403 direct; need the WebSearch-then-verify pattern like RIBA regional awards |
-| Archinect Jobs / Dezeen Jobs / LinkedIn Jobs (hiring_viz) | — | 0 | — | Only 0 hiring signals found so far — untapped |
+| Archinect Jobs / Dezeen Jobs / LinkedIn Jobs (hiring_viz) | — | 0 | — | Still 0 hiring signals found in 3 runs — searches keep surfacing job-board aggregator pages, not individual postings. Try fetching archinect.com/jobs directly with a specific city filter instead of a generic search next time |
 | NAIOP chapter-level Developer of the Year | — | 0 | — | National award only found large firms; try state/regional chapters directly |
 | Behance / ArtStation / Houzz / Clutch | — | 0 | — | |
 | Fairs (Big 5 is Gulf-only — not applicable to US; use ICFF, NeoCon instead) | — | 0 | — | |
