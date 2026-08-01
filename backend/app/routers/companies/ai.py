@@ -104,37 +104,51 @@ def recalculate_scores(admin: User = Depends(require_admin), db: Session = Depen
 
 @router.post("/recalculate-heat")
 def recalculate_heat(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Recompute heat for the caller's own pipeline.
+    """Recompute heat across the whole catalog, from this admin's point of view.
 
-    Heat is per-user state, so this only touches rows this account already has
-    — it never creates one, because creating a state row is what spends a
-    company credit. Companies with no row get their heat derived on read
-    instead (see `company_to_dict`), so the catalog is consistent either way.
+    Only companies with a `user_company_state` row can have a *stored* heat
+    override, and a row only exists once you've engaged with that company
+    (status change, favorite, unlock) — creating one for every untouched
+    company just to cache a number would turn a lightweight per-user overlay
+    into a full copy of the catalog. So: the write pass updates only rows that
+    already exist; everything else already computes its heat live on every
+    read (see `company_to_dict`), which is why the catalog-wide counts here can
+    still cover every company without writing to it.
     """
     from app.services.scoring import heat_for, parse_signals
 
-    rows = (
-        db.query(UserCompanyState, Company)
-        .join(Company, Company.id == UserCompanyState.company_id)
-        .filter(UserCompanyState.user_id == admin.id)
-        .all()
-    )
-    counts = {"hot": 0, "warm": 0, "cold": 0}
+    state_by_company = {
+        s.company_id: s
+        for s in db.query(UserCompanyState).filter(UserCompanyState.user_id == admin.id).all()
+    }
+
+    catalog_counts = {"hot": 0, "warm": 0, "cold": 0}
     changed = 0
-    for state, company in rows:
+    for company in db.query(Company).all():
+        state = state_by_company.get(company.id)
         new_heat = heat_for(
-            state.status, company.opportunity_score,
-            parse_signals(company.signals), state.updated_at,
+            state.status if state else None,
+            company.opportunity_score,
+            parse_signals(company.signals),
+            state.updated_at if state else None,
         )
-        if (state.heat_level or "cold") != new_heat:
+        catalog_counts[new_heat] = catalog_counts.get(new_heat, 0) + 1
+        if state and (state.heat_level or "cold") != new_heat:
             state.heat_level = new_heat
             changed += 1
-        counts[new_heat] = counts.get(new_heat, 0) + 1
     db.commit()
+
+    total = sum(catalog_counts.values())
+    engaged = len(state_by_company)
     return {
-        "message": f"Recalculated heat for {len(rows)} companies — {changed} changed",
-        "counts": counts,
+        "message": (
+            f"Recalculated heat across all {total} companies "
+            f"({engaged} in your own pipeline, {changed} of those changed)"
+        ),
+        "counts": catalog_counts,
         "changed": changed,
+        "total": total,
+        "engaged": engaged,
     }
 
 

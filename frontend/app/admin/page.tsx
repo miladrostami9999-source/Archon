@@ -187,7 +187,7 @@ export default function AdminPanel() {
     try {
       const res = await axios.post(`${API}/companies/recalculate-heat`)
       const c = res.data.counts
-      setHeatMsg(`✓ ${res.data.message} — 🔥${c.hot} 🌤${c.warm} ❄️${c.cold}`)
+      setHeatMsg(`✓ 🔥${c.hot} 🌤${c.warm} ❄️${c.cold} across all ${res.data.total} companies — ${res.data.engaged} in your pipeline, ${res.data.changed} changed`)
     } catch (e: any) { setHeatMsg(`✗ ${e.response?.data?.detail || 'Error'}`) }
     setRecalcHeating(false)
   }

@@ -8,10 +8,8 @@ import {
   ComposableMap,
   Geographies,
   Geography,
-  Marker,
   ZoomableGroup,
 } from 'react-simple-maps'
-import { geoCentroid } from 'd3-geo'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 // 50m rather than 110m: five times the boundary detail, so small countries and
@@ -70,30 +68,6 @@ const NAME_MAP: Record<string, string[]> = {
   'Hong Kong':             ['Hong Kong S.A.R.', 'Hong Kong SAR'],
 }
 
-/**
- * Label positions for countries whose true centroid lands somewhere useless.
- *
- * `geoCentroid` averages the whole geometry, so a country with distant
- * overseas territories gets a label in the middle of an ocean — France ends up
- * near West Africa because of French Guiana.
- */
-const LABEL_OVERRIDE: Record<string, [number, number]> = {
-  'France':         [2.5, 46.6],
-  'United States':  [-98.5, 39.5],
-  'Netherlands':    [5.5, 52.2],
-  'Norway':         [9.0, 61.5],
-  'Portugal':       [-8.2, 39.6],
-  'Spain':          [-3.7, 40.2],
-  'United Kingdom': [-2.0, 53.5],
-  'Russia':         [55.0, 58.0],
-  'Denmark':        [9.5, 56.0],
-  'Chile':          [-71.0, -35.0],
-  'New Zealand':    [172.5, -41.5],
-  'Ecuador':        [-78.5, -1.5],
-  'Malaysia':       [102.5, 3.5],
-  'Canada':         [-98.0, 58.0],
-}
-
 const STATUS_COLOR: Record<string, string> = {
   new: '#60A5FA', reviewed: '#A78BFA', ready: '#FCD34D',
   sent: '#FB923C', replied: '#34D399', meeting: '#2DD4BF',
@@ -122,6 +96,10 @@ export default function MapPage() {
   const centerRef = useRef<[number, number]>([10, 20])
   const [isDark, setIsDark] = useState(true)
   const [showPanel, setShowPanel] = useState(true)
+  // Follows the cursor: name + count for whichever country it's currently
+  // over, including ones with zero companies. Viewport coordinates (not
+  // SVG/map coordinates) since the tooltip is a plain fixed-position div.
+  const [hover, setHover] = useState<{ name: string; count: number; x: number; y: number } | null>(null)
 
   useEffect(() => {
     const check = () => setIsDark(!document.documentElement.classList.contains('light-theme'))
@@ -176,6 +154,10 @@ export default function MapPage() {
       || null
   }
 
+  // The name to show in the tooltip for a country with no data yet — prefer
+  // our canonical spelling over the atlas's when we happen to know it.
+  const displayName = (geoName: string): string => reverseMap[norm(geoName)] || geoName
+
   const getFillColor = (data: CountryData | null) => {
     if (!data) return themeColors.countryEmpty
     // Square-root scale: with a few countries holding most of the catalog, a
@@ -193,7 +175,11 @@ export default function MapPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mapJSX = (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: themeColors.mapBg }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: themeColors.mapBg }}
+      onMouseLeave={() => setHover(null)}>
+      {/* Safety net for the tooltip: a Geography's own onMouseLeave normally
+          clears it, but this catches the cursor leaving the map area entirely
+          (e.g. over the zoom controls) without crossing another country first. */}
       {/* ZOOM */}
       <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {[
@@ -217,7 +203,25 @@ export default function MapPage() {
           ))}
           <span style={{ fontSize: '9px', color: 'var(--text-dim)', marginLeft: '4px' }}>Low→High</span>
         </div>
+        <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '6px 0 0' }}>Hover a country for details</p>
       </div>
+
+      {/* HOVER TOOLTIP — follows the cursor, works for every country including
+          ones with zero companies. position:fixed so it's never clipped by
+          the map's own overflow. */}
+      {hover && (
+        <div style={{
+          position: 'fixed', left: hover.x + 16, top: hover.y + 16, zIndex: 50,
+          pointerEvents: 'none', borderRadius: '9px', border: '1px solid var(--border)',
+          background: 'var(--bg-card)', padding: '8px 12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)', whiteSpace: 'nowrap',
+        }}>
+          <p style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{hover.name}</p>
+          <p style={{ fontSize: '11px', color: hover.count > 0 ? '#60A5FA' : 'var(--text-dim)', margin: '2px 0 0', fontWeight: hover.count > 0 ? 600 : 400 }}>
+            {hover.count > 0 ? `${hover.count} ${hover.count === 1 ? 'company' : 'companies'}` : 'No companies yet'}
+          </p>
+        </div>
+      )}
 
       {/* MAP */}
       {mapData.length === 0 && !loading ? (
@@ -240,87 +244,49 @@ export default function MapPage() {
               setLabelZoom(z)
             }}>
             <Geographies geography={GEO_URL}>
-              {({ geographies }: { geographies: any[] }) => (
-                <>
-                  {/* SHAPES */}
-                  {geographies.map((geo: any) => {
-                    const geoName = geo.properties.name
-                    const data = getCountryData(geoName)
-                    const isSelected = !!data && selected?.name === data.name
-                    return (
-                      <Geography key={geo.rsmKey} geography={geo}
-                        onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
-                        style={{
-                          default: {
-                            fill: isSelected ? SELECTED_FILL : getFillColor(data),
-                            // A halo on the selected country so it reads as
-                            // picked even when the map is zoomed right out.
-                            stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
-                            strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
-                            outline: 'none',
-                            transition: 'fill 0.15s',
-                          },
-                          hover: {
-                            fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
-                            stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
-                            strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
-                            outline: 'none',
-                            cursor: data ? 'pointer' : 'default',
-                          },
-                          pressed: {
-                            fill: isSelected ? SELECTED_FILL : '#3B6EE8',
-                            stroke: themeColors.stroke, strokeWidth: 0.35, outline: 'none',
-                          },
-                        }}
-                      />
-                    )
-                  })}
-
-                  {/* LABELS — only where we have companies, so the map stays
-                      readable instead of becoming a wall of country names. */}
-                  {geographies.map((geo: any) => {
-                    const data = getCountryData(geo.properties.name)
-                    if (!data) return null
-                    const isSelected = selected?.name === data.name
-                    const at = LABEL_OVERRIDE[data.name]
-                      || LABEL_OVERRIDE[geo.properties.name]
-                      || geoCentroid(geo)
-                    if (!at || Number.isNaN(at[0]) || Number.isNaN(at[1])) return null
-
-                    // Counter-scale with zoom so text keeps a constant size on
-                    // screen rather than ballooning as you zoom in.
-                    const s = 1 / labelZoom
-                    return (
-                      <Marker key={`label-${geo.rsmKey}`} coordinates={at}
-                        onClick={() => { setSelected(data); setShowPanel(true) }}
-                        style={{ default: { cursor: 'pointer' } }}>
-                        <g transform={`scale(${s})`} style={{ pointerEvents: 'auto' }}>
-                          <text textAnchor="middle" y={-3}
-                            style={{
-                              fontSize: '8px', fontWeight: 700,
-                              fill: isSelected ? '#1A1A2E' : themeColors.label,
-                              stroke: isSelected ? SELECTED_FILL : themeColors.labelHalo,
-                              strokeWidth: 2.4, paintOrder: 'stroke',
-                              userSelect: 'none',
-                            }}>
-                            {data.name}
-                          </text>
-                          <text textAnchor="middle" y={7}
-                            style={{
-                              fontSize: '8.5px', fontWeight: 800,
-                              fill: isSelected ? '#1A1A2E' : '#4F7BF7',
-                              stroke: isSelected ? SELECTED_FILL : themeColors.labelHalo,
-                              strokeWidth: 2.4, paintOrder: 'stroke',
-                              userSelect: 'none',
-                            }}>
-                            {data.count}
-                          </text>
-                        </g>
-                      </Marker>
-                    )
-                  })}
-                </>
-              )}
+              {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => {
+                const geoName = geo.properties.name
+                const data = getCountryData(geoName)
+                const isSelected = !!data && selected?.name === data.name
+                return (
+                  <Geography key={geo.rsmKey} geography={geo}
+                    onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
+                    // Permanent per-country labels used to overlap into an
+                    // unreadable mess wherever a few small countries sit close
+                    // together (the Gulf states, the Balkans...). A tooltip
+                    // that follows the cursor gives the same name + count for
+                    // *every* country — including ones with no data yet —
+                    // without ever needing two labels to share the same spot.
+                    onMouseEnter={(e: any) =>
+                      setHover({ name: data?.name || displayName(geoName), count: data?.count || 0, x: e.clientX, y: e.clientY })}
+                    onMouseMove={(e: any) =>
+                      setHover(h => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
+                    onMouseLeave={() => setHover(null)}
+                    style={{
+                      default: {
+                        fill: isSelected ? SELECTED_FILL : getFillColor(data),
+                        // A halo on the selected country so it reads as picked
+                        // even when the map is zoomed right out.
+                        stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                        strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                        outline: 'none',
+                        transition: 'fill 0.15s',
+                      },
+                      hover: {
+                        fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
+                        stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                        strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                        outline: 'none',
+                        cursor: data ? 'pointer' : 'default',
+                      },
+                      pressed: {
+                        fill: isSelected ? SELECTED_FILL : '#3B6EE8',
+                        stroke: themeColors.stroke, strokeWidth: 0.35, outline: 'none',
+                      },
+                    }}
+                  />
+                )
+              })}
             </Geographies>
           </ZoomableGroup>
         </ComposableMap>
