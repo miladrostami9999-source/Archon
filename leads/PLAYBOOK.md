@@ -46,6 +46,15 @@ lead lists precisely because they're harder to find — that's the edge.
 Yield tiers come from measured results, not theory. Tier 1 sources return
 **25–200 named companies from a single page**; Tier 4 returns one at a time.
 
+**Which specific sources to use this run comes from `leads/SOURCE_LEDGER.md`,
+not from memory or habit.** With ~35 sources across 7 tiers, defaulting to
+whichever 2–3 are easiest to remember (archisoup, plain WebSearch) means most
+of this catalog never gets touched and the segment mix skews hard toward
+whatever those sources happen to cover. The ledger tracks what's been tried
+per country and picks the longest-idle sources — read it before searching, and
+update it after. It also has the segment-specific Tier 1 sources for
+developers and interior design that fix the architecture skew below.
+
 ### Tier 1 — Curated listicles (highest yield per search)
 
 The single best discovery pattern found. One page names 25–220 firms.
@@ -186,12 +195,34 @@ gets cut here, and that's the point.
   An invented address burns the sending domain's reputation, which costs far
   more than a missing row.
 
-### Soft rejects (deprioritise, only include if the run is short)
-- **100+ people with a named in-house visualisation team** — slow, hard sale
-  (`large` = 9 outsourcing pts vs `small` = 20)
-- **Arch-viz studios** — competitor, 9 need pts
-- **Tier-5 market with no signal** — 8 market pts caps the total too low
-- **Household names** (Foster, BIG, Zaha, Gensler) — already in everyone's CRM
+### Don't filter by size — score does that job
+
+**Large firms are not excluded.** `scoring.py` already penalises them
+correctly (`large` = 9 outsourcing pts vs `small` = 20 — an 11-point hit out of
+100) — that's the whole point of the scoring rewrite. Rejecting a 200-person
+regional firm before even fetching its site throws away information for free:
+the name and domain already cost nothing (they came from a listicle), and one
+light-tier fetch (§5) is all it takes to log it with an honest `company_size`
+and let the app rank it where it belongs. A regional office of a large firm
+might genuinely have no in-house 3D team, or a specific department worth a
+targeted pitch — that possibility is worth a single fetch, not a guess.
+
+**The only names to skip outright** — because they add zero information (every
+studio on earth already has them in a CRM and has already tried and failed to
+sell to them, not because of size):
+
+> Foster + Partners, Zaha Hadid Architects, BIG, Gensler, Skidmore Owings &
+> Merrill (SOM), HOK, Perkins&Will, AECOM, KPF, Populous, NBBJ, Stantec, Jacobs
+
+Extend this list only when a firm is *globally* iconic, not merely large. A
+150-person regional practice nobody outside its city has heard of is not on
+this list, however large — it goes in the file with `company_size=large`.
+
+**Two more soft-deprioritise cases** (still include, just expect a lower
+score):
+- **Arch-viz studios** — competitor first, 9 need pts
+- **Tier-D market with no signal** (§9) — 8 market pts caps the total too low
+  to matter much, but a strong signal can still lift it
 
 ### Prefer
 - 3–20 people, no in-house 3D → the single heaviest scoring factor
@@ -203,32 +234,65 @@ gets cut here, and that's the point.
 
 ## 5. How company data is actually obtained
 
-Fixed pipeline. Step 2 is the real cost and the real quality gate.
+Fixed pipeline. Step 2 is the real cost and the real quality gate — and it now
+runs at **two speeds**, chosen per candidate, not one fixed depth for everyone.
 
 **Step 1 — Discover (cheap, parallel).**
 4 `WebSearch` calls at once across different source tiers. Collect names +
-whatever URL is offered. Nothing is trusted yet.
+whatever URL is offered. Take the **exact URL the search result gives** —
+never reconstruct one from the name (`https://www.` + slug + `.com`). Guessed
+URLs are the single biggest cause of wasted fetches (wrong subdomain, wrong
+TLD, cert mismatches on a domain that isn't actually theirs) — every ENOTFOUND
+and cert error logged in past runs traced back to a guessed URL, never to one
+copied from search output.
 
 **Step 2 — Verify on the company's own site (the gate).**
 `WebFetch` the firm's own domain — never a directory page as the source of
 truth. Company sites are almost never bot-blocked, unlike the directories that
-list them. Extract:
-- **Email** — homepage first, then `/contact`, `/kontakt`, `/contact-us`,
-  `/kontakt-oss`, `/contacto`. Prefer a named person over a shared inbox.
+list them.
+
+**Choose the depth per candidate:**
+
+- **Light pass (default — one fetch, no follow-up)** for everything, and *all*
+  of the never-exclude-by-size cases (§4): large/famous-but-not-mega-brand
+  firms, medium firms with no obvious signal yet. One `WebFetch` on the
+  homepage, prompted to extract email + city + any team-size mention in the
+  same call. If the email isn't on the homepage, **leave it blank — don't
+  chase `/contact` for this tier.** If the fetch itself fails (403, cert error,
+  connection refused, 503), **try once more, then drop it** — a second
+  failure means the site is genuinely unreachable this pass, not that a
+  directory listing was wrong.
+- **Deep pass (2–3 fetches)** reserved for candidates that already show a
+  Tier 1–4 signal (hiring/award/new project/exhibiting) or look `solo`/`small`
+  on the light pass — these are exactly the rows where extra data actually
+  moves the score. Follow up with `/contact`, `/team` or `/people`, and a
+  news/projects page for `style_fit` evidence.
+
+This is the lever that matters most: the light pass turns "I have a name and a
+domain from a listicle" into a real row for close to zero extra cost, so
+nothing found gets thrown away for being large — it just costs one fetch
+instead of three.
+
+**On the light pass, still record what's available:**
+- **Email** — only if visible without navigating. Prefer a named person.
 - **Phone, city, country**
-- **Team size** — count the `/team` or `/people` page if it exists; otherwise
-  infer from language ("two-partner studio", "founded by"). Say `solo`/`small`/
-  `medium`/`large`, never guess a precise headcount.
+- **Team size** — a `/team` count if the *same page* shows it; otherwise infer
+  from language ("two-partner studio", office count, "150+ professionals
+  across four offices") and say so in `evidence`. Say `solo`/`small`/`medium`/
+  `large`, never a precise guessed headcount.
 - **Segment** → the `industry` value from §1
 - **Signals** — only with evidence actually read on a page
-- **Style fit** (−8…+8) — how close their work is to Armila's minimalist
-  Scandinavian / warm-minimal register, and whether better renders would
-  visibly help. `0` if the site doesn't show enough to judge.
+- **Style fit** (−8…+8) — `0` if the site doesn't show enough to judge (which
+  is expected and fine on a light pass)
 - **Social** — only links found on their own site
 
-**Common redirect traps:** `.ae → .com`, `www → apex`, and old brand domains
-(`snorrestinessen.com → bystinessen.com`). Follow the redirect and record the
-final URL.
+**Common redirect traps:** `.ae → .com`, `www → apex`, old brand domains
+(`snorrestinessen.com → bystinessen.com`), and **acquisitions** — a redirect to
+a completely different domain (`dyerbrown.com → corgan.com/dyerbrown`,
+`tria.design → hfa-ae.com`) means the firm has been absorbed into a larger one.
+That's still a valid row (`company_size=large`, note the acquisition in
+`evidence`) — the redirect target *is* the verification that the entity is
+real, just no longer independent.
 
 **Step 3 — Validate the email domain (see §6).**
 
@@ -333,13 +397,28 @@ Quotas are ceilings per pass, not per project — a country can be revisited.
 
 1. Pick the country (or take the one requested).
 2. Read `leads/<country>.csv` → hold existing names + domains.
-3. Fire 4 parallel searches across **different** source tiers (§2), leading with
-   Tier 1 listicles for a fresh country.
-4. Verify each candidate on its **own** site (§5).
-5. MX-check every new email in one batch (§6).
-6. Dedupe (§7), append, validate the file parses.
-7. Report: count, segment mix, signal mix, and **what was rejected and why**.
-8. Commit and push.
+3. Read `leads/SOURCE_LEDGER.md` for that country → pick sources by the
+   rotation algorithm there (longest-idle first, weighted toward whichever
+   segment is furthest behind its §1 target mix).
+4. Fire 4 parallel searches across those sources — never four variations of
+   one query.
+5. Verify every candidate found (§5) — light pass by default, deep pass only
+   for signal-rich or solo/small candidates. **Don't pre-filter by size** (§4)
+   — a large/famous-but-not-mega-brand firm still gets a light-pass fetch and
+   goes in the file with an honest `company_size`.
+6. MX-check every new email in one batch (§6).
+7. Dedupe (§7), append, validate the file parses.
+8. **Update `leads/SOURCE_LEDGER.md`** — mark each source used today, its
+   yield, and any notes for next time.
+9. Report: count, segment mix, signal mix, and **what was rejected and why**
+   (should now mostly be genuine fetch failures and the named mega-brand list,
+   not size-based judgment calls).
+10. Log the run in `leads/HUNT_LOG.md`, commit and push.
 
-**Expected yield:** 20–25 verified companies per run from award/publication
-sources; 35–45 when leading with Tier 1 listicles on a fresh country.
+**Expected yield:** with the light-pass-everything approach, a 15–20 firm
+listicle should yield 25–35 verified rows (most of the list, minus mega-brands
+and genuine fetch failures) rather than 15–20 (only the ones that "look
+small"). Measured: first Boston/Philadelphia pass kept 17 of 30 names found by
+pre-filtering on size; re-processing the discarded 13 with a light pass added
+22 more from the *same two searches* — a >2x yield increase from not filtering
+at discovery time.
