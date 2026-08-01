@@ -38,17 +38,53 @@ DEFAULT_PAGE_CHARS = 6000
 _UA = "Mozilla/5.0 (compatible; ArchonLeadHunter/1.0; +https://armiladesign.com)"
 
 
-def provider() -> str | None:
-    """Which cheap provider is configured, if any."""
-    if os.getenv("SERPER_API_KEY"):
-        return "serper"
-    if os.getenv("BRAVE_SEARCH_API_KEY"):
-        return "brave"
+PROVIDER_ENV = {"serper": "SERPER_API_KEY", "brave": "BRAVE_SEARCH_API_KEY"}
+
+PROVIDER_INFO = {
+    "serper": {
+        "label": "Serper",
+        "note": "Google results. 2,500 free queries, no card. ~$0.02 per hunt.",
+    },
+    "brave": {
+        "label": "Brave",
+        "note": "Independent index. $5/1,000 with $5 free monthly credit. ~$0.02 per hunt.",
+    },
+    "anthropic": {
+        "label": "Claude built-in",
+        "note": "Claude searches and reads pages itself. Most thorough, ~$0.58 per 5 companies.",
+    },
+}
+
+
+def available() -> list[str]:
+    """Search backends this deployment can actually use, cheapest first.
+
+    Anthropic is always last and always present — it needs no extra key, so it
+    is the floor rather than a choice that can be unavailable.
+    """
+    return [name for name, env in PROVIDER_ENV.items() if os.getenv(env)] + ["anthropic"]
+
+
+def provider(prefer: str | None = None) -> str | None:
+    """The cheap provider to use, or None to fall back to Anthropic.
+
+    `prefer` comes from the hunt form. An explicit choice wins when its key is
+    present; asking for a provider that isn't configured falls through to the
+    default rather than failing, since a hunt returning results beats a hunt
+    returning an error about configuration.
+    """
+    if prefer == "anthropic":
+        return None
+    if prefer and prefer in PROVIDER_ENV and os.getenv(PROVIDER_ENV[prefer]):
+        return prefer
+    for name, env in PROVIDER_ENV.items():
+        if os.getenv(env):
+            return name
     return None
 
 
-def is_configured() -> bool:
-    return provider() is not None
+def is_configured(prefer: str | None = None) -> bool:
+    return provider(prefer) is not None
 
 
 # ── search ─────────────────────────────────────────────────────────────────
@@ -92,10 +128,10 @@ def _serper(query: str, count: int) -> list[dict]:
     ]
 
 
-def search(query: str, count: int = 8) -> list[dict]:
+def search(query: str, count: int = 8, prefer: str | None = None) -> list[dict]:
     """One search. Returns [{title, url, snippet}] — never raises."""
     try:
-        p = provider()
+        p = provider(prefer)
         if p == "brave":
             return _brave(query, count)
         if p == "serper":
@@ -105,7 +141,7 @@ def search(query: str, count: int = 8) -> list[dict]:
     return []
 
 
-def search_many(queries: list[str], per_query: int = 8) -> list[dict]:
+def search_many(queries: list[str], per_query: int = 8, prefer: str | None = None) -> list[dict]:
     """Run several searches and merge, keeping the first sighting of each URL.
 
     De-duplicating here rather than in the prompt matters: overlapping queries
@@ -115,7 +151,7 @@ def search_many(queries: list[str], per_query: int = 8) -> list[dict]:
     seen: set[str] = set()
     merged: list[dict] = []
     for q in queries:
-        for hit in search(q, per_query):
+        for hit in search(q, per_query, prefer):
             url = (hit.get("url") or "").rstrip("/")
             if not url or url in seen:
                 continue

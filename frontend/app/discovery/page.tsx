@@ -13,10 +13,11 @@ interface Source { key: string; label: string; hint: string }
 interface SourceGroup { key: string; label: string; blurb: string; sources: Source[] }
 interface Signal { key: string; label: string; hint: string }
 interface SizeOption { key: string; label: string }
+interface SearchOption { key: string; label: string; note: string }
 interface Catalog {
   groups: SourceGroup[]; segments: string[]; project_types: string[]
   signals: Signal[]; company_sizes: SizeOption[]
-  search: { provider: string; cheap: boolean; note: string }
+  search: { default: string; cheap: boolean; options: SearchOption[]; note: string | null }
 }
 
 interface Criteria {
@@ -25,6 +26,8 @@ interface Criteria {
   signals: string[]; languages: string
   require_website: boolean; require_email: boolean
   min_score: number; count: number; brief: string
+  /** Which search backend to use; empty means the server's default. */
+  search_provider: string
 }
 
 /** Stage 1 result — who exists, and where we found them. */
@@ -66,6 +69,7 @@ const EMPTY: Criteria = {
   sources: [], countries: '', cities: '', segments: [], project_types: [],
   company_sizes: [], signals: [], languages: '',
   require_website: true, require_email: false, min_score: 0, count: 15, brief: '',
+  search_provider: '',
 }
 
 const GRADE_COLOR: Record<string, string> = { A: '#34D399', B: '#60A5FA', C: '#FBBF24', D: '#9CA3AF' }
@@ -423,9 +427,8 @@ export default function LeadHunter() {
                   })}
                 </div>
 
-                {/* Which search path is live — pressing Scout costs very
-                    different amounts depending on this. */}
-                {catalog?.search && !catalog.search.cheap && (
+                {/* No search key at all — every hunt falls back to the pricey path. */}
+                {catalog?.search?.note && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
                     padding: '10px 14px', borderRadius: '10px',
@@ -440,7 +443,7 @@ export default function LeadHunter() {
                 {(spend.input_tokens > 0 || spend.output_tokens > 0) && (
                   <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
                     Tokens this session: {spend.input_tokens.toLocaleString()} in · {spend.output_tokens.toLocaleString()} out
-                    {catalog?.search?.cheap && ` · via ${catalog.search.provider}`}
+                    {catalog?.search && ` · via ${criteria.search_provider || catalog.search.default}`}
                   </p>
                 )}
 
@@ -482,12 +485,46 @@ export default function LeadHunter() {
                         </label>
                         <div style={{ flex: 1 }} />
                         {activeFilters > 0 && (
-                          <button onClick={() => { setCriteria({ ...EMPTY, brief: criteria.brief, count: criteria.count }); setActiveHunt(null) }}
+                          <button onClick={() => { setCriteria({ ...EMPTY, brief: criteria.brief, count: criteria.count, search_provider: criteria.search_provider }); setActiveHunt(null) }}
                             style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
                             Clear {activeFilters} filter{activeFilters === 1 ? '' : 's'}
                           </button>
                         )}
                       </div>
+
+                      {/* SEARCH BACKEND — different indexes surface different
+                          firms, so this is a quality lever, not just a cost one. */}
+                      {(catalog?.search?.options?.length || 0) > 1 && (
+                        <div style={{ marginTop: '14px', paddingTop: '13px', borderTop: '1px solid var(--border)' }}>
+                          <p style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 7px' }}>
+                            Search with
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+                            {catalog!.search.options.map(o => {
+                              const on = (criteria.search_provider || catalog!.search.default) === o.key
+                              return (
+                                <button key={o.key} type="button" onClick={() => set('search_provider', o.key)} title={o.note}
+                                  style={{
+                                    textAlign: 'left', padding: '9px 12px', borderRadius: '10px', cursor: 'pointer',
+                                    border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
+                                    background: on ? 'rgba(79,123,247,0.1)' : 'var(--bg-input)',
+                                    flex: '1 1 190px',
+                                  }}>
+                                  <p style={{ fontSize: '12.5px', fontWeight: 600, margin: 0, color: on ? '#60A5FA' : 'var(--text)' }}>
+                                    {o.label}{o.key === catalog!.search.default && !criteria.search_provider ? ' · default' : ''}
+                                  </p>
+                                  <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0', lineHeight: 1.5 }}>{o.note}</p>
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '8px 0 0', lineHeight: 1.6 }}>
+                            Claude still writes the emails and does the research either way — this only
+                            changes who runs the web searches. If one backend keeps missing firms you
+                            know exist, try another.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* PRESETS — a running start for the searches worth running */}

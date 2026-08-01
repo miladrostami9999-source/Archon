@@ -37,17 +37,20 @@ def list_sources(admin: User = Depends(require_admin)):
     from app.services import websearch
 
     data = discovery_sources.catalog()
-    # Which search path is live, so the cost of pressing Scout isn't a surprise.
-    provider = websearch.provider()
+    # Which search backends this deployment can use, and which one a hunt gets
+    # by default — so the cost of pressing Scout is never a surprise.
+    default = websearch.provider()
     data["search"] = {
-        "provider": provider or "anthropic",
-        "cheap": bool(provider),
+        "default": default or "anthropic",
+        "cheap": bool(default),
+        "options": [
+            {"key": k, **websearch.PROVIDER_INFO[k]} for k in websearch.available()
+        ],
         "note": (
-            f"Using {provider.title()} Search — roughly $0.01 per hunt."
-            if provider else
-            "Using Anthropic's built-in web search — around $0.50 per 5 companies. "
-            "Set SERPER_API_KEY on the server to cut that by ~30x "
-            "(serper.dev gives 2,500 free queries, no card needed)."
+            None if default else
+            "No search key set, so hunts fall back to Claude's built-in web search — "
+            "around $0.50 per 5 companies. Add SERPER_API_KEY on the server to cut "
+            "that by ~30x (serper.dev gives 2,500 free queries, no card needed)."
         ),
     }
     return data

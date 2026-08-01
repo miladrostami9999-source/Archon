@@ -125,6 +125,10 @@ class HuntRequest(BaseModel):
     count: int = 10
     brief: Optional[str] = None        # free-text extra instruction
     hunt_id: Optional[int] = None      # set when re-running a saved hunt
+    # Which search backend to use: serper | brave | anthropic. Null picks the
+    # cheapest configured one. Different indexes surface different firms, so
+    # this is a quality lever as much as a cost one.
+    search_provider: Optional[str] = None
 
 
 class ScoutedCompany(BaseModel):

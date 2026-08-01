@@ -400,7 +400,8 @@ def scout_leads(existing_names: list, criteria: dict) -> tuple[list, dict]:
     """
     from app.services import websearch
 
-    if websearch.is_configured():
+    prefer = criteria.get("search_provider")
+    if websearch.is_configured(prefer):
         return _scout_cheap(existing_names, criteria)
     return _scout_builtin(existing_names, criteria)
 
@@ -411,7 +412,7 @@ def _scout_cheap(existing_names: list, criteria: dict) -> tuple[list, dict]:
 
     count = max(1, min(int(criteria.get("count") or 15), 40))
     queries = build_search_queries(criteria, limit=min(12, 4 + count // 3))
-    hits = websearch.search_many(queries, per_query=8)
+    hits = websearch.search_many(queries, per_query=8, prefer=criteria.get("search_provider"))
 
     if not hits:
         return [], {"input_tokens": 0, "output_tokens": 0}
@@ -601,7 +602,7 @@ def enrich_leads(leads: list, criteria: dict) -> tuple[list, dict]:
     """
     from app.services import websearch
 
-    if websearch.is_configured():
+    if websearch.is_configured(criteria.get("search_provider")):
         return _enrich_cheap(leads, criteria)
     return _enrich_builtin(leads, criteria)
 
