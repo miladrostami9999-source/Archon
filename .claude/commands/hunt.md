@@ -90,11 +90,22 @@ containing a comma.
 
 ## When you're done
 
-Verify the file parses, then commit and push. Report:
-- how many added, and the running total for that country against its quota
-- the spread by segment and by size
-- which signals were found
-- **what you rejected and why** — this is how the playbook gets tuned
-- the next country by quota gap
+Verify the file parses, then:
+
+1. **Get the real timestamp** — run `date '+%Y-%m-%d %H:%M %Z'` (bash) or
+   `Get-Date -Format 'yyyy-MM-dd HH:mm'` (PowerShell). Never guess the time or
+   reuse one from earlier in the conversation.
+2. **Append one row to `leads/HUNT_LOG.md`** — insert it directly under the
+   header row (newest on top), with: timestamp, country, how many added this
+   run, the new running total for that country, and a short reject-reason
+   summary. Never edit or reorder existing rows.
+3. **Commit and push** — lead CSVs, the log, and the playbook (if it changed)
+   together.
+4. **Report** to Milad:
+   - how many added, and the running total for that country against its quota
+   - the spread by segment and by size
+   - which signals were found
+   - **what you rejected and why** — this is how the playbook gets tuned
+   - the next country by quota gap
 
 Then tell Milad to upload the file at `app.armiladesign.com/import`.
