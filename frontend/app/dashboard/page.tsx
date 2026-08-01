@@ -49,6 +49,35 @@ interface Company {
   locked?: boolean
   lock_reason?: 'pending_payment' | 'expired' | 'quota_exhausted' | 'not_unlocked' | null
   unlocked?: boolean
+  employee_count?: number | null
+  signals?: string[]
+  created_at?: string
+}
+
+// Big firms stay in the catalog but score lower, so the size has to be visible
+// on the card — otherwise a low score looks arbitrary.
+const SIZE_LABEL: Record<string, { text: string; color: string }> = {
+  solo:   { text: 'Solo',   color: '#9CA3AF' },
+  small:  { text: 'Small',  color: '#34D399' },
+  medium: { text: 'Medium', color: '#FBBF24' },
+  large:  { text: 'Large',  color: '#F87171' },
+}
+
+function SizeBadge({ size, count }: { size?: string | null; count?: number | null }) {
+  const meta = SIZE_LABEL[(size || '').toLowerCase()]
+  if (!meta && !count) return null
+  const label = meta?.text || 'Size'
+  return (
+    <span
+      title={count ? `${count} people — larger firms are more likely to have an in-house 3D team, so they score lower` : undefined}
+      style={{
+        fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px',
+        color: meta?.color || 'var(--text-dim)',
+        background: `${meta?.color || '#9CA3AF'}1A`, whiteSpace: 'nowrap',
+      }}>
+      {label}{count ? ` · ${count.toLocaleString()}` : ''}
+    </span>
+  )
 }
 
 interface ContextMenu { x: number; y: number; company: Company }
@@ -245,15 +274,6 @@ export default function Dashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
-  const sortData = (data: Company[]) => [...data].sort((a, b) => {
-    let valA: any, valB: any
-    if (sortBy === 'score') { valA = a.opportunity_score; valB = b.opportunity_score }
-    else if (sortBy === 'name') { valA = a.name?.toLowerCase(); valB = b.name?.toLowerCase() }
-    else if (sortBy === 'date') { valA = new Date(a.updated_at).getTime(); valB = new Date(b.updated_at).getTime() }
-    else if (sortBy === 'country') { valA = a.country?.toLowerCase(); valB = b.country?.toLowerCase() }
-    return sortDir === 'desc' ? (valA > valB ? -1 : 1) : (valA < valB ? -1 : 1)
-  })
-
   const fetchCompanies = async (targetPage = page) => {
     setLoading(true); setError(''); setIsSmartMode(false)
     try {
@@ -266,8 +286,11 @@ export default function Dashboard() {
       if (filterIndustry) params.industry = filterIndustry
       if (filterHeat) params.heat_level = filterHeat
       if (filterFavorite) params.is_favorite = 'true'
+      // Sorting is the server's job — it has all the rows, this page has 20.
+      params.sort = sortBy
+      params.sort_dir = sortDir
       const res = await axios.get(`${API}/companies/`, { params })
-      setCompanies(sortData(res.data.companies as Company[]))
+      setCompanies(res.data.companies as Company[])
       setTotal(res.data.total)
     } catch { setError('Cannot connect to server.') }
     setLoading(false)
@@ -282,8 +305,10 @@ export default function Dashboard() {
       if (filterIndustry) params.industry = filterIndustry
       if (filterHeat) params.heat_level = filterHeat
       if (filterFavorite) params.is_favorite = 'true'
+      params.sort = sortBy
+      params.sort_dir = sortDir
       const res = await axios.get(`${API}/companies/`, { params })
-      setAllCompanies(sortData(res.data.companies as Company[]))
+      setAllCompanies(res.data.companies as Company[])
     } catch {}
   }
 
@@ -432,7 +457,7 @@ export default function Dashboard() {
   })
 
   const hasNotif = (todayTasks.total > 0 && todayTasks.done < todayTasks.total) || followUps.length > 0
-  const sortLabel = { score: 'Score', name: 'Name', date: 'Date', country: 'Country' }[sortBy] || 'Score'
+  const sortLabel = { recent: 'Recently added', score: 'Score', name: 'Name', date: 'Date', country: 'Country' }[sortBy] || 'Score'
   const startItem = (page - 1) * PAGE_SIZE + 1
   const endItem = Math.min(page * PAGE_SIZE, total)
   const activeCompany = activeId ? allCompanies.find(c => c.id === Number(activeId)) : null
@@ -545,7 +570,7 @@ export default function Dashboard() {
                 </button>
                 {sortMenuOpen && (
                   <div style={{ position: 'absolute', right: 0, top: '44px', width: '176px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', padding: '4px', zIndex: 30, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-                    {[['score','🏆 Score'],['name','🔤 Name'],['date','📅 Date'],['country','🌍 Country']].map(([k, l]) => (
+                    {[['recent','✨ Recently added'],['score','🏆 Score'],['name','🔤 Name'],['date','📅 Date'],['country','🌍 Country']].map(([k, l]) => (
                       <button key={k} onClick={e => { e.stopPropagation(); toggleSort(k) }}
                         style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', color: sortBy === k ? '#60A5FA' : 'var(--text-muted)', transition: 'all 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
@@ -750,7 +775,13 @@ export default function Dashboard() {
                               filter: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'blur(5px)' : undefined,
                               userSelect: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'none' : undefined,
                             }}>{c.name}</h3>
-                            <span style={{ fontSize: '12px', opacity: 0.6 }}>{HEAT_ICON[c.heat_level]}</span>
+                            <span style={{ fontSize: '12px', opacity: 0.6 }} title={`${c.heat_level} lead`}>{HEAT_ICON[c.heat_level]}</span>
+                            <SizeBadge size={c.company_size} count={c.employee_count} />
+                            {c.signals?.slice(0, 2).map(s => (
+                              <span key={s} style={{ fontSize: '9.5px', fontWeight: 600, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '2px 6px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
+                                {s.replace(/_/g, ' ')}
+                              </span>
+                            ))}
                             {c.tags && c.tags.split(',').slice(0,2).map(tag => (
                               <span key={tag} style={{ fontSize: '10px', background: 'var(--bg-tag)', color: 'var(--text-dim)', padding: '2px 6px', borderRadius: '4px' }}>{tag.trim()}</span>
                             ))}

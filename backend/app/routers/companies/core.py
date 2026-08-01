@@ -40,16 +40,18 @@ def get_companies(
     heat_level: Optional[str] = None,
     search: Optional[str] = None,
     sort: str = "smart",
+    sort_dir: str = "desc",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """List the shared catalog with this user's own pipeline state layered on.
 
     `sort` options:
-      smart — hot/high-opportunity first, shuffled per user within a tier so
-              two accounts don't work the exact same rows (the default)
-      new   — most recently added first
-      score — strict opportunity score, identical for everyone
+      smart  — hot/high-opportunity first, shuffled per user within a tier so
+               two accounts don't work the exact same rows (the default)
+      recent — most recently added first (alias: new)
+      score  — strict opportunity score, identical for everyone
+      name / country / date — plain column sorts, honouring `sort_dir`
     """
     access = access_state(db, current_user)
 
@@ -68,10 +70,49 @@ def get_companies(
         else:
             query = query.filter(UserCompanyState.status == status)
     if heat_level:
-        if heat_level == "cold":
-            query = query.filter(or_(UserCompanyState.heat_level == "cold", UserCompanyState.heat_level.is_(None)))
+        # Heat is derived rather than read straight off the column, so the
+        # filter has to reproduce `services.scoring.heat_for` in SQL. If the two
+        # ever drift, the filter returns rows whose badge says something else.
+        from app.services.scoring import URGENT_SIGNALS, HOT_STATUSES, WARM_STATUSES
+
+        # Every column here needs a coalesce. `signals` and `status` are NULL on
+        # untouched rows, and NULL ILIKE / NULL IN (…) evaluate to NULL rather
+        # than false — which poisons the surrounding AND/OR and silently drops
+        # rows from every branch at once.
+        sig_col = func.coalesce(Company.signals, "")
+        status_col = func.coalesce(UserCompanyState.status, "new")
+        score_col = func.coalesce(Company.opportunity_score, 0)
+
+        has_urgent = or_(*[sig_col.ilike(f"%{s}%") for s in URGENT_SIGNALS])
+        engaged = status_col.in_(HOT_STATUSES | WARM_STATUSES)
+
+        # Matches company_to_dict: a stored "cold" can't be told apart from the
+        # column default, so it gets recomputed rather than trusted.
+        derivable = or_(
+            UserCompanyState.heat_level.is_(None),
+            UserCompanyState.heat_level == "cold",
+        )
+        stored = and_(UserCompanyState.heat_level == heat_level, ~derivable)
+
+        # heat_for is a priority chain — hot wins over warm, warm over cold —
+        # so the bands have to be made mutually exclusive here too. Testing
+        # each independently put a hot company in the warm results as well.
+        is_hot = or_(
+            status_col.in_(HOT_STATUSES),
+            and_(~engaged, has_urgent, score_col >= 70),
+        )
+        is_warm = or_(
+            status_col.in_(WARM_STATUSES),
+            and_(~engaged, or_(has_urgent, score_col >= 65)),
+        )
+
+        if heat_level == "hot":
+            derived = and_(derivable, is_hot)
+        elif heat_level == "warm":
+            derived = and_(derivable, ~is_hot, is_warm)
         else:
-            query = query.filter(UserCompanyState.heat_level == heat_level)
+            derived = and_(derivable, ~is_hot, ~is_warm)
+        query = query.filter(or_(stored, derived))
     if is_favorite is not None:
         if is_favorite:
             query = query.filter(UserCompanyState.is_favorite.is_(True))
@@ -95,10 +136,25 @@ def get_companies(
 
     total = query.count()
 
-    if sort == "new":
-        query = query.order_by(Company.created_at.desc(), Company.id.desc())
+    # Sorting has to happen in SQL. Doing it in the browser only reordered the
+    # rows already on screen, so "sort by score" over 3,000 companies quietly
+    # meant "sort these 20 by score".
+    desc = sort_dir != "asc"
+
+    def ordered(col):
+        return query.order_by(col.desc() if desc else col.asc())
+
+    if sort in ("new", "recent"):
+        query = query.order_by(Company.created_at.desc(), Company.id.desc()) if desc \
+            else query.order_by(Company.created_at.asc(), Company.id.asc())
     elif sort == "score":
-        query = query.order_by(Company.opportunity_score.desc())
+        query = ordered(Company.opportunity_score)
+    elif sort == "name":
+        query = ordered(func.lower(Company.name))
+    elif sort == "country":
+        query = ordered(func.lower(Company.country))
+    elif sort == "date":
+        query = ordered(Company.updated_at)
     else:
         # Coarse tier keeps the strongest leads near the top, then a per-user
         # permutation varies the order inside each tier.

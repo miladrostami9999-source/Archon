@@ -238,6 +238,10 @@ def save_hunted(data: HuntSaveRequest, admin: User = Depends(require_admin), db:
             country=item.country or None, city=item.city or None,
             industry=item.industry or None, company_size=item.company_size or None,
             linkedin=item.linkedin or None, instagram=item.instagram or None,
+            employee_count=item.employee_count or None,
+            # Persisted so a later re-score keeps the signal points instead of
+            # silently dropping this company down the list.
+            signals=", ".join(item.signals) if item.signals else None,
             domain=domain,
             # Keep the citation on the row. Six months from now "where did this
             # come from and is it still true" is the question that matters.

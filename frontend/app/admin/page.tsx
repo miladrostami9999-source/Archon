@@ -33,6 +33,8 @@ export default function AdminPanel() {
   const isMobile = useIsMobile()
   const [recalculating, setRecalculating] = useState(false)
   const [recalcMsg, setRecalcMsg] = useState('')
+  const [recalcHeating, setRecalcHeating] = useState(false)
+  const [heatMsg, setHeatMsg] = useState('')
   const [backing, setBacking] = useState(false)
   const [backMsg, setBackMsg] = useState('')
   const [lastBackup, setLastBackup] = useState<string | null>(null)
@@ -172,9 +174,22 @@ export default function AdminPanel() {
 
   const recalcScores = async () => {
     setRecalculating(true); setRecalcMsg('')
-    try { const res = await axios.post(`${API}/companies/recalculate-scores`); setRecalcMsg(res.data.message) }
-    catch { setRecalcMsg('Error') }
+    try {
+      const res = await axios.post(`${API}/companies/recalculate-scores`)
+      const g = res.data.grades
+      setRecalcMsg(g ? `✓ ${res.data.message} — A:${g.A} B:${g.B} C:${g.C} D:${g.D}` : `✓ ${res.data.message}`)
+    } catch { setRecalcMsg('✗ Error') }
     setRecalculating(false)
+  }
+
+  const recalcHeat = async () => {
+    setRecalcHeating(true); setHeatMsg('')
+    try {
+      const res = await axios.post(`${API}/companies/recalculate-heat`)
+      const c = res.data.counts
+      setHeatMsg(`✓ ${res.data.message} — 🔥${c.hot} 🌤${c.warm} ❄️${c.cold}`)
+    } catch (e: any) { setHeatMsg(`✗ ${e.response?.data?.detail || 'Error'}`) }
+    setRecalcHeating(false)
   }
 
   const kpiCards = [
@@ -198,12 +213,20 @@ export default function AdminPanel() {
       label: 'Download CSV',
     },
     {
-      icon: '🔄', title: 'Recalculate Scores', desc: 'Recompute opportunity scores for all companies',
+      icon: '🔄', title: 'Recalculate Scores', desc: 'Re-score every company with the current weights. Run this after editing services/scoring.py.',
       color: '#FBBF24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.15)',
       action: recalcScores,
       label: recalculating ? 'Recalculating...' : 'Recalculate All',
-      msg: recalcMsg, msgColor: '#34D399',
+      msg: recalcMsg, msgColor: recalcMsg.startsWith('✗') ? '#F87171' : '#34D399',
       disabled: recalculating,
+    },
+    {
+      icon: '🔥', title: 'Recalculate Heat', desc: 'Refresh hot / warm / cold across your pipeline from status, buying signals and score.',
+      color: '#FB923C', bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.15)',
+      action: recalcHeat,
+      label: recalcHeating ? 'Recalculating...' : 'Recalculate Heat',
+      msg: heatMsg, msgColor: heatMsg.startsWith('✗') ? '#F87171' : '#34D399',
+      disabled: recalcHeating,
     },
     {
       icon: '💾', title: 'Manual Backup', desc: 'Full database export, saved on the server',

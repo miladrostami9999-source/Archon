@@ -73,7 +73,16 @@ class Company(Base):
     country           = Column(String, index=True)
     city              = Column(String)
     industry          = Column(String, index=True)
-    company_size      = Column(String)
+    company_size      = Column(String)          # solo | small | medium | large
+    # Actual headcount when we know it. The four size bands are too coarse to
+    # score with — a 25-person studio and a 95-person practice are a different
+    # sale — and showing the real number makes the trade-off visible on the card.
+    employee_count    = Column(Integer)
+    # Buying signals verified during discovery (comma-separated keys from
+    # services/discovery_sources.SIGNALS). Stored because re-scoring reads only
+    # the Company row: without this, Recalculate Scores silently stripped the
+    # signal points off every hunted company.
+    signals           = Column(Text)
     instagram         = Column(String)
     linkedin          = Column(String)
     ai_summary        = Column(Text)
@@ -466,6 +475,12 @@ def init_db():
                 conn.commit()
             if "score_breakdown" not in company_cols:
                 conn.execute(_text("ALTER TABLE companies ADD COLUMN score_breakdown TEXT"))
+                conn.commit()
+            if "employee_count" not in company_cols:
+                conn.execute(_text("ALTER TABLE companies ADD COLUMN employee_count INTEGER"))
+                conn.commit()
+            if "signals" not in company_cols:
+                conn.execute(_text("ALTER TABLE companies ADD COLUMN signals TEXT"))
                 conn.commit()
             for col in ("plan_started_at", "plan_expires_at"):
                 if col not in user_cols:

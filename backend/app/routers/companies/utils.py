@@ -48,11 +48,27 @@ def company_to_dict(company, state=None, access=None, unlocked=None):
     """
     from app.services.access import apply_mask
 
+    from app.services.scoring import heat_for, parse_signals
+
     result = to_dict(company)
     result["status"] = (state.status if state else None) or "new"
-    result["heat_level"] = (state.heat_level if state else None) or "cold"
     result["is_favorite"] = bool(state.is_favorite) if state else False
     result["tags"] = state.tags if state else None
+    result["signals"] = parse_signals(getattr(company, "signals", None))
+
+    # Heat is derived, not just read.
+    #
+    # "cold" is also the column default, so it can't be told apart from a
+    # deliberate choice — and treating it as one left every pre-existing row
+    # frozen at cold forever, which is the bug this replaces. Anything the user
+    # actively set (hot/warm) wins; a stored "cold" gets recomputed.
+    stored = (state.heat_level if state else None) or ""
+    result["heat_level"] = stored if stored and stored != "cold" else heat_for(
+        result["status"],
+        getattr(company, "opportunity_score", 0),
+        result["signals"],
+        getattr(state, "updated_at", None) if state else None,
+    )
     result["locked"] = False
     result["lock_reason"] = None
     result["unlocked"] = True

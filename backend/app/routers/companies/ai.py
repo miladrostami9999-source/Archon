@@ -71,11 +71,71 @@ def gen_summary(company_id: int, admin: User = Depends(require_admin), db: Sessi
 
 @router.post("/recalculate-scores")
 def recalculate_scores(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Re-score the whole catalog with the current weights.
+
+    Reads each company's stored signals rather than scoring from bare fields —
+    without that, re-scoring quietly stripped the signal points off every
+    hunted company and pushed the best leads down the list.
+    """
+    from app.services.scoring import parse_signals, band_for_headcount
+
     companies = db.query(Company).all()
+    graded = {"A": 0, "B": 0, "C": 0, "D": 0}
     for company in companies:
-        company.opportunity_score = calculate_score(company)
+        # Keep the band honest. A row can end up labelled "large" with a
+        # headcount of 14 if the two were set at different times, and the card
+        # would then read "Large · 14".
+        band = band_for_headcount(company.employee_count)
+        if band:
+            company.company_size = band
+        company.opportunity_score = calculate_score(
+            company, signals=parse_signals(company.signals),
+        )
+        for cut, letter in ((80, "A"), (65, "B"), (48, "C"), (0, "D")):
+            if company.opportunity_score >= cut:
+                graded[letter] += 1
+                break
     db.commit()
-    return {"message": f"Recalculated scores for {len(companies)} companies"}
+    return {
+        "message": f"Re-scored {len(companies)} companies",
+        "grades": graded,
+    }
+
+
+@router.post("/recalculate-heat")
+def recalculate_heat(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Recompute heat for the caller's own pipeline.
+
+    Heat is per-user state, so this only touches rows this account already has
+    — it never creates one, because creating a state row is what spends a
+    company credit. Companies with no row get their heat derived on read
+    instead (see `company_to_dict`), so the catalog is consistent either way.
+    """
+    from app.services.scoring import heat_for, parse_signals
+
+    rows = (
+        db.query(UserCompanyState, Company)
+        .join(Company, Company.id == UserCompanyState.company_id)
+        .filter(UserCompanyState.user_id == admin.id)
+        .all()
+    )
+    counts = {"hot": 0, "warm": 0, "cold": 0}
+    changed = 0
+    for state, company in rows:
+        new_heat = heat_for(
+            state.status, company.opportunity_score,
+            parse_signals(company.signals), state.updated_at,
+        )
+        if (state.heat_level or "cold") != new_heat:
+            state.heat_level = new_heat
+            changed += 1
+        counts[new_heat] = counts.get(new_heat, 0) + 1
+    db.commit()
+    return {
+        "message": f"Recalculated heat for {len(rows)} companies — {changed} changed",
+        "counts": counts,
+        "changed": changed,
+    }
 
 
 @router.post("/search/smart")

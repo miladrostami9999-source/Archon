@@ -8,27 +8,90 @@ import {
   ComposableMap,
   Geographies,
   Geography,
+  Marker,
   ZoomableGroup,
 } from 'react-simple-maps'
+import { geoCentroid } from 'd3-geo'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
+// 50m rather than 110m: five times the boundary detail, so small countries and
+// coastlines are actually the right shape. Worth the ~600KB — it's cached and
+// fetched once.
+const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json'
 
 const getThemeColors = (isDark: boolean) => ({
   mapBg:        isDark ? '#0F1117' : '#E8ECF4',
   countryEmpty: isDark ? '#1E2436' : '#D0D8E8',
   stroke:       isDark ? '#0F1117' : '#E8ECF4',
   countryHover: isDark ? '#2A3350' : '#BCC8DC',
+  label:        isDark ? '#E2E8F0' : '#1A1A2E',
+  labelHalo:    isDark ? '#0F1117' : '#FFFFFF',
 })
 
+const SELECTED_FILL = '#FBBF24'   // amber reads clearly against every blue in the ramp
+
+/**
+ * Our country names vs. the atlas's.
+ *
+ * Matching is normalised (lowercase, punctuation stripped) so most names line
+ * up on their own; this table only covers the ones that genuinely differ.
+ */
 const NAME_MAP: Record<string, string[]> = {
-  'United Kingdom': ['United Kingdom', 'England', 'UK', 'Britain'],
-  'United States':  ['United States of America', 'USA', 'US'],
-  'South Korea':    ['Korea, Republic of', 'Korea'],
-  'Iran':           ['Iran, Islamic Republic of', 'Islamic Republic of Iran'],
-  'Russia':         ['Russian Federation'],
-  'Czech Republic': ['Czechia'],
-  'UAE':            ['United Arab Emirates'],
+  'United Kingdom':        ['United Kingdom', 'England', 'Scotland', 'Wales', 'UK', 'Great Britain', 'Britain'],
+  'United States':         ['United States of America', 'USA', 'US', 'United States'],
+  'United Arab Emirates':  ['United Arab Emirates', 'UAE'],
+  'South Korea':           ['Korea, Republic of', 'Republic of Korea', 'Korea', 'S. Korea'],
+  'North Korea':           ["Korea, Democratic People's Republic of", 'Dem. Rep. Korea', 'N. Korea'],
+  'Iran':                  ['Iran, Islamic Republic of', 'Islamic Republic of Iran'],
+  'Russia':                ['Russian Federation'],
+  'Czech Republic':        ['Czechia'],
+  'Turkey':                ['Türkiye', 'Turkiye'],
+  'Netherlands':           ['Kingdom of the Netherlands', 'Holland'],
+  'Bosnia and Herzegovina':['Bosnia and Herz.', 'Bosnia'],
+  'Dominican Republic':    ['Dominican Rep.'],
+  'Central African Republic': ['Central African Rep.'],
+  'Democratic Republic of the Congo': ['Dem. Rep. Congo', 'DR Congo', 'Congo, The Democratic Republic of the'],
+  'Republic of the Congo': ['Congo'],
+  'Ivory Coast':           ["Côte d'Ivoire", "Cote d'Ivoire"],
+  'Equatorial Guinea':     ['Eq. Guinea'],
+  'South Sudan':           ['S. Sudan'],
+  'Solomon Islands':       ['Solomon Is.'],
+  'Vietnam':               ['Viet Nam'],
+  'Laos':                  ["Lao PDR", "Lao People's Democratic Republic"],
+  'Syria':                 ['Syrian Arab Republic'],
+  'Tanzania':              ['United Republic of Tanzania'],
+  'Venezuela':             ['Venezuela, Bolivarian Republic of'],
+  'Bolivia':               ['Bolivia, Plurinational State of'],
+  'Moldova':               ['Republic of Moldova'],
+  'Macedonia':             ['North Macedonia', 'Macedonia'],
+  'Eswatini':              ['Swaziland'],
+  'Myanmar':               ['Burma'],
+  'Cape Verde':            ['Cabo Verde'],
+  'Hong Kong':             ['Hong Kong S.A.R.', 'Hong Kong SAR'],
+}
+
+/**
+ * Label positions for countries whose true centroid lands somewhere useless.
+ *
+ * `geoCentroid` averages the whole geometry, so a country with distant
+ * overseas territories gets a label in the middle of an ocean — France ends up
+ * near West Africa because of French Guiana.
+ */
+const LABEL_OVERRIDE: Record<string, [number, number]> = {
+  'France':         [2.5, 46.6],
+  'United States':  [-98.5, 39.5],
+  'Netherlands':    [5.5, 52.2],
+  'Norway':         [9.0, 61.5],
+  'Portugal':       [-8.2, 39.6],
+  'Spain':          [-3.7, 40.2],
+  'United Kingdom': [-2.0, 53.5],
+  'Russia':         [55.0, 58.0],
+  'Denmark':        [9.5, 56.0],
+  'Chile':          [-71.0, -35.0],
+  'New Zealand':    [172.5, -41.5],
+  'Ecuador':        [-78.5, -1.5],
+  'Malaysia':       [102.5, 3.5],
+  'Canada':         [-98.0, 58.0],
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -50,6 +113,10 @@ export default function MapPage() {
   const [blocked, setBlocked] = useState<string | null>(null)
   const [selected, setSelected] = useState<CountryData | null>(null)
   const [zoom, setZoom] = useState(1)
+  // Kept separate from `zoom` on purpose. `zoom` is the controlled prop fed
+  // back into ZoomableGroup, and writing to it on every wheel event makes the
+  // map jump. This one only drives label sizing, so it can update freely.
+  const [labelZoom, setLabelZoom] = useState(1)
   const [center, setCenter] = useState<[number, number]>([10, 20])
   const zoomRef = useRef(1)
   const centerRef = useRef<[number, number]>([10, 20])
@@ -81,23 +148,41 @@ export default function MapPage() {
   const totalCompanies = mapData.reduce((a, c) => a + c.count, 0)
   const hotCount = mapData.reduce((a, c) => a + c.hot, 0)
 
+  // Fold case, punctuation and accents away so "Côte d'Ivoire" and "Cote
+  // dIvoire" are the same key. Only genuinely different names need NAME_MAP.
+  const norm = (s: string) =>
+    (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]/g, '')
+
   const reverseMap: Record<string, string> = {}
   Object.entries(NAME_MAP).forEach(([ourName, aliases]) => {
-    aliases.forEach(a => { reverseMap[a] = ourName })
+    aliases.forEach(a => { reverseMap[norm(a)] = ourName })
   })
 
-  const getCountryData = (geoName: string) => {
-    const normalized = reverseMap[geoName] || geoName
-    return mapData.find(d => d.name.toLowerCase() === normalized.toLowerCase()) || null
+  // Index our data once per render rather than scanning it per geography —
+  // this runs for every country on every paint.
+  const dataByName = new Map<string, CountryData>()
+  mapData.forEach(d => {
+    dataByName.set(norm(d.name), d)
+    const canonical = reverseMap[norm(d.name)]
+    if (canonical) dataByName.set(norm(canonical), d)
+    ;(NAME_MAP[d.name] || []).forEach(a => dataByName.set(norm(a), d))
+  })
+
+  const getCountryData = (geoName: string): CountryData | null => {
+    const key = norm(geoName)
+    return dataByName.get(key)
+      || dataByName.get(norm(reverseMap[key] || ''))
+      || null
   }
 
   const getFillColor = (data: CountryData | null) => {
     if (!data) return themeColors.countryEmpty
-    const intensity = data.count / maxCount
-    const r = Math.round(79 + (20 - 79) * (1 - intensity))
-    const g = Math.round(123 + (100 - 123) * (1 - intensity))
-    const b = Math.round(247 + (200 - 247) * (1 - intensity))
-    return `rgb(${r},${g},${b})`
+    // Square-root scale: with a few countries holding most of the catalog, a
+    // linear ramp leaves everything else indistinguishable from empty.
+    const t = Math.sqrt(data.count / maxCount)
+    const lerp = (a: number, b: number) => Math.round(a + (b - a) * t)
+    return `rgb(${lerp(150, 59)},${lerp(190, 105)},${lerp(235, 247)})`
   }
 
   const getScoreColor = (s: number) => s >= 80 ? '#34D399' : s >= 60 ? '#FBBF24' : '#9CA3AF'
@@ -149,25 +234,93 @@ export default function MapPage() {
             onMoveEnd={({ coordinates, zoom: z }: { coordinates: [number, number]; zoom: number }) => {
               centerRef.current = coordinates as [number, number]
               zoomRef.current = z
-              // Don't call setCenter/setZoom here — avoids re-render flash
+              // Don't call setCenter/setZoom here — feeding them back into the
+              // controlled props makes the map jump. Only the label scale is
+              // safe to update, since nothing reads it back.
+              setLabelZoom(z)
             }}>
             <Geographies geography={GEO_URL}>
-              {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => {
-                const geoName = geo.properties.name
-                const data = getCountryData(geoName)
-                const fill = getFillColor(data)
-                const isSelected = selected?.name === (data?.name || geoName)
-                return (
-                  <Geography key={geo.rsmKey} geography={geo}
-                    onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
-                    style={{
-                      default: { fill: isSelected ? '#4F7BF7' : fill, stroke: themeColors.stroke, strokeWidth: 0.4, outline: 'none' },
-                      hover:   { fill: data ? '#4F7BF7' : themeColors.countryHover, stroke: themeColors.stroke, strokeWidth: 0.4, outline: 'none', cursor: data ? 'pointer' : 'default' },
-                      pressed: { fill: '#3B6EE8', stroke: themeColors.stroke, strokeWidth: 0.4, outline: 'none' },
-                    }}
-                  />
-                )
-              })}
+              {({ geographies }: { geographies: any[] }) => (
+                <>
+                  {/* SHAPES */}
+                  {geographies.map((geo: any) => {
+                    const geoName = geo.properties.name
+                    const data = getCountryData(geoName)
+                    const isSelected = !!data && selected?.name === data.name
+                    return (
+                      <Geography key={geo.rsmKey} geography={geo}
+                        onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
+                        style={{
+                          default: {
+                            fill: isSelected ? SELECTED_FILL : getFillColor(data),
+                            // A halo on the selected country so it reads as
+                            // picked even when the map is zoomed right out.
+                            stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                            strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                            outline: 'none',
+                            transition: 'fill 0.15s',
+                          },
+                          hover: {
+                            fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
+                            stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                            strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                            outline: 'none',
+                            cursor: data ? 'pointer' : 'default',
+                          },
+                          pressed: {
+                            fill: isSelected ? SELECTED_FILL : '#3B6EE8',
+                            stroke: themeColors.stroke, strokeWidth: 0.35, outline: 'none',
+                          },
+                        }}
+                      />
+                    )
+                  })}
+
+                  {/* LABELS — only where we have companies, so the map stays
+                      readable instead of becoming a wall of country names. */}
+                  {geographies.map((geo: any) => {
+                    const data = getCountryData(geo.properties.name)
+                    if (!data) return null
+                    const isSelected = selected?.name === data.name
+                    const at = LABEL_OVERRIDE[data.name]
+                      || LABEL_OVERRIDE[geo.properties.name]
+                      || geoCentroid(geo)
+                    if (!at || Number.isNaN(at[0]) || Number.isNaN(at[1])) return null
+
+                    // Counter-scale with zoom so text keeps a constant size on
+                    // screen rather than ballooning as you zoom in.
+                    const s = 1 / labelZoom
+                    return (
+                      <Marker key={`label-${geo.rsmKey}`} coordinates={at}
+                        onClick={() => { setSelected(data); setShowPanel(true) }}
+                        style={{ default: { cursor: 'pointer' } }}>
+                        <g transform={`scale(${s})`} style={{ pointerEvents: 'auto' }}>
+                          <text textAnchor="middle" y={-3}
+                            style={{
+                              fontSize: '8px', fontWeight: 700,
+                              fill: isSelected ? '#1A1A2E' : themeColors.label,
+                              stroke: isSelected ? SELECTED_FILL : themeColors.labelHalo,
+                              strokeWidth: 2.4, paintOrder: 'stroke',
+                              userSelect: 'none',
+                            }}>
+                            {data.name}
+                          </text>
+                          <text textAnchor="middle" y={7}
+                            style={{
+                              fontSize: '8.5px', fontWeight: 800,
+                              fill: isSelected ? '#1A1A2E' : '#4F7BF7',
+                              stroke: isSelected ? SELECTED_FILL : themeColors.labelHalo,
+                              strokeWidth: 2.4, paintOrder: 'stroke',
+                              userSelect: 'none',
+                            }}>
+                            {data.count}
+                          </text>
+                        </g>
+                      </Marker>
+                    )
+                  })}
+                </>
+              )}
             </Geographies>
           </ZoomableGroup>
         </ComposableMap>

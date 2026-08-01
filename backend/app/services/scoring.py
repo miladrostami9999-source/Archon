@@ -61,13 +61,42 @@ NEED_BY_SEGMENT = {
 NEED_DEFAULT = 8
 
 # ── B. Outsourcing likelihood — the axis that decides the sale ─────────────
+# Big firms stay in the catalog — they're real prospects with real budgets —
+# they just score lower, because an in-house 3D team and a procurement process
+# make them a slow, uncertain sale. The curve slopes down rather than falling
+# off a cliff, so a 250-person practice still outranks an unknown.
 OUTSOURCING_BY_SIZE = {
     "small": 20,    # 3–20 people: almost never has in-house 3D
     "medium": 16,   # 21–100: one or two in-house, overflows constantly
     "solo": 13,     # outsources, but the budget is thin
-    "large": 9,     # in-house team plus a procurement process
+    "large": 8,     # in-house team plus a procurement process
 }
 OUTSOURCING_DEFAULT = 11
+
+# Headcount is used in preference to the band when we have it: the four bands
+# are too coarse to score with, since a 25-person studio and a 95-person
+# practice are a completely different sale.
+OUTSOURCING_BY_HEADCOUNT = [
+    (2,    13),   # solo / duo — outsources, but the budget is thin
+    (20,   20),   # the sweet spot: no in-house 3D, real projects
+    (50,   18),   # maybe one generalist who also does renders
+    (100,  14),   # a small internal team, overflows at peak
+    (250,  11),   # in-house capability, occasional overflow
+    (500,   9),   # established team, needs a reason to look outside
+    (10**9, 6),   # enterprise: procurement, panels, framework agreements
+]
+
+# Bands derived from headcount, so the label and the score never disagree.
+SIZE_BANDS = [(2, "solo"), (20, "small"), (100, "medium"), (10**9, "large")]
+
+
+def band_for_headcount(count: int | None) -> str | None:
+    if not count or count < 1:
+        return None
+    for ceiling, name in SIZE_BANDS:
+        if count <= ceiling:
+            return name
+    return "large"
 
 # Signals that change the outsourcing picture specifically.
 OUTSOURCING_SIGNAL_BONUS = {
@@ -137,8 +166,11 @@ def _need_score(segment: str | None, industry: str | None) -> int:
     return NEED_DEFAULT
 
 
-def _outsourcing_score(size: str | None, signals: set[str]) -> int:
-    base = OUTSOURCING_BY_SIZE.get(_norm(size), OUTSOURCING_DEFAULT)
+def _outsourcing_score(size: str | None, signals: set[str], headcount: int | None = None) -> int:
+    if headcount and headcount > 0:
+        base = next(pts for ceiling, pts in OUTSOURCING_BY_HEADCOUNT if headcount <= ceiling)
+    else:
+        base = OUTSOURCING_BY_SIZE.get(_norm(size), OUTSOURCING_DEFAULT)
     bonus = sum(pts for sig, pts in OUTSOURCING_SIGNAL_BONUS.items() if sig in signals)
     return min(MAX_OUTSOURCING, base + bonus)
 
@@ -181,6 +213,7 @@ def score_lead(
     segment: str | None = None,
     industry: str | None = None,
     company_size: str | None = None,
+    employee_count: int | None = None,
     country: str | None = None,
     email: str | None = None,
     website: str | None = None,
@@ -193,12 +226,14 @@ def score_lead(
 
     `signals` are the keys from `discovery_sources.SIGNALS`. `style_fit` is an
     optional -8..+8 nudge from the enrichment pass for how closely their work
-    matches what Armila actually renders well.
+    matches what Armila actually renders well. `employee_count`, when known,
+    replaces the coarse size band on the Outsourcing axis.
     """
     sigs = {_norm(s) for s in (signals or [])}
+    band = band_for_headcount(employee_count) or (_norm(company_size) or None)
 
     need = _need_score(segment, industry)
-    outsourcing = _outsourcing_score(company_size, sigs)
+    outsourcing = _outsourcing_score(company_size, sigs, employee_count)
     timing = _timing_score(sigs)
     market = _market_score(country)
     reach, reach_note = _reach_score(email, website, linkedin, instagram)
@@ -212,11 +247,13 @@ def score_lead(
         "score": float(total),
         "grade": grade,
         "verdict": verdict,
+        "size_band": band,
+        "employee_count": employee_count or None,
         "breakdown": [
             {"axis": "Need", "points": need, "max": MAX_NEED,
              "note": (segment or industry or "unknown segment")},
             {"axis": "Outsourcing", "points": outsourcing, "max": MAX_OUTSOURCING,
-             "note": f"{company_size or 'unknown'} size"
+             "note": (f"{employee_count} people" if employee_count else f"{band or 'unknown'} size")
                      + (f" · {', '.join(s for s in OUTSOURCING_SIGNAL_BONUS if s in sigs)}"
                         if sigs & set(OUTSOURCING_SIGNAL_BONUS) else "")},
             {"axis": "Timing", "points": timing, "max": MAX_TIMING,
@@ -231,9 +268,12 @@ def score_lead(
 
 def score_company(company, signals: list[str] | None = None, style_fit: int = 0) -> dict:
     """Score a Company row. Used on import, manual add, and re-scoring."""
+    if signals is None:
+        signals = parse_signals(getattr(company, "signals", None))
     return score_lead(
         industry=getattr(company, "industry", None),
         company_size=getattr(company, "company_size", None),
+        employee_count=getattr(company, "employee_count", None),
         country=getattr(company, "country", None),
         email=getattr(company, "email", None),
         website=getattr(company, "website", None),
@@ -242,3 +282,71 @@ def score_company(company, signals: list[str] | None = None, style_fit: int = 0)
         signals=signals,
         style_fit=style_fit,
     )
+
+
+def parse_signals(raw) -> list[str]:
+    """Signals are stored comma-separated on the company row."""
+    if not raw:
+        return []
+    if isinstance(raw, (list, tuple, set)):
+        return [str(s).strip() for s in raw if str(s).strip()]
+    return [s.strip() for s in str(raw).replace(";", ",").split(",") if s.strip()]
+
+
+# ── Heat ───────────────────────────────────────────────────────────────────
+# Heat and score answer different questions. The score asks "should we ever
+# email these people"; heat asks "is there anything happening right now".
+#
+# Nothing computed it before this — `heat_level` was a column with a default of
+# "cold" and a manual override, so every company ever imported sat at cold
+# forever and the filter was decorative.
+
+# They've engaged with us — nothing outranks that.
+HOT_STATUSES = {"replied", "meeting", "client"}
+# The ball is in their court.
+WARM_STATUSES = {"sent", "waiting"}
+
+# Signals that mean something is happening at their end *now*.
+URGENT_SIGNALS = {"hiring_viz", "new_project", "recent_award", "exhibiting"}
+
+# A send goes cold if it's been ignored this long. Without this, everything
+# ever contacted would stay warm forever and the filter would rot.
+STALE_AFTER_DAYS = 30
+
+
+def heat_for(status: str | None, score: float | None, signals=None,
+             last_activity=None, now=None) -> str:
+    """Where this lead sits right now: hot, warm or cold.
+
+    Deliberately derived rather than stored-only, so a company nobody has
+    touched still reflects its signals instead of defaulting to cold.
+    """
+    from datetime import datetime as _dt
+
+    status = _norm(status) or "new"
+    sigs = {_norm(s) for s in parse_signals(signals)}
+    score = float(score or 0)
+
+    if status == "archive":
+        return "cold"
+    if status in HOT_STATUSES:
+        return "hot"
+
+    if status in WARM_STATUSES:
+        # Chased and ignored for a month — it's not warm any more.
+        if last_activity:
+            now = now or _dt.utcnow()
+            try:
+                if (now - last_activity).days > STALE_AFTER_DAYS:
+                    return "cold"
+            except TypeError:
+                pass  # tz-aware/naive mismatch — treat as still warm
+        return "warm"
+
+    # Not contacted yet: heat comes from what's happening at their end.
+    urgent = bool(sigs & URGENT_SIGNALS)
+    if urgent and score >= 70:
+        return "hot"
+    if urgent or score >= 65:
+        return "warm"
+    return "cold"

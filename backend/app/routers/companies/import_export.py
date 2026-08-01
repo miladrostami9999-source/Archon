@@ -67,6 +67,15 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
                 ai_summary=row.get('evidence', '').strip() or None,
             )
             signals = [s.strip() for s in (row.get('signals') or '').replace(',', ';').split(';') if s.strip()]
+            company.signals = ", ".join(signals) if signals else None
+            try:
+                company.employee_count = int(float(row.get('employee_count') or 0)) or None
+            except ValueError:
+                company.employee_count = None
+            # Keep the band consistent with the headcount so the label and the
+            # score can never disagree.
+            from app.services.scoring import band_for_headcount
+            company.company_size = band_for_headcount(company.employee_count) or company.company_size
             try:
                 style_fit = int(float(row.get('style_fit') or 0))
             except ValueError:

@@ -153,6 +153,7 @@ class EnrichRequest(BaseModel):
 class HuntedCompany(DiscoveredCompany):
     phone: Optional[str] = None
     segment: Optional[str] = None
+    employee_count: Optional[int] = None
     source: Optional[str] = None
     source_url: Optional[str] = None
     evidence: Optional[str] = None
