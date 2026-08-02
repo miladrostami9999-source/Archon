@@ -96,9 +96,11 @@ One row per source actually used for a country. `—` = never tried.
 | Source | Last used | Times | Firms yielded | Notes |
 |---|---|---|---|---|
 | LinkedIn / general search | 2026-08-01 | 1 | 11 (UAE 7, Saudi 3, Qatar 1) | |
-| Dubai Municipality consultant PDF | — | 0 | — | Verified accessible, never actually pulled — high priority |
-| Design Middle East / Architecture Leaders Awards | 2026-08-01 (partial) | 1 | 2 | Only skimmed — full shortlist not read |
-| Cityscape / Big 5 exhibitor lists | — | 0 | — | |
+| **Archello "25 best architecture firms in Dubai"** | 2026-08-02 | 1 | 2 (X-Architects, LW Design Group) | Direct fetch 403s like other Archello pages — reached via WebSearch snippets instead, which only surfaced 2 of the 25 names. Revisit with more specific queries to pull the rest of the list |
+| Architecture Leaders Awards 2026 (Design Middle East) | 2026-08-02 | 1 | 1 (Kattan Design — Creative Architecture Studio of the Year) | Both the winners and shortlist pages 403 direct; WebSearch only surfaced one named winner clearly. A full read of this awards list is still owed — try searching each category name individually ("Boutique Firm of the Year", "Emerging Studio of the Year" etc.) |
+| WebSearch "boutique design studio Dubai" (general) | 2026-08-02 | 1 | 3 (Roar, C'est ici Design, North Point Architecture) | High hit rate — Roar's own "CID Middle East Boutique Design Firm of the Year" award surfaced organically this way |
+| Dubai Municipality consultant database | 2026-08-02 (tried, blocked) | — | 0 | **Not a public PDF as assumed** — the actual data sits behind `deqsmart.dm.gov.ae`, an interactive portal (Corporate-practice-permit.xhtml), not a downloadable list. Deprioritize this source; the app-only "Dubai BPS" path is equally unreachable via WebFetch |
+| Cityscape Global exhibitor list | 2026-08-02 (tried, blocked) | — | 0 | 2026 edition is in Riyadh (Saudi), not Dubai — exhibitor list pages need JS/login, no names surfaced via search. Try again closer to the Nov 2026 event date when press coverage of exhibitors increases |
 
 ### Denmark / Sweden / Norway
 
