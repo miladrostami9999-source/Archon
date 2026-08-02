@@ -50,14 +50,20 @@ renders. Playbook §1 has the full list with target mix.
 
 ## How to run it
 
+**Target: 25–40 companies per run.** Playbook §11 has the four-phase shape that
+makes that reachable — follow it. A run under 20 has a diagnosable cause; §11
+has the table.
+
 1. **Pick the country**, then read `leads/<country>.csv` and hold its existing
    names and domains.
-2. **Search in parallel** — 4 `WebSearch` calls at once across *different*
-   source tiers (playbook §2/§3), not four variants of one query. Lead with
-   Tier 1 listicles on a fresh country.
-3. **Verify on the company's own site.** `WebFetch` their domain — never trust a
-   directory page as the source of truth. A company whose site you couldn't open
-   does not go in the file.
+2. **Phase A — harvest.** 2–4 fetches of *list* sources (award shortlists,
+   listicles, job boards, directories). Get **60+ names before verifying
+   anything**. Prefer sources that give name + city + website together.
+3. **Phase B — contact sweep, 10–14 searches in ONE block.** One per company:
+   `"<name>" <city> website contact email`. An email quoted in a snippet from
+   the company's **own domain** is accepted as-is — no fetch needed (§6). Broker
+   pages (RocketReach, Lusha, ZoomInfo) are never accepted.
+   **Phase C** — fetch only the ones still missing an email (~30%).
 4. **Never invent anything** — not a company, not a URL, and above all not an
    email address. Leave the cell empty instead. An invented email burns the
    sending domain's reputation, which costs far more than a missing row.

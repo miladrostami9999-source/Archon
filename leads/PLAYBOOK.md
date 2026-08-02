@@ -314,11 +314,23 @@ real, just no longer independent.
 
 Yes — verification runs on every row, in three layers.
 
-**Layer 1 — Provenance.** The address must have been *read on the company's own
-site*. An address that only appeared in a search snippet, a data-broker page
-(RocketReach, Lusha, ZoomInfo), or a directory listing is **not** accepted —
-those are frequently stale or fabricated. If it can't be confirmed on their own
-site, the cell stays empty.
+**Layer 1 — Provenance.** The address must originate from **the company's own
+domain**. What matters is *which page it came from*, not who fetched it:
+
+- ✅ **Accept** — read on their site by `WebFetch`, **or** quoted in a
+  `WebSearch` result whose source URL is their own domain (the search index is
+  quoting the same contact page a fetch would return, so there's no extra
+  staleness risk). This is the normal case and needs no follow-up fetch.
+- ⛔ **Reject** — data-broker pages (RocketReach, Lusha, ZoomInfo, ContactOut,
+  SignalHire, prospeo, getprospect). These publish *guessed* address patterns
+  (`{first}@domain`) presented as fact. An invented email costs more than a
+  missing one.
+- ⚠️ **Third-party directories** (Houzz, Yell, Clutch, chamber listings) — treat
+  as a lead, not a source. Fine for finding the domain; confirm the address on
+  the company's own domain before writing it.
+
+Redacted snippets (`[email protected]`) carry no information — treat as absent
+and either fetch the page or leave the cell empty.
 
 **Layer 2 — Syntax + pattern.** Must contain `@`, a plausible TLD, and a domain
 that matches the company's own website. `info@somethingelse.com` on a firm whose
@@ -405,13 +417,16 @@ Quotas are ceilings per pass, not per project — a country can be revisited.
 
 ## 10. Per-run checklist
 
+**Run this to §11's four-phase shape — the target is 25–40 rows.**
+
 1. Pick the country (or take the one requested).
 2. Read `leads/<country>.csv` → hold existing names + domains.
 3. Read `leads/SOURCE_LEDGER.md` for that country → pick sources by the
    rotation algorithm there (longest-idle first, weighted toward whichever
-   segment is furthest behind its §1 target mix).
-4. Fire 4 parallel searches across those sources — never four variations of
-   one query.
+   segment is furthest behind its §1 target mix), preferring sources that
+   return name + city + website together (§11 rule 2).
+4. **Phase A** — harvest names from list pages until you have 60+, verifying
+   nothing yet. **Phase B** — 10–14 contact searches in one block.
 5. Verify every candidate found (§5) — light pass by default, deep pass only
    for signal-rich or solo/small candidates. **Don't pre-filter by size** (§4)
    — a large/famous-but-not-mega-brand firm still gets a light-pass fetch and
@@ -425,10 +440,58 @@ Quotas are ceilings per pass, not per project — a country can be revisited.
    not size-based judgment calls).
 10. Log the run in `leads/HUNT_LOG.md`, commit and push.
 
-**Expected yield:** with the light-pass-everything approach, a 15–20 firm
-listicle should yield 25–35 verified rows (most of the list, minus mega-brands
-and genuine fetch failures) rather than 15–20 (only the ones that "look
-small"). Measured: first Boston/Philadelphia pass kept 17 of 30 names found by
-pre-filtering on size; re-processing the discarded 13 with a light pass added
-22 more from the *same two searches* — a >2x yield increase from not filtering
-at discovery time.
+---
+
+## 11. Throughput protocol — 25–40 rows per run
+
+**Target: 25–40 companies per run.** Runs that land under 20 have a diagnosable
+cause, not bad luck — check it against this section before accepting the number.
+
+### The measured bottleneck is verification, not discovery
+
+Discovery is nearly free: one award page named **80 practices** (Australia
+2026 shortlist), another named **66 projects**, a single BIID page closed the
+UK interior gap by itself. The cost is entirely in turning a name into a row.
+
+Historical rate: **~2.4 tool calls per written row.** At that rate a run
+plateaus near 10–15. The protocol below targets **≤1 call per row**.
+
+### Run shape — four phases, wide batches
+
+| Phase | Calls | What |
+|---|---|---|
+| **A. Harvest** | 2–4 | Fetch *list* sources only (award shortlists, listicles, job boards, directories). Target **60+ names** before verifying anything. Do not verify during this phase. |
+| **B. Contact sweep** | **10–14 in ONE block** | One `WebSearch` per company: `"<exact name>" <city> website contact email`. Most return the email in the snippet — those are **done**, no fetch (§6 Layer 1). |
+| **C. Gap fill** | 4–8 | `WebFetch` only the companies Phase B left without an email. Expect ~30% of the batch. One attempt each; failures get a blank email cell, not a retry loop. |
+| **D. Close** | 3 | One MX batch over all new domains · one write · one validate. |
+
+≈25 calls → 30 rows. **The batch width in Phase B is the whole lever** — six
+parallel searches caps a run near 15 rows; twelve gets to 30. Never run Phase B
+searches one at a time.
+
+### Rules that make the width possible
+
+1. **A row needs only: name, website, country, city, industry, size, evidence,
+   source.** Email is *optional*. Never stall a row hunting for contact details
+   — write it and move on. A no-email row still imports and still scores.
+2. **Prefer sources that pre-resolve the domain.** archisoup gives address +
+   website; ArchitectureAU's job board gives practice + suburb; BIID gives
+   studio + region. Those need one call per company. A bare list of names needs
+   two. Source choice sets the ceiling before the run starts — the ledger notes
+   which is which.
+3. **`style_fit = 0` is a valid answer** and the expected one on a light pass.
+   Do not open a projects page to refine it.
+4. **Never re-search a company** whose name and city you already have — go
+   straight to the contact search.
+
+### Diagnosing a short run
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| <20 rows, many fetches | Phase B batches too narrow | Widen to 12+ parallel |
+| <20 rows, few names | Wrong source tier | Harvest a Tier 1 list page first |
+| Lots of 403s | Fetching directories/awards press directly | Reach via search (Gulf press is 403-only) |
+| Names but no contacts | Fetching each site | Use the contact-search snippet instead |
+
+**Never traded for speed:** inventing an email, skipping the MX batch, skipping
+dedupe, or writing evidence not actually read.
