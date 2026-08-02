@@ -86,10 +86,12 @@ One row per source actually used for a country. `—` = never tried.
 
 | Source | Last used | Times | Firms yielded | Notes |
 |---|---|---|---|---|
-| RIBA regional awards | 2026-08-01 | 1 | 9 | Only South East + North West + South tried — 10 more regions untouched |
+| RIBA regional awards | 2026-08-02 | 2 | 15 (9 earlier + 6: Chiles Evans + Care, Mole, Jonathan Hendry, Brisco Loran, Tonkin Liu, Baillie Baillie) | South East, North West, South, **East Midlands, Yorkshire, National** done. Still untouched: London, East, West Midlands, North East, South West/Wessex, Wales, Northern Ireland, Scotland regional. **riba.org pages 403 direct — architectsjournal.co.uk coverage of the same awards fetches fine and lists every winner + practice**, use that route |
+| **BIID Interior Design Awards** | 2026-08-02 | 1 | 8 (The Vawdrey House, Studio 9 Design, Keyhole Interiors, Rendall & Wright, Studio Clementine, Kate Bingham, Simple Simon Design, KINDLY) | **Best UK interior-design source found — `biid.org.uk/winners-25` fetches directly and lists every winner with category and region.** Fixed the UK interior gap in one call (0 → 8). 2026 winners not announced until 15 Oct 2026, so the 2025 list is the current one; revisit after that date. Regional structure means it reaches small studios outside London |
+| **RESI Awards / Property Week** | 2026-08-02 | 1 | 3 (Treveth, Stories, RUFFARCHITECTS, Oberlanders) | `resiawards.com/live/en/page/2026-winners` fetches directly with the full category list. Note: no "Small Developer" category in 2026 — the useful ones are Specialist Developer, Development of the Year (Fewer than 350 Homes) and Best Residential Design (Under 350 Units), which is where the smaller firms sit. Regional equivalents (Insider South West Residential Property Awards etc.) also yielded a B Corp developer |
 | Archello / Architizer listicles | — | 0 | — | |
-| BIID / ASID interior directories | — | 0 | — | Interior design segment gap |
-| Hiring boards | — | 0 | — | |
+| BIID member directory (not awards) | — | 0 | — | Separate from the awards page — a full member list would be a much bigger pool |
+| Hiring boards | — | 0 | — | UK not yet tried; the US attempt was a confirmed dead end, so expect the same unless a UK-specific board indexes better |
 
 ### UAE / Saudi Arabia / Qatar
 
