@@ -104,6 +104,18 @@ One row per source actually used for a country. `—` = never tried.
 | Dubai Municipality consultant database | 2026-08-02 (tried, blocked) | — | 0 | **Not a public PDF as assumed** — the actual data sits behind `deqsmart.dm.gov.ae`, an interactive portal (Corporate-practice-permit.xhtml), not a downloadable list. Deprioritize this source; the app-only "Dubai BPS" path is equally unreachable via WebFetch |
 | Cityscape Global exhibitor list | 2026-08-02 (tried, blocked) | — | 0 | 2026 edition is in Riyadh (Saudi), not Dubai — exhibitor list pages need JS/login, no names surfaced via search. Try again closer to the Nov 2026 event date when press coverage of exhibitors increases |
 
+### Australia
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| **`architectureau.com/jobs/`** | 2026-08-02 | 1 | 4, all `hiring_viz` (Drew Dickson, MCG Architects, McIldowie Partners, DesignInc Brisbane) | **Proved the local-board thesis.** After 6 runs with zero hiring signals via international boards, this one page produced 4 in a single fetch, each naming the practice and suburb. Small board (~4 live listings) so re-check weekly rather than expecting bulk |
+| **`architectureau.com/articles/2026-national-architecture-awards-shortlist/`** | 2026-08-02 | 1 | 6 (Besley & Spresser, Curious Practice, Bokey Grant, Anthony Gill, Taylor + Hinds, + J.AR Office cross-listed) | **Enormous single-page yield — 66 projects, ~80 practices named across 15 categories.** Only a fraction processed. Winners aren't announced until 29 Oct 2026, so the shortlist is the live document. Small Project / Houses (New) / Alterations categories are where the solo and small practices concentrate |
+| **`architectureau.com/articles/winners-revealed-2026-australian-interior-design-awards/`** | 2026-08-02 | 1 | 5 (Studio Gram, J.AR Office, Pattern Studio, YSG Studio, Occupy Studio) | Direct fetch, full winner table with category. **"Emerging Interior Design Practice" is a purpose-built small-practice category** — go straight to it. Occupy Studio came from there |
+| `architectureau.com/directory/` | 2026-08-02 (listed, not verified) | 1 | 0 written | 145 results, filterable by discipline. Pulled 9 names (Studio Nine Architects, Ian Moore Architects, CplusC Architectural Workshop, Carter Williamson Architects, Chan Architecture, Hachem, PTW Architects, Lovell Chen, McCorkell Constructions) but **did not verify them on their own sites, so none were written** — free starting list for the next Australia run |
+| Shortlist names not yet processed | — | — | — | Vittino Ashe, Nielsen Jenkins, Caleb Smith Architect, Fieldwork, Atelier Luke, Atelier Marks Gaal, Simon Pendal Architect, Rezen Studio, Trella Architecture and Interiors, Bourke and Bouteloup, Partners Hill, MA and Co, Officer Woods, Vokes and Peters, Cumulus Studio, Robert Simeoni, Edition Office, Kennedy Nolan, Phillips Pilkington, Grieve Gillett, Ashley Halliday, MORQ |
+| AIA Emerging Architect Prize | 2026-08-02 (low yield) | 1 | 0 | 2026 national recipient named (Mike Sneyd) but the article gives no practice name or location — chapter-level Emerging Architect pages may be better |
+| `co-architecture.com` · `careersindesign.com.au` · `indesignlive.com` | — | 0 | — | Untested Australian sources |
+
 ### Denmark / Sweden / Norway
 
 | Source | Last used | Times | Firms yielded | Notes |
