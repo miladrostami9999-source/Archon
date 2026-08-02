@@ -14,9 +14,16 @@ catalog building; use the app for one-off hunts.
 ## Read this first
 
 **`leads/PLAYBOOK.md` is the method** — segments, the ranked source catalog,
-search patterns, filters, the verification pipeline, and country quotas. Read it
-before searching. This file only says *how to run*; the playbook says *what to
-do*.
+search patterns, filters, the verification pipeline, and country quotas.
+**If you've already read it earlier in this conversation, don't re-read it —
+work from memory.** A repeat `Read` adds a second copy of the same ~400 lines
+to context for no new information; only re-read if this is a fresh session or
+you genuinely need to check an exact number.
+
+**Keep every tool call's output small.** `WebFetch`/`WebSearch` prompts should
+ask for compact fields (`EMAIL=... SIZE=... SIGNAL=...`), never open questions
+like "what is this company" — those return prose paragraphs that cost far more
+tokens than the data is worth, and stay in context for the rest of the run.
 
 If no brief was given, don't ask — take the next country by quota gap from
 §9 of the playbook and say which one you picked. Only ask if the brief is
@@ -102,11 +109,15 @@ Verify the file parses, then:
    `Get-Date -Format 'yyyy-MM-dd HH:mm'` (PowerShell). Never guess the time or
    reuse one from earlier in the conversation.
 2. **Append one row to `leads/HUNT_LOG.md`** — insert it directly under the
-   header row (newest on top), with: timestamp, country, how many added this
-   run, the new running total for that country, and a short reject-reason
-   summary. Never edit or reorder existing rows.
+   header row (newest on top): timestamp, country, count, running total, and
+   **one line** on what mattered (a new source, a dead end, a correction).
+   Anything more detailed goes in `SOURCE_LEDGER.md`'s Notes column instead of
+   here — don't write the same finding twice. Never edit or reorder existing
+   rows.
 3. **Commit and push** — lead CSVs, the log, and the playbook (if it changed)
-   together.
+   together. Commit message: what changed and the row count, in 3–5 lines —
+   not an essay. The reasoning already lives in the ledger; the commit doesn't
+   need to repeat it.
 4. **Report** to Milad:
    - how many added, and the running total for that country against its quota
    - the spread by segment and by size

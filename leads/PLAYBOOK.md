@@ -283,6 +283,17 @@ domain from a listicle" into a real row for close to zero extra cost, so
 nothing found gets thrown away for being large — it just costs one fetch
 instead of three.
 
+**Ask for compact output, not prose.** A `WebFetch`/`WebSearch` prompt like "what
+is this company, team size, email..." returns a 150–300 token paragraph that
+mostly restates the question. Ask instead for exactly the fields needed, in a
+fixed short format:
+
+> `Reply in this exact format, no prose: EMAIL=... PHONE=... SIZE=solo/small/
+> medium/large SIGNAL=<one fact or none>`
+
+Same information, a fraction of the tokens — and every one of those tokens sits
+in context for the rest of the run, so the saving compounds across a session.
+
 **On the light pass, still record what's available:**
 - **Email** — only if visible without navigating. Prefer a named person.
 - **Phone, city, country**
