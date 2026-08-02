@@ -119,8 +119,18 @@ large firms, so budget one search, not five.
 `archinect.com/jobs` · `dezeenjobs.com` · `cgarchitect.com` · LinkedIn Jobs ·
 Bayt/GulfTalent (Gulf) · Glassdoor/Indeed (filter out agencies)
 
-⚠️ `dezeenjobs.com` and `archinect.com/jobs` **403 on direct fetch** — reach them
-through search results instead.
+⚠️ `dezeenjobs.com` and `archinect.com/jobs` **403 on direct fetch**, and generic
+search on them only returns aggregator listicles (Glassdoor/ZipRecruiter counts)
+rather than individual postings.
+
+**Use the country's own job board instead.** This is the fix for what looked
+like a dead signal: `architectureau.com/jobs` (Australia),
+`azuremagazine.com/jobs` (Canada), `arkitektforeningen.dk/jobbors` (Denmark) and
+`arkitektur.no/ledige-stillinger` (Norway) all fetch directly and name the
+hiring practice and city in plain text. Every country has one — the full
+verified list, with what's blocked and what's untested, is in
+**`leads/SOURCE_LEDGER.md` → "Local-market sources by country"**. Check there
+before writing off `hiring_viz` for any market.
 
 ### Tier 5 — Publications & project features
 

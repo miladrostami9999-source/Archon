@@ -112,3 +112,81 @@ One row per source actually used for a country. `—` = never tried.
 | danskeark.dk / arkitekt.se / arkitektur.no member directories | — | 0 | — | Never actually pulled the registry itself |
 
 *(Add a new country section the first time it's hunted.)*
+
+---
+
+# Local-market sources by country
+
+Every country runs its own architecture job boards, practice directories and
+trade portals in its own language. These are where domestic firms actually
+advertise and list themselves — a completely separate pool from the
+English-language international sites (ArchDaily, Dezeen, Archinect), and far
+less picked over.
+
+**Why this matters more than it looks:** `hiring_viz` was logged as a dead end
+for the US because `archinect.com/jobs` and `dezeenjobs.com` both 403 and
+generic search only returns aggregator listicles. **The local boards don't have
+that problem** — `architectureau.com/jobs` and `azuremagazine.com/jobs` fetch
+directly and name the hiring practice and city in plain text. The signal was
+never unreachable; the international sources were just the wrong door.
+
+Statuses below are from **actual fetch tests**, not assumptions.
+
+## ✅ Verified working — fetches directly and names firms
+
+| Country | Source | What it returns | Notes |
+|---|---|---|---|
+| 🇦🇺 Australia | `architectureau.com/jobs/` | Practice name + suburb/state per listing | Returned Drew Dickson Architects, MCG Architects, McIldowie Partners, DesignInc Brisbane. **The single best hiring_viz source found in any country so far** |
+| 🇦🇺 Australia | `architectureau.com/directory/` | Practice directory, filterable by discipline (architecture, interior, landscape, lighting, sustainability) | Not yet pulled — high priority for the Australia run |
+| 🇨🇦 Canada | `azuremagazine.com/jobs/` | Firm name + city | Returned Design Workshop Architects, Studio Paolo Ferrari (Toronto), 5468796 (Winnipeg). Mixes in US listings — filter by city |
+| 🇩🇰 Denmark | `arkitektforeningen.dk/jobbors/` | 16 named organisations in one fetch | Danish Association of Architects' own board. Mixes practices (Danielsen Architecture, C.F. Møller, Clement & Carlsen, HHM) with municipalities and state bodies — filter to the practices |
+| 🇳🇴 Norway | `arkitektur.no/ledige-stillinger/` | Office name + city | Returned Arkitema, HLM Arkitektur (Bergen), Asplan Viak, Reiulf Ramstad arkitekter (Oslo) |
+
+## ⛔ Verified blocked or empty — don't spend a fetch
+
+| Country | Source | Why it failed |
+|---|---|---|
+| 🇩🇪 Germany | `competitionline.com/de/jobs` | JS-rendered; fetch returns the header only, no listings |
+| 🇨🇭 Switzerland | `swiss-architects.com/de/stellenanzeigen` | 403 |
+| 🇦🇹 Austria | `austria-architects.com/de/stellenanzeigen` | 403 — **the whole `<country>-architects.com` network appears to block fetchers**, so assume the same for world-architects, german-architects etc. |
+| 🇨🇭 Switzerland | `hochparterre.ch/stellenplattform` | Fetched fine but showed "Keine Beiträge gefunden" — genuinely empty at time of check, worth retrying |
+| 🇳🇱 Netherlands | `architectenweb.nl/vacatures/` | Fetched but "Geen resultaten gevonden"; listings live behind `/vacatures/default.aspx` |
+| 🇦🇪 UAE | `dubaidesigndistrict.com/the-community/community-directory` | JS-rendered template with placeholder lorem-ipsum; real listings load client-side |
+| 🇮🇪 Ireland | `riai.ie/careers-in-architecture/jobsearch` | Landing/instructions page only; the live board is elsewhere |
+| 🇩🇰 Denmark | `arkitektjobs.dk` | Domain does not resolve |
+| 🇮🇹 Italy | `professionearchitetto.it/lavoro/offerte/` | **Seasonal** — the board is suspended for summer and resumes **31 August 2026**. Not broken, just closed; retry after that date |
+
+## 🔍 Discovered but not yet fetch-tested
+
+Test one or two per run rather than all at once.
+
+| Country | Sources |
+|---|---|
+| 🇩🇪 Germany | `baunetz.de/stellenmarkt/` (largest German architecture magazine) · `ak-berlin.de/service/stellenboerse/` and the other 15 state *Architektenkammer* boards · `bauingenieur24.de` · `architektenjob.de` |
+| 🇳🇱 Netherlands | `archined.nl/vacaturebank/` · `archi-jobs.nl` |
+| 🇧🇪 Belgium | `architectenjobs.be` |
+| 🇨🇭 Switzerland | `espazium.ch/de/stellen` |
+| 🇫🇷 France | `emploi.batiactu.com` · `emploi-btp.lemoniteur.fr` · `charretteservice.fr/fr/offres/architecture` (40-year specialist recruiter) · `archibat.com` |
+| 🇪🇸 Spain | `coam.org/es/servicios/empleo` (Madrid college of architects; posting contact `empleo@coam.org` implies real firm postings) · `coam.org/red-arquitectos/` |
+| 🇮🇹 Italy | `archi-jobs.it` |
+| 🇮🇪 Ireland | `riai.ie/work-with-an-architect/find-an-architect/practice-directory/` — searchable by name, location, expertise |
+| 🇦🇹 Austria | `nextroom.at` (curated by Vorarlberg Architecture Institute) |
+| 🇦🇺 Australia | `co-architecture.com` · `careersindesign.com.au` · `indesignlive.com` (also covers APAC) |
+| 🇸🇬 Singapore | `sg.jobstreet.com/architect-jobs` — search surfaced IX Architects, Zarch Collaboratives, staarch, JGP Architecture |
+| 🇸🇦 Saudi | `saudieng.sa` (Saudi Council of Engineers register) · `eyeofriyadh.com/directory` |
+| 🇶🇦 Qatar | Qatar Society of Engineers register |
+
+## How to use these
+
+1. **Lead with the local board for hiring signals**, not Archinect/Dezeen Jobs.
+   A named practice on a local board is a `hiring_viz` lead the international
+   sources will never surface.
+2. **Filter out the non-practices.** National boards mix in municipalities,
+   universities, state agencies and engineering giants (Sweco, Asplan Viak).
+   Those are real organisations but poor fits — a municipality doesn't
+   commission renders the way a 12-person studio does.
+3. **Search in the local language** when going through WebSearch instead:
+   `arkitektkontor`, `Architekturbüro`, `bureau d'architecture`,
+   `studio di architettura`, `despacho de arquitectura`, `architectenbureau`.
+4. **Note the seasonality.** European boards thin out in July–August; Italy's
+   closes outright. Gulf boards do not.
