@@ -121,6 +121,16 @@ One row per source actually used for a country. `—` = never tried.
 | AIA Emerging Architect Prize | 2026-08-02 (low yield) | 1 | 0 | 2026 national recipient named (Mike Sneyd) but the article gives no practice name or location — chapter-level Emerging Architect pages may be better |
 | `co-architecture.com` · `careersindesign.com.au` · `indesignlive.com` | — | 0 | — | Untested Australian sources |
 
+### Netherlands
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| **`bna.nl` member register** | 2026-08-03 | 1 (spot-check) | 1 email confirmed | **Confirmed working and returns emails** — individual member pages fetch cleanly at `bna.nl/architecten/<id>/` and give EMAIL + PHONE + CITY. ~1,000 bureaus. This is the volume source for the Netherlands; the awards below only surface 8–11 names a year. Next run: work the register directly rather than the awards |
+| BNA Beste Gebouw van het Jaar | 2026-08-03 | 1 | 10 | 2026 winner SAWA (Mei architects) + 8 nominees, via bouwenmetstaal.nl which fetches cleanly. Small annual pool |
+| ARC Awards (de Architect) | 2026-08-03 | 1 | 1 | ARC25 gave only 3 winners and **two were Belgian** — check nationality before writing. ARC27 lands Jan 2027 |
+| `architectenweb.nl` | 2026-08-03 | — | 0 | News articles fetch fine (used for ARC25); the **vacancy board** is the JS-blocked part, not the whole site — earlier ledger note was too broad |
+| `archined.nl` vacaturebank | — | 0 | — | Untested |
+
 ### Switzerland
 
 | Source | Last used | Times | Firms yielded | Notes |
