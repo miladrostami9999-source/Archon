@@ -121,6 +121,20 @@ One row per source actually used for a country. `—` = never tried.
 | AIA Emerging Architect Prize | 2026-08-02 (low yield) | 1 | 0 | 2026 national recipient named (Mike Sneyd) but the article gives no practice name or location — chapter-level Emerging Architect pages may be better |
 | `co-architecture.com` · `careersindesign.com.au` · `indesignlive.com` | — | 0 | — | Untested Australian sources |
 
+### Switzerland
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| **`archinaut.ch` Top 100 Swiss offices** | 2026-08-03 | 1 | 14 | **Best-structured Tier 1 source found in any country.** 100 offices, each with city, and the list is *pre-banded by staff count* (>50 / 10–50 / <10) — so `company_size` comes from the source rather than inference, which is normally the weakest field. **Only ~15 of 100 processed — 85 names still free for the next runs.** Fetches directly, no 403 |
+| Swiss Arc Award | 2026-08-03 (too early) | — | 0 | 2026 winners announced **29 Oct 2026**; the 42-project shortlist exists but isn't published as a readable list, and baunetz.de's coverage 403s. Revisit after the ceremony |
+| Hochparterre / espazium.ch | — | 0 | — | Untested |
+| SIA member register | — | 0 | — | ~15,000 members, untested |
+
+**Swiss-specific note:** practices overwhelmingly publish contact forms or
+script-protected addresses rather than plain emails — only 4 of the first 14
+rows had one. Expect a low email rate here and don't spend extra fetches
+chasing it (§11 rule 1).
+
 ### Denmark / Sweden / Norway
 
 | Source | Last used | Times | Firms yielded | Notes |
