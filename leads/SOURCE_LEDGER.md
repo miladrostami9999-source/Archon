@@ -125,7 +125,7 @@ One row per source actually used for a country. `—` = never tried.
 
 | Source | Last used | Times | Firms yielded | Notes |
 |---|---|---|---|---|
-| **`bna.nl` member register** | 2026-08-03 | 1 (spot-check) | 1 email confirmed | **Confirmed working and returns emails** — individual member pages fetch cleanly at `bna.nl/architecten/<id>/` and give EMAIL + PHONE + CITY. ~1,000 bureaus. This is the volume source for the Netherlands; the awards below only surface 8–11 names a year. Next run: work the register directly rather than the awards |
+| **`bna.nl` member register** | 2026-08-03 | 2 | 10 | **The volume source for the Netherlands, ~1,000 bureaus.** Individual member pages fetch cleanly at `bna.nl/architecten/<id>/` and return NAME + EMAIL + PHONE + CITY + WEB in one call — **no separate contact sweep needed, ~100% email rate**, the best per-call yield of any source so far. ⚠️ **The browse page is JS-rendered and returns nothing** (`/architecten/` and `/vind-een-bna-architect/` both show only "Resultaten worden geladen"). Reach member pages via `site:bna.nl/architecten <keyword>` search instead — vary the keyword (city, "studio", "architecten", "bureau") to surface different slices of the register |
 | BNA Beste Gebouw van het Jaar | 2026-08-03 | 1 | 10 | 2026 winner SAWA (Mei architects) + 8 nominees, via bouwenmetstaal.nl which fetches cleanly. Small annual pool |
 | ARC Awards (de Architect) | 2026-08-03 | 1 | 1 | ARC25 gave only 3 winners and **two were Belgian** — check nationality before writing. ARC27 lands Jan 2027 |
 | `architectenweb.nl` | 2026-08-03 | — | 0 | News articles fetch fine (used for ARC25); the **vacancy board** is the JS-blocked part, not the whole site — earlier ledger note was too broad |
