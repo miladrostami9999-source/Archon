@@ -75,6 +75,7 @@ One row per source actually used for a country. `—` = never tried.
 | Bisnow boutique developer search | 2026-08-01 | 1 | 3 (Continuum, Pure Development, The Abraham Companies) | |
 | **NAIOP chapter-level Developer of the Year** | 2026-08-02 | 1 | 1 (McCraney Property Company — NAIOP Central Florida, 18-22 employees) | National award (Ryan Companies) is always too large, but **regional/chapter-level Developer of the Year is a good small-developer source** — confirmed on first try. Try more chapters (there are ~50 regional NAIOP chapters, each with its own annual award) |
 | Property marketing agency search | 2026-08-01 | 1 | 1 (TREM Group) | Segment mostly returns marketing-agency-for-agents (not developers) or big-agency "best of" listicles — low yield, deprioritize vs. Bisnow/NAIOP for the real estate segment |
+| **Architizer "100 Best Architecture and Design Firms in the United States"** | 2026-08-04 | 1 | 8 | **Best US Tier 1 source found.** One fetch returned 57 firms (ranks 100-44) with cities, and the list skews heavily to small design-led practices rather than the corporate giants the AIA routes surface. **Ranks 43-1 not yet harvested** - fetch again and page further. Architizer also publishes per-city versions ("30 Best in Seattle" etc.) worth trying |
 | Architizer A+List | — | 0 | — | |
 | AIA national firm directory | — | 0 | — | |
 | ASID / IIDA state chapter awards | — | 0 | — | Tried searching — chapter award-winner pages 403 direct; need the WebSearch-then-verify pattern like RIBA regional awards |
