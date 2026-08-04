@@ -211,7 +211,7 @@ Test one or two per run rather than all at once.
 | 🇪🇸 Spain | `coam.org/es/servicios/empleo` (Madrid college of architects; posting contact `empleo@coam.org` implies real firm postings) · `coam.org/red-arquitectos/` |
 | 🇮🇹 Italy | `archi-jobs.it` |
 | 🇮🇪 Ireland | `riai.ie/work-with-an-architect/find-an-architect/practice-directory/` — searchable by name, location, expertise |
-| 🇦🇹 Austria | `nextroom.at` (curated by Vorarlberg Architecture Institute) |
+| 🇦🇹 Austria | ✅ **`nextroom.at` confirmed working** — fetches directly and lists ~19 offices with cities on the homepage alone, skewed to small and solo practices. Curated rather than exhaustive, so the homepage rotates; re-fetch on later runs to surface different offices. The one Austrian source that isn't blocked |
 | 🇦🇺 Australia | `co-architecture.com` · `careersindesign.com.au` · `indesignlive.com` (also covers APAC) |
 | 🇸🇬 Singapore | `sg.jobstreet.com/architect-jobs` — search surfaced IX Architects, Zarch Collaboratives, staarch, JGP Architecture |
 | 🇸🇦 Saudi | `saudieng.sa` (Saudi Council of Engineers register) · `eyeofriyadh.com/directory` |
