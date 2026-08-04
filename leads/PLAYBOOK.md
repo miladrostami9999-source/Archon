@@ -506,3 +506,46 @@ searches one at a time.
 
 **Never traded for speed:** inventing an email, skipping the MX batch, skipping
 dedupe, or writing evidence not actually read.
+
+---
+
+## 12. Manual intake — processing Milad's own lists
+
+Milad sometimes finds companies himself (a spreadsheet, a Word doc, a pasted
+list of names/URLs in chat) and wants them turned into the same catalog
+format. This is a different mode from §11 — the discovery step is already
+done, so there's no Phase A. Everything else still applies.
+
+**Trigger:** a message containing a list of company names and/or website URLs,
+or an attached file (`.xlsx`, `.docx`, `.csv`, plain text).
+
+**Per company:**
+1. Read whatever was given (name, URL, or both).
+2. If a URL was given, `WebFetch` it directly with the compact-field prompt
+   (§5's format). If only a name was given, one `WebSearch` to find the
+   website, then fetch it.
+3. **Budget: 2–3 tool calls per company, max.** If email/phone/size still
+   aren't readable after that, stop — write the row with what's confirmed and
+   move on. Don't chase a stubborn company for 5 fetches while 20 others in
+   the batch are waiting; this mode optimises for getting the whole batch
+   processed, not for completing every field.
+4. **Field priority when data is incomplete:** `name`, `website`, `email`,
+   `phone`, `country`, `city`, `industry` come first — these are what the
+   scoring model and dedupe both depend on. `company_size`, `signals`,
+   `style_fit`, `evidence`, `linkedin`, `instagram` are filled only if they
+   surface naturally during the same 2–3 calls; never spend an extra call
+   chasing them.
+5. Same rules as always: no invented emails (§6), MX-check the batch (§6),
+   dedupe against the target country file (§7), append (never rewrite).
+6. `source` column: write `"Manual list - <date>"` so these rows are
+   distinguishable from hunted ones in the log.
+
+**Country routing:** if Milad's list mixes countries, split into the right
+`leads/<country>.csv` per row — don't create a mixed file. If a company's
+country isn't obvious from the name/site, one search call to confirm it counts
+toward that company's 2–3 call budget.
+
+**Output:** same as §10 — MX batch, write, validate, log the batch in
+`leads/HUNT_LOG.md` (source: manual), commit and push. Report back: how many
+processed, how many had full data vs. partial, and which (if any) couldn't be
+verified at all (site didn't resolve, not a real company) and were dropped.
