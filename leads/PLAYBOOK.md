@@ -228,9 +228,20 @@ Extend this list only when a firm is *globally* iconic, not merely large. A
 150-person regional practice nobody outside its city has heard of is not on
 this list, however large — it goes in the file with `company_size=large`.
 
-**Two more soft-deprioritise cases** (still include, just expect a lower
+**Arch-viz, rendering and animation studios — always include** (updated
+2026-08-08 on Milad's instruction). Earlier runs rejected them outright as
+competitors; that was wrong. A busy visualisation studio takes on more work
+than it can staff and **subcontracts overflow to other studios**, which makes
+it a genuine channel rather than a rival — and one that already understands
+what it is buying, so the pitch is shorter. Write them with
+`industry=Visualization` (or `CGI` / `Animation` as fits) and score them
+honestly: they still collect only 9 need points, so they land below a
+developer or an architecture studio without any extra thumb on the scale.
+Do not delete rows for being viz studios, and revisit this before rejecting
+anything on competitor grounds.
+
+**One more soft-deprioritise case** (still include, just expect a lower
 score):
-- **Arch-viz studios** — competitor first, 9 need pts
 - **Tier-D market with no signal** (§9) — 8 market pts caps the total too low
   to matter much, but a strong signal can still lift it
 
