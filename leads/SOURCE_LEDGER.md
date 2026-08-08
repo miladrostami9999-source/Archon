@@ -184,6 +184,59 @@ Statuses below are from **actual fetch tests**, not assumptions.
 | 🇨🇦 Canada | `azuremagazine.com/jobs/` | Firm name + city | Returned Design Workshop Architects, Studio Paolo Ferrari (Toronto), 5468796 (Winnipeg). Mixes in US listings — filter by city |
 | 🇩🇰 Denmark | `arkitektforeningen.dk/jobbors/` | 16 named organisations in one fetch | Danish Association of Architects' own board. Mixes practices (Danielsen Architecture, C.F. Møller, Clement & Carlsen, HHM) with municipalities and state bodies — filter to the practices |
 | 🇳🇴 Norway | `arkitektur.no/ledige-stillinger/` | Office name + city | Returned Arkitema, HLM Arkitektur (Bergen), Asplan Viak, Reiulf Ramstad arkitekter (Oslo) |
+| 🇴🇲 Oman | `omanyp.com` | **Name + city + phone from category pages; website + address from company pages** | Milad's find, fetch-tested 2026-08-08. See the dedicated section below — this is the first complete *national register* in the catalogue, and the pattern generalises |
+
+## 🇴🇲 OmanYP — how to work it
+
+Oman was previously recorded as a market with no practice-level awards and no
+browsable registry. `omanyp.com` closes that gap, and it is worth documenting
+in full because **the same site runs national editions elsewhere**
+(`/international-business-directories-map`) — if the pattern holds, this
+unlocks the whole GCC.
+
+**URL shapes** (all fetch-tested, no 403):
+
+- Category index — `omanyp.com/browse-business-directory`
+- Listing page — `omanyp.com/category/<Underscored_Name>` → 20 companies, each
+  with **name + city + phone**
+- Pagination — `omanyp.com/category/<Underscored_Name>/2` ← path segment, **not**
+  `?page=2`. The query-string form silently re-serves page 1, so a run that used
+  it would harvest the same 20 names repeatedly and look like the category was
+  exhausted
+- Company page — `omanyp.com/company/<id>/<Name>` → **website + full address**,
+  and sometimes a real email
+
+**Relevant categories and depth:**
+
+| Category | Path | Pages |
+|---|---|---|
+| Architectural Services | `/category/Architectural_services` | 5 (~100 firms) |
+| Interior Design | `/category/Interior_design` | not yet counted |
+| Property Development | `/category/Property_development` | not yet counted |
+| Civil Engineering | `/category/Civil_engineering` | not yet counted |
+| Engineers / Engineering | `/category/Engineers`, `/category/Engineering` | not yet counted |
+| Estate Agents / Realtors / Property Consultants | `/category/Estate_agents`, `/category/Realtors`, `/category/Property_consultants` | not yet counted |
+| Construction / Construction Services | `/category/Construction`, `/category/Construction_services` | not yet counted |
+
+**Emails are obfuscated on most company pages** — they render as
+`[email protected]`, the standard anti-scrape mask. Some pages leak the real
+one (GMap LLC gave `sales@gmapoman.com` in clear). Treat a masked address as
+absent and get the email from the company's **own** site instead — the site URL
+is the thing OmanYP reliably provides, and that is what makes it useful.
+
+**Run shape — 2 calls per written row, after a free harvest:**
+
+1. Harvest category pages (1 fetch = 20 names + cities + phones)
+2. Company page for the ones worth keeping → website (1 fetch)
+3. Their own site → email (1 fetch)
+4. MX batch as usual
+
+**Filter hard at step 2.** The categories are broad and mix genuine design
+practices with trading and contracting companies — the Architectural Services
+page alone carried Ramesh Khimji Group, Ahmed Mohsin Trading and Dalma Steel
+Works. Names to prefer are the ones reading as design practices: Zawaya, Quad
+Design, MME Design Solutions, Architecture House, Architecture & Design
+Consultants, Al Jazeera Engineering Consultancy (Architects & Planners).
 
 ## ⛔ Verified blocked or empty — don't spend a fetch
 
