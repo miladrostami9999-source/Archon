@@ -218,6 +218,23 @@ unlocks the whole GCC.
 | Estate Agents / Realtors / Property Consultants | `/category/Estate_agents`, `/category/Realtors`, `/category/Property_consultants` | not yet counted |
 | Construction / Construction Services | `/category/Construction`, `/category/Construction_services` | not yet counted |
 
+**The directory splits into two eras, and this decides the whole run.** The
+legacy records — low company IDs (roughly under 13000), all showing "registered
+with us on 24/28 Aug 2012" — carry **phone and PO box only**. No website, no
+email. Ten detail-page fetches of these in a row returned nothing usable. The
+recent high-ID listings do publish a site (Kate Kerdi 16432, Visiondcs 16840,
+Al Balushi 16327). **Read the company ID off the listing href before spending a
+fetch** — a low ID is almost always a wasted call.
+
+For the legacy names the directory is still worth having, but only as a
+*name source*: search each firm individually and their own site usually turns
+up. That route found Muamir, Quad Design, Nadan, Al Hatmy, Triad Oman, EARC
+Sabla, Bunyan and Raaz Design — none of which OmanYP itself linked.
+
+**Two records are stale**, so verify before writing: Huckle & Partners was
+acquired by t2o engineers in 2022 and now trades as Huckle Design, and "Real
+Visions Interiors – Oman" is the same firm as RVI Architects.
+
 **Emails are obfuscated on most company pages** — they render as
 `[email protected]`, the standard anti-scrape mask. Some pages leak the real
 one (GMap LLC gave `sales@gmapoman.com` in clear). Treat a masked address as
