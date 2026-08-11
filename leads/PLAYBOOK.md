@@ -240,6 +240,17 @@ developer or an architecture studio without any extra thumb on the scale.
 Do not delete rows for being viz studios, and revisit this before rejecting
 anything on competitor grounds.
 
+**Large firms in an xlsx import — always include too** (reaffirmed
+2026-08-11 on Milad's instruction, after a run wrongly dropped 20 Large
+rows from a multi-country import). The "don't filter by size" rule above
+applies to manual xlsx imports exactly as much as to fresh hunts — a
+user instruction to keep "small/medium" companies in a specific import is
+about *quality bar*, not license to silently drop every Large row. Write
+Large firms in with `company_size=large` and an honest low style/need
+score, same as everything else in this section. If genuinely unsure
+whether "small/medium only" was meant to exclude Large, ask rather than
+assume.
+
 **One more soft-deprioritise case** (still include, just expect a lower
 score):
 - **Tier-D market with no signal** (§9) — 8 market pts caps the total too low
