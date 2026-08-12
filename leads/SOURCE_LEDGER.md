@@ -154,6 +154,21 @@ round 1's rate since architecture-directory/business-listing search results
 surface emails directly. Expect roughly a 70-80% email rate on Swiss searches
 and don't over-invest chasing the rest (§11 rule 1).
 
+### Italy
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| `site:archello.com "best architecture firms in Italy"` (via WebSearch, direct fetch 403s as expected) | 2026-08-12 | 1 | 4 (NOA, Carola Vannini, Park Associati [dupe], Labics) | Search-index summary gave 4 names + one-line descriptions without needing a fetch; confirms the playbook's "search index has the content" workaround for Archello 403s |
+| The Plan Award / In-Arch (`theplan.it`, `inarch.it`) | 2026-08-12 | 1 | 0 (all 5 already in file from a prior run) | 2025 winners fully mined already (facchinelli daboit saviane, zarcola, C&P, AMDL CIRCLE, Balance, FORM-A mention). 2026 IN/Architettura award is still in open-nomination phase (deadline was 15 June 2026, national winners announced 13 Nov 2026) — revisit after that date for a fresh batch |
+| Elle Decor Italia Best of Interiors | 2026-08-12 | 1 | 0 | 2026 edition submissions only closed 15 Sept 2026; no public winner list yet. Revisit late 2026 |
+| Salone del Mobile 2026 exhibitor coverage | 2026-08-12 | 1 | 0 | Only brand-name furniture manufacturers surfaced (Poliform, Flou, Lema…), not design/architecture studios; the full exhibitor list needs the paid/registered Salone portal, not open web search. Not a usable source for this catalog — skip next time unless a "young designers" sub-list (e.g. Salone Raritas curators) is targeted specifically |
+| Native-language WebSearch: `"studio di architettura" <città>` per Turin/Florence/Naples/Bologna | 2026-08-12 | 1 | ~24 | **Best yield of the run**, confirming the playbook's non-English-search pattern. One query per city surfaced 5-8 small/solo studios each with name+city+often phone, e.g. Turin (Studio ALL ARCH, Studio MSA, CIVICO13, QBO), Florence (ZPSTUDIO, Studio Benaim, Operatre, P&M Palterer Medardi), Naples (M Architettura, FADD Architects, Ariaproject), Bologna (Stile Bottega, Dieni Studio, rossottanio, Studio Lenzi). Repeatable for Genoa, Venice, Verona, Palermo, Bari next round |
+| `archdaily.com/office` browse via WebSearch | 2026-08-12 | 1 | 3 (2050+, Archiplanstudio, Studio Bocchi) | Small but clean yield — office pages give city + focus directly. Worth a second pass with different city-keyword combos (Venice, Turin, Genoa) |
+| `archi-jobs.it` | not tried | 0 | — | Listed as a source to try this pass but not reached — deprioritized once the native-language city searches proved higher-yield; worth a try next Italy run for `hiring_viz` signal specifically |
+| `professionearchitetto.it/lavoro/offerte/` | — | — | — | Confirmed still seasonally suspended per earlier note; resumes 31 Aug 2026 |
+
+**Italy-specific note:** email rate was high — 24 of 26 new rows have a confirmed, MX-verified email (mostly `info@` on the firm's own domain), only Studio ALL ARCH and CIVICO13 came up phone-only after a follow-up fetch. One MX failure caught: `studiobenaim.it` resolves (SOA only, no MX record) so its email was cleared even though a plausible `info@studiobenaim.it` address was quoted in search snippets — a reminder that Layer 1 (provenance) passing doesn't guarantee Layer 3 (MX) passes. Milan is now well covered from a prior run; this pass deliberately targeted Turin/Florence/Naples/Bologna/Mantova/Parma/Pozzuoli/Bolzano to broaden city spread.
+
 ### Denmark / Sweden / Norway
 
 | Source | Last used | Times | Firms yielded | Notes |
