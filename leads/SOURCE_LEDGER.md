@@ -137,15 +137,16 @@ One row per source actually used for a country. `—` = never tried.
 
 | Source | Last used | Times | Firms yielded | Notes |
 |---|---|---|---|---|
-| **`archinaut.ch` Top 100 Swiss offices** | 2026-08-03 | 1 | 14 | **Best-structured Tier 1 source found in any country.** 100 offices, each with city, and the list is *pre-banded by staff count* (>50 / 10–50 / <10) — so `company_size` comes from the source rather than inference, which is normally the weakest field. **Only ~15 of 100 processed — 85 names still free for the next runs.** Fetches directly, no 403 |
+| **`archinaut.ch` Top 100 Swiss offices** | 2026-08-12 | 2 | 49 | **Best-structured Tier 1 source found in any country.** 100 offices, each with city, and the list is *pre-banded by staff count* (Gross >50 / Mittel 10–50 / Klein <10) — so `company_size` comes from the source rather than inference. Second pass fetched the full 100-name list in one WebFetch, cross-referenced against existing 60 CSV rows, and ran a WebSearch contact sweep on the remaining ~55 free names, yielding 35 new firms (2 dropped — Leopold Banchini and rotative Studio — no confirmed live website/domain found). **List is now fully exhausted** for this CSV; any further Switzerland run needs a new source |
 | Swiss Arc Award | 2026-08-03 (too early) | — | 0 | 2026 winners announced **29 Oct 2026**; the 42-project shortlist exists but isn't published as a readable list, and baunetz.de's coverage 403s. Revisit after the ceremony |
-| Hochparterre / espazium.ch | — | 0 | — | Untested |
+| Hochparterre / espazium.ch | — | 0 | — | Untested — good candidate for the next Switzerland run since archinaut.ch is now exhausted |
 | SIA member register | — | 0 | — | ~15,000 members, untested |
 
 **Swiss-specific note:** practices overwhelmingly publish contact forms or
-script-protected addresses rather than plain emails — only 4 of the first 14
-rows had one. Expect a low email rate here and don't spend extra fetches
-chasing it (§11 rule 1).
+script-protected addresses rather than plain emails — of the 35 firms added
+2026-08-12, 25 had a plain-text email (all MX-verified) and 10 had only a
+contact form/obfuscated address. Expect roughly a 70% email rate on
+archinaut-sourced names and don't over-invest chasing the rest (§11 rule 1).
 
 ### Denmark / Sweden / Norway
 
