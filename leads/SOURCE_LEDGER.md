@@ -139,14 +139,20 @@ One row per source actually used for a country. `—` = never tried.
 |---|---|---|---|---|
 | **`archinaut.ch` Top 100 Swiss offices** | 2026-08-12 | 2 | 49 | **Best-structured Tier 1 source found in any country.** 100 offices, each with city, and the list is *pre-banded by staff count* (Gross >50 / Mittel 10–50 / Klein <10) — so `company_size` comes from the source rather than inference. Second pass fetched the full 100-name list in one WebFetch, cross-referenced against existing 60 CSV rows, and ran a WebSearch contact sweep on the remaining ~55 free names, yielding 35 new firms (2 dropped — Leopold Banchini and rotative Studio — no confirmed live website/domain found). **List is now fully exhausted** for this CSV; any further Switzerland run needs a new source |
 | Swiss Arc Award | 2026-08-03 (too early) | — | 0 | 2026 winners announced **29 Oct 2026**; the 42-project shortlist exists but isn't published as a readable list, and baunetz.de's coverage 403s. Revisit after the ceremony |
-| Hochparterre / espazium.ch | — | 0 | — | Untested — good candidate for the next Switzerland run since archinaut.ch is now exhausted |
-| SIA member register | — | 0 | — | ~15,000 members, untested |
+| Hochparterre / espazium.ch | 2026-08-12 | 1 | 0 | Tried espazium.ch/de/architektur (no firm names, only student/competition content) and hochparterre.ch via WebSearch/site: query (returned editorial articles mentioning firms in passing, not a browsable directory). Not a usable list source — treat as exhausted, don't retry directly, but individual firm names surfaced in its articles (e.g. "Wilde Karte" young-office features) are worth a follow-up WebSearch by name |
+| SIA member register | 2026-08-12 | 1 | 0 | Confirmed too large/unstructured to browse; site-filtered searches (SIA Sektion Zürich etc.) return association-org pages, not member lists. Not a usable source |
+| WebSearch harvest: young-office queries (Zurich/Basel/Lausanne/Geneva, "junges Büro gegründet") | 2026-08-12 | 1 | ~29 | Best replacement for archinaut.ch — targeted German/French queries for young/small firms per city surfaced well-known local firm names directly (KGRUPPE, Ferrara, PerroneSchneider, BGM, Haberstroh, Barcelo Baumann in Basel; Rocades, studio SML, STUDIO LKA, Fornet in Lausanne; Schaub Zwicky, C/O Architektur, lilin, Malte Kloes, Piazza Meier in Zurich; Sujets Objets, Cabinet, Coral Studio, Corpus in Geneva). Repeatable next round with different city/keyword combos |
+| Prix Lignum 2024 winners | 2026-08-12 | 1 | 2 | National wood-architecture award; small yield but both recipients (Rolf Mühlethaler, RBCH architectes) were on-style solo/small practices. Next Prix Lignum cycle is 2027, so this is now exhausted until then |
+| Swiss interior/retail design segment (dexigner directory, RTF Zurich top-30, hospitality searches) | 2026-08-12 | 1 | 7 | First real pass at Swiss Interior Design segment — Stephanie Kasel, Cornermoon, Studio Frey, Demivista, Rougemont Interiors, Studioforma, SU. Studio, swissCollab. Good yield, worth repeating for Basel/Geneva/Ticino interior studios not yet covered |
 
 **Swiss-specific note:** practices overwhelmingly publish contact forms or
 script-protected addresses rather than plain emails — of the 35 firms added
-2026-08-12, 25 had a plain-text email (all MX-verified) and 10 had only a
-contact form/obfuscated address. Expect roughly a 70% email rate on
-archinaut-sourced names and don't over-invest chasing the rest (§11 rule 1).
+2026-08-12 (round 1), 25 had a plain-text email (all MX-verified) and 10 had only a
+contact form/obfuscated address. Round 2 (2026-08-12, WebSearch harvest) found
+29 of 36 new firms had a plain-text email (all MX-verified), better than
+round 1's rate since architecture-directory/business-listing search results
+surface emails directly. Expect roughly a 70-80% email rate on Swiss searches
+and don't over-invest chasing the rest (§11 rule 1).
 
 ### Denmark / Sweden / Norway
 
