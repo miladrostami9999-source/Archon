@@ -5,6 +5,7 @@ the last step of every run — never edit past rows by hand, this is a record.
 
 | Date & time | Country | Added | Running total (country) | Rejected (major reasons) |
 |---|---|---|---|---|
+| 2026-08-17 21:35 | Germany | 34 | 156 | Round 3: Immobilienentwickler/Projektentwickler city search closed the developer gap for Köln/Stuttgart/Düsseldorf/Karlsruhe (12 developers); native-language search covered Karlsruhe/Wiesbaden/Mannheim/Augsburg (22 architecture+interior); BDA NRW page 403'd on direct fetch again, untried via site: search. |
 | 2026-08-17 21:04 | United Kingdom | 34 | 249 | Round 5: hospitality/interior segment sweep across Manchester/Birmingham/Leeds plus Glasgow/Aberdeen interior search and Exeter/Plymouth/Devon architecture practices; Insider Yorkshire/South East/Wales awards mostly not usable this round (Yorkshire not yet announced, South East/Wales full articles 403'd, only snippet names surfaced with no clean firm-to-category fit). |
 | 2026-08-17 20:39 | Saudi Arabia | 24 | 189 | Second Saudi pass: Arabic-language search extended to Dammam/Khobar/Abha/Taif/Medina as flagged, plus English boutique search for Khobar/Dammam — every new city yielded at least one usable firm; xzoomproject dropped (London-HQ'd, not Saudi); Modern Tasmeem 403'd twice. |
 | 2026-08-17 18:34 | United Arab Emirates | 25 | 228 | Fourth UAE pass: first real Fujairah yield (7 firms) plus new retail fit-out and landscape-architecture segments; arcxplore had no Dubai/Sharjah pages (404, Abu Dhabi-only). |
