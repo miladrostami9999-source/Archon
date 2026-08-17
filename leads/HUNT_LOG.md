@@ -5,6 +5,7 @@ the last step of every run — never edit past rows by hand, this is a record.
 
 | Date & time | Country | Added | Running total (country) | Rejected (major reasons) |
 |---|---|---|---|---|
+| 2026-08-17 20:39 | Saudi Arabia | 24 | 189 | Second Saudi pass: Arabic-language search extended to Dammam/Khobar/Abha/Taif/Medina as flagged, plus English boutique search for Khobar/Dammam — every new city yielded at least one usable firm; xzoomproject dropped (London-HQ'd, not Saudi); Modern Tasmeem 403'd twice. |
 | 2026-08-17 18:34 | United Arab Emirates | 25 | 228 | Fourth UAE pass: first real Fujairah yield (7 firms) plus new retail fit-out and landscape-architecture segments; arcxplore had no Dubai/Sharjah pages (404, Abu Dhabi-only). |
 | 2026-08-17 18:22 | USA | 33 | 382 | Fifth USA pass: fresh untried cities (Tampa/St. Louis/New Orleans/Louisville/Milwaukee/Boise/Oklahoma City) via boutique-studio WebSearch sweep, plus first working ASID chapter hit (Donna Figg Design, Austin awards); archisoup had no pages for the new cities; NAIOP NJ/Pittsburgh Developer of the Year unpublished/not found this round. |
 | 2026-08-17 18:10 | United Kingdom | 29 | 215 | Round 4: RIBA East Midlands full shortlist mostly already covered from prior rounds (only CPMG new); Insider North West Residential Property Awards 2026 unlocked (Buttress, CODA, Kingswood Homes); hospitality/retail interior segment search and Edinburgh/Bath/Bristol boutique searches did the heavy lifting; BIID member directory fetch timed out (ETIMEOUT), untried next round. |
