@@ -5,6 +5,7 @@ the last step of every run — never edit past rows by hand, this is a record.
 
 | Date & time | Country | Added | Running total (country) | Rejected (major reasons) |
 |---|---|---|---|---|
+| 2026-08-18 09:13 | United Kingdom | 20 | 270 | Round 6: closed the Cardiff/Belfast interior-design gap and added the first UK real-estate developer, landscape-architecture and property-marketing/exhibition segment rows; Buxworth Homes (ENOTFOUND) and PropertyPromo (expired cert) dropped, Kris Turnbull/Atelier Branco emails were obfuscated so left blank. |
 | 2026-08-17 22:56 | Saudi Arabia | 18 | 207 | Round 3: Arabic search extended to Jubail/Yanbu/Hail/Buraidah/Najran/Tabuk (thin except Hail/Tabuk/Qassim) plus a Riyadh/Jeddah developer sweep and an English boutique-studio pass; Downtown Design Riyadh still too early, alshrouq-eng.com TLS-failed. |
 | 2026-08-17 22:47 | United States | 26 | 408 | Round 6: boutique-studio sweep across 7 fresh mid-size cities (Baltimore, Cleveland, Providence, Omaha, Reno, Buffalo, Albuquerque); ASID TX 2nd/3rd-place pages and NAIOP Maryland both 403'd/came up empty, deferred to next round. |
 | 2026-08-17 22:38 | United Arab Emirates | 26 | 254 | Fifth UAE pass: Ras Al Khaimah/Ajman engineering-consultancy + boutique-studio sweep and a deeper Al Ain architecture/developer pass closed most of the untapped-emirate gap flagged last round; Big Project ME/Construction Week Awards surfaced only large/famous contractors, no new boutique names. |
