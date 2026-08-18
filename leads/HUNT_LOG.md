@@ -3,6 +3,7 @@
 One line per `/hunt` run, newest at the top. `/hunt` appends to this file as
 the last step of every run — never edit past rows by hand, this is a record.
 
+| 2026-08-18 15:03 | Saudi Arabia | 14 | Saudi 221 / 300 quota | Segment-first sweep (retail fit-out, exhibition-stand, engineering-consultancy-with-interiors, urban planning, real estate marketing) after confirming small-city Arabic search has run dry (0 yield across Al-Ahsa/Sakaka/Arar/Al Baha). Below the 25-40 target — Saudi's remaining supply is thinner post-dossier; next round should try NEOM/Red Sea Global vendor lists. |
 | 2026-08-18 14:23 | UAE | 19 | UAE 273 / 350 quota | Segment-first approach instead of city sweeps — boutique Dubai architecture, Abu Dhabi retail fit-out, design-build contractors, hiring_viz, CGI/rendering, villa interior, Saadiyat boutique, exhibition stand. Picked up 2 genuine hiring_viz signals (Studio Osus, BYGNICON/M2). 6 candidates dropped as already-in-file duplicates; 2 emails rejected for domain mismatch. |
 | 2026-08-18 09:14 | USA | 26 | USA 434 / 500 quota | Seven fresh second-tier cities (San Antonio, Fort Worth, Jacksonville, Memphis, Tucson, Charleston SC, Savannah) via boutique-studio WebSearch — ninth city batch in a row to work cleanly. Dropped a defunct firm (Secrest Architecture), an ambiguous-location one (Cook Architecture), and a cross-city duplicate (Carlton Edwards, already filed under Asheville). |
 
