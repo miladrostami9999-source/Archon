@@ -64,6 +64,7 @@ One row per source actually used for a country. `—` = never tried.
 
 | Source | Last used | Times | Firms yielded | Notes |
 |---|---|---|---|---|
+| **Plain city+segment WebSearch (Atlanta/Houston/Washington DC)** | 2026-08-18 | 1 | 30 across architecture, interior design, real estate developer, construction | No archisoup page exists for Atlanta or Houston (`site:archisoup.com` search for both returned nothing) — plain `"boutique <segment> studio <city>"` and `"boutique real estate developer <city> new project 2026"` queries substituted fine, ~2 companies per search. DC's LISC-style rising-developer roundup didn't exist, but boutique-developer WebSearch surfaced Lock7/Urban Edge directly. First dedicated pass at all three metros — none previously covered in the catalog. |
 | archisoup city lists | 2026-08-01 | 2 | 39 (17 light + 22 re-verified) | Boston + Philadelphia done. Next: Chicago, LA, NYC, Seattle, Denver, Miami, Austin, Nashville |
 | AIA 2026 award winners | 2026-08-01 | 1 | 3 (Duvall Decker, Cotton Estes, Renée del Gaudio) | National + state chapter awards both worth mining further |
 | PR Newswire / Businesswire developer search | 2026-08-01 | 1 | 3 (Pearlstone, Signet, Matterhorn) | Real estate only — good source for the gapped segment |
