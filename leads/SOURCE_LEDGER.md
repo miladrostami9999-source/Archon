@@ -237,6 +237,7 @@ One row per source actually used for a country. `—` = never tried.
 | ARC Awards (de Architect) | 2026-08-03 | 1 | 1 | ARC25 gave only 3 winners and **two were Belgian** — check nationality before writing. ARC27 lands Jan 2027 |
 | `architectenweb.nl` | 2026-08-03 | — | 0 | News articles fetch fine (used for ARC25); the **vacancy board** is the JS-blocked part, not the whole site — earlier ledger note was too broad |
 | `archined.nl` vacaturebank | — | 0 | — | Untested |
+| Plain WebSearch: hospitality/retail interior design, boutique developer, construction by segment+city (Amsterdam, Rotterdam, Utrecht, The Hague, Eindhoven, Delft, Helmond) | 2026-08-19 | 8 | 27 | First pass to deliberately hunt non-architecture segments — Ninetynine, TANK, Studio OAK, NICEMAKERS, PEACK, WSB, Designed by Marc, Building Retail, KuoStudio, SVT (hospitality/retail interior); CRA Vastgoed, LPM, REB Projects, KondorWessels, Amvest, VORM (developers/construction); FASE13, FormMakers, Set Interieur, Studio A Interieur, Atelier Perspective, Studio van 't Wout (small The Hague interior architects); Architectenstudio B, LXarchitecten (Eindhoven-region architecture). Studio-pls dropped on repeated cert error. Good yield-per-search; the Dutch-language segment+city query pattern (§3 rule 5) worked well for interior/retail — repeat for Utrecht/Eindhoven hospitality and Rotterdam retail next time |
 
 ### Switzerland
 
