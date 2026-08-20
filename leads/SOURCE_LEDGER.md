@@ -296,6 +296,19 @@ and don't over-invest chasing the rest (§11 rule 1).
 
 **Spain-specific note:** email rate was roughly 55% (22 of 40 new rows have a confirmed MX-verified email) — noticeably lower than Italy's ~90%, because business-directory search snippets (Houzz, Empresite, RocketReach) dominate results for small Spanish studios and don't quote a usable address; several studios only expose a contact form. Two emails were rejected for domain mismatch (Nook Architects' gmail.com address, Mag-arquitectura's personal gmail) per playbook §6 Layer 2. Madrid itself was intentionally light-touch this round since Armila Design is based there — no Madrid architecture studios were added, only interior design studios and large developers, to avoid over-mining Armila's own backyard for direct peers.
 
+### France
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Native-language WebSearch: multi-city segment queries — `cabinet d'architecture <city>`, `architecte d'intérieur <city>`, `promoteur immobilier <city>`, `entreprise construction BTP <city>` across Lyon/Marseille/Bordeaux/Nice/Toulouse/Lille | 2026-08-20 | 1 | ~30 names | Best pattern this run — plain segment+city queries surfaced multi-office practices, young solo/small studios and developers directly in the snippet summary, often with address. Closed the non-Paris city gap in one pass; prior France rows were almost entirely Paris. |
+| Hospitality/CHR native-language search: `architecte hôtellerie hospitality design <cities>` | 2026-08-20 | 1 | 6 | Surfaced a genuine hospitality-design segment (Festen, Groupe Améo, David Dalidec, Thibaut Picard, Ynspir, Tilia, Architéa) that the architecture-only prior rounds missed entirely — worth repeating for other underweighted segments (landscape, exhibition/set design) next round |
+| Retail rollout search: `agence architecture retail commerce concept magasin franchise France` | 2026-08-20 | 1 | 5 | Shop Concept, Agence Brio, La Bonne Image, Vesta — a segment with zero prior coverage in france.csv |
+| `emploi.batiactu.com` job search for infographiste 3D / architecte | 2026-08-20 | 1 | 0 direct hiring_viz leads | Returned only generic job-board aggregator pages (Jooble, Jobijoba, Indeed), not individual postings with a firm name — matches the playbook's dezeenjobs/archinect warning pattern. One usable firm name (l'agence arpentère) surfaced via the search summary text itself rather than a real posting page, and was pursued as a normal architecture lead instead of a hiring signal. |
+| `site:archello.com "best architecture firms in France"` | 2026-08-20 | 1 | 0 new | Same 25-firm list as before (Ferrier Marchetti, RPBW, Lacaton & Vassal, Ateliers Jean Nouvel, Wilmotte) — all already in france.csv from the 2026-08-11 manual import. No incremental yield; skip repeating until the list is refreshed. |
+| AJAP 2026 (Albums des jeunes architectes) search | 2026-08-20 | 1 | 0 | AJAP is biennial — 2026 laureates not announced yet, only 2025 results indexed. Revisit late 2026/early 2027 when the next cohort is announced; until then this source is dormant for France. |
+
+**France-specific note:** email rate was ~93% (27 of 29 new rows have a confirmed MX-verified email) — WebSearch snippets quoting the company's own contact page were sufficient for most candidates, only 4 needed a Phase C fetch (Studio Castille, Studio-ADN, Vesta, Aimée Mario all recovered via one light-pass fetch each). Architéa and Tilia Intérieur kept with phone-only (no plain-text email surfaced even on fetch). Three names surfaced during harvest were dropped for lacking a verifiable own-domain website: 12c4 Studio and Ramsés Salazar (directory listings only, no confirmed company site), and Topaz (only a low-confidence webself.net page found).
+
 ### Germany
 
 | Source | Last used | Times | Firms yielded | Notes |
