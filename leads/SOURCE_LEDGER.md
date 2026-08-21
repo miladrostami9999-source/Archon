@@ -388,6 +388,11 @@ and don't over-invest chasing the rest (§11 rule 1).
 |---|---|---|---|---|
 | National award coverage (Kasper Salin, Nykredit, A+Awards) | 2026-08-01 | 1 | 5 | |
 | danskeark.dk / arkitekt.se / arkitektur.no member directories | — | 0 | — | Never actually pulled the registry itself |
+| Wikipedia "List of Danish architectural firms" | 2026-08-21 | 1 | ~32 named, 16 written | Direct-fetchable, clean name+city pairs for Copenhagen and Aarhus practices, no 403. Good Tier-1-equivalent single-fetch source; most firms were mid-size established practices, low signal density (no award/hiring facts attached) |
+| Native-language `arkitektfirma <city> tegnestue liste` searches for Odense and Aalborg | 2026-08-21 | 2 | ~20 named, 12 written | Best fix found yet for the Copenhagen-only skew — surfaced small owner-run Odense/Aalborg practices (SPEAKK, A1 Tegnestue, Gadeplan, LIVSVÆRK) that never appear in English-language lists. Most needed a follow-up WebFetch for the email since these are small/solo studios not indexed with contact snippets |
+| Real-estate/construction directory searches (realestatedevelopershub.com, native-language "ejendomsudvikler <city>" and "byggefirma <city>") | 2026-08-21 | 1 | ~13 named, 8 written | Real estate developers hub gave name+city fast; construction searches yielded steel/HVAC/turnkey contractors more than pure builders — useful for segment mix but lower style-fit relevance |
+| Danish Design Award (danishdesignaward.com) | 2026-08-21 | 1 | 0 | 2026 submission window (Apr–May) just closed at time of search; shortlist not yet published. Revisit later in the year once winners are announced |
+| `arkitektforeningen.dk/jobbors/` | 2026-08-21 | 2 | 12 orgs, mostly municipalities | Mostly municipal/state hiring, not practices — confirms the earlier note that this board needs filtering; only Sweco was a usable private-firm hit and it was already too large/global to add |
 
 *(Add a new country section the first time it's hunted.)*
 
