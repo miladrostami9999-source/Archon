@@ -8,8 +8,10 @@ import {
   ComposableMap,
   Geographies,
   Geography,
+  Marker,
   ZoomableGroup,
 } from 'react-simple-maps'
+import { geoArea, geoCentroid } from 'd3-geo'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 // 50m rather than 110m: five times the boundary detail, so small countries and
@@ -27,6 +29,17 @@ const getThemeColors = (isDark: boolean) => ({
 })
 
 const SELECTED_FILL = '#FBBF24'   // amber reads clearly against every blue in the ramp
+
+// Countries below this spherical area (steradians, from d3-geo's geoArea) are
+// physically too small to see or click as a filled polygon at world zoom —
+// Singapore, Bahrain, Malta, Monaco... The border data for these is already
+// correct (verified against the source topojson); this isn't a missing-data
+// problem, it's that a ~700km² country is a few sub-pixels wide on a world
+// map. A dot marker at the centroid makes them visible and clickable
+// regardless of true land area. Picked empirically: it separates Singapore
+// (0.000012) and Bahrain (0.000013) from Qatar (0.000273) and Kuwait
+// (0.000427), which render fine as polygons.
+const TINY_COUNTRY_AREA = 0.00015
 
 /**
  * Our country names vs. the atlas's.
@@ -248,43 +261,70 @@ export default function MapPage() {
                 const geoName = geo.properties.name
                 const data = getCountryData(geoName)
                 const isSelected = !!data && selected?.name === data.name
+                const handleEnter = (e: any) =>
+                  setHover({ name: data?.name || displayName(geoName), count: data?.count || 0, x: e.clientX, y: e.clientY })
+                const handleMove = (e: any) =>
+                  setHover(h => (h ? { ...h, x: e.clientX, y: e.clientY } : h))
+                const handleLeave = () => setHover(null)
+                const handleClick = () => { if (data) { setSelected(data); setShowPanel(true) } }
+                // Micro-states (Singapore, Bahrain, Malta...) are real but a
+                // few sub-pixels wide at this projection — an invisible,
+                // unclickable sliver even though their border data is fine.
+                // A centroid dot makes them findable without changing the
+                // underlying geography.
+                const isTiny = geoArea(geo) < TINY_COUNTRY_AREA
                 return (
-                  <Geography key={geo.rsmKey} geography={geo}
-                    onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
-                    // Permanent per-country labels used to overlap into an
-                    // unreadable mess wherever a few small countries sit close
-                    // together (the Gulf states, the Balkans...). A tooltip
-                    // that follows the cursor gives the same name + count for
-                    // *every* country — including ones with no data yet —
-                    // without ever needing two labels to share the same spot.
-                    onMouseEnter={(e: any) =>
-                      setHover({ name: data?.name || displayName(geoName), count: data?.count || 0, x: e.clientX, y: e.clientY })}
-                    onMouseMove={(e: any) =>
-                      setHover(h => (h ? { ...h, x: e.clientX, y: e.clientY } : h))}
-                    onMouseLeave={() => setHover(null)}
-                    style={{
-                      default: {
-                        fill: isSelected ? SELECTED_FILL : getFillColor(data),
-                        // A halo on the selected country so it reads as picked
-                        // even when the map is zoomed right out.
-                        stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
-                        strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
-                        outline: 'none',
-                        transition: 'fill 0.15s',
-                      },
-                      hover: {
-                        fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
-                        stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
-                        strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
-                        outline: 'none',
-                        cursor: data ? 'pointer' : 'default',
-                      },
-                      pressed: {
-                        fill: isSelected ? SELECTED_FILL : '#3B6EE8',
-                        stroke: themeColors.stroke, strokeWidth: 0.35, outline: 'none',
-                      },
-                    }}
-                  />
+                  <g key={geo.rsmKey}>
+                    <Geography geography={geo}
+                      onClick={handleClick}
+                      // Permanent per-country labels used to overlap into an
+                      // unreadable mess wherever a few small countries sit close
+                      // together (the Gulf states, the Balkans...). A tooltip
+                      // that follows the cursor gives the same name + count for
+                      // *every* country — including ones with no data yet —
+                      // without ever needing two labels to share the same spot.
+                      onMouseEnter={handleEnter}
+                      onMouseMove={handleMove}
+                      onMouseLeave={handleLeave}
+                      style={{
+                        default: {
+                          fill: isSelected ? SELECTED_FILL : getFillColor(data),
+                          // A halo on the selected country so it reads as picked
+                          // even when the map is zoomed right out.
+                          stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                          strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                          outline: 'none',
+                          transition: 'fill 0.15s',
+                        },
+                        hover: {
+                          fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
+                          stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
+                          strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
+                          outline: 'none',
+                          cursor: data ? 'pointer' : 'default',
+                        },
+                        pressed: {
+                          fill: isSelected ? SELECTED_FILL : '#3B6EE8',
+                          stroke: themeColors.stroke, strokeWidth: 0.35, outline: 'none',
+                        },
+                      }}
+                    />
+                    {isTiny && (
+                      <Marker coordinates={geoCentroid(geo)}
+                        onClick={handleClick}
+                        onMouseEnter={handleEnter}
+                        onMouseMove={handleMove}
+                        onMouseLeave={handleLeave}
+                        style={{ default: { cursor: data ? 'pointer' : 'default' }, hover: {}, pressed: {} }}>
+                        <circle
+                          r={Math.max(2.5, 4.5 / labelZoom)}
+                          fill={isSelected ? SELECTED_FILL : getFillColor(data)}
+                          stroke={themeColors.labelHalo}
+                          strokeWidth={1 / labelZoom}
+                        />
+                      </Marker>
+                    )}
+                  </g>
                 )
               })}
             </Geographies>

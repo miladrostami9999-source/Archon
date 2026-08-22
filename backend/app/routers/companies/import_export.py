@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Company, History, User
 from app.routers.auth import get_current_user, require_admin
+from app.services.country_normalize import normalize_country
 from .utils import calculate_score
 
 router = APIRouter()
@@ -53,7 +54,7 @@ async def import_csv(file: UploadFile = File(...), admin: User = Depends(require
                 website=website,
                 email=row.get('email', '').strip() or None,
                 phone=row.get('phone', '').strip() or None,
-                country=row.get('country', '').strip() or None,
+                country=normalize_country(row.get('country', '').strip() or None),
                 city=row.get('city', '').strip() or None,
                 industry=row.get('industry', '').strip() or None,
                 company_size=row.get('company_size', '').strip() or None,

@@ -7,7 +7,7 @@ from datetime import datetime
 from app.models.database import get_db, Company, History, User, UserCompanyState
 from app.routers.auth import get_current_user, require_admin, require_active_plan
 from app.services.access import access_state
-from .schemas import CompanyCreate, CompanyUpdate
+from .schemas import CompanyCreate, CompanyUpdate, BulkDeleteRequest, MergeCountryRequest
 from .utils import (
     to_dict, calculate_score, company_to_dict, get_or_create_state,
     user_shuffle_key, STATE_FIELDS, _SHUFFLE_MODULUS,
@@ -36,6 +36,8 @@ def get_companies(
     status: Optional[str] = None,
     country: Optional[str] = None,
     industry: Optional[str] = None,
+    company_size: Optional[str] = None,
+    discovery_source: Optional[str] = None,
     is_favorite: Optional[bool] = None,
     heat_level: Optional[str] = None,
     search: Optional[str] = None,
@@ -124,6 +126,10 @@ def get_companies(
         query = query.filter(Company.country == country)
     if industry:
         query = query.filter(Company.industry == industry)
+    if company_size:
+        query = query.filter(Company.company_size == company_size)
+    if discovery_source:
+        query = query.filter(Company.discovery_source == discovery_source)
     if search:
         query = query.filter(
             or_(
@@ -235,10 +241,13 @@ def create_company(data: CompanyCreate, current_user: User = Depends(require_act
     if not can_add_company(db, current_user):
         cap = get_plan_limit(db, current_user.plan)["max_companies"]
         raise HTTPException(status_code=403, detail=f"You've reached your plan's limit of {cap} companies. Upgrade to add more.")
+    from app.services.country_normalize import normalize_country
+    normalized_country = normalize_country(data.country)
+
     # Adding a company the plan can't browse would create a row the user is
     # immediately filtered out of — say so instead of losing their work.
     access = access_state(db, current_user)
-    if access.get("countries") and (data.country or "") not in access["countries"]:
+    if access.get("countries") and (normalized_country or "") not in access["countries"]:
         raise HTTPException(
             status_code=403,
             detail=f"Your plan covers {', '.join(access['countries'])}. Upgrade to add companies from other countries.",
@@ -250,7 +259,9 @@ def create_company(data: CompanyCreate, current_user: User = Depends(require_act
                 status_code=400,
                 detail=f"Company with domain '{data.domain}' already exists (ID: {existing.id})"
             )
-    company = Company(**data.model_dump())
+    payload = data.model_dump()
+    payload["country"] = normalized_country
+    company = Company(**payload)
     company.opportunity_score = calculate_score(company)
     db.add(company)
     db.commit()
@@ -294,6 +305,9 @@ def update_company(company_id: int, data: CompanyUpdate, current_user: User = De
                 status_code=403,
                 detail="Company details are shared across all accounts and can only be edited by an admin. Use notes for your own record.",
             )
+        if "country" in catalog_updates:
+            from app.services.country_normalize import normalize_country
+            catalog_updates["country"] = normalize_country(catalog_updates["country"])
         for key, value in catalog_updates.items():
             setattr(company, key, value)
         company.opportunity_score = calculate_score(company)
@@ -374,6 +388,71 @@ def delete_company(company_id: int, admin: User = Depends(require_admin), db: Se
     db.delete(company)
     db.commit()
     return {"message": f"Company {company_id} deleted"}
+
+
+@router.post("/bulk-delete")
+def bulk_delete_companies(
+    data: BulkDeleteRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete many companies at once, by explicit id list or by filter — the
+    fast path for clearing out a bad hunt batch or a country/segment the admin
+    no longer wants, without clicking delete hundreds of times.
+    """
+    query = db.query(Company.id)
+    if data.ids:
+        query = query.filter(Company.id.in_(data.ids))
+    else:
+        filters_given = any([data.country, data.industry, data.company_size, data.discovery_source, data.search])
+        if not filters_given and not data.confirm_all:
+            raise HTTPException(
+                status_code=400,
+                detail="Add at least one filter, or set confirm_all to delete the entire catalog.",
+            )
+        if data.country:
+            query = query.filter(Company.country == data.country)
+        if data.industry:
+            query = query.filter(Company.industry == data.industry)
+        if data.company_size:
+            query = query.filter(Company.company_size == data.company_size)
+        if data.discovery_source:
+            query = query.filter(Company.discovery_source == data.discovery_source)
+        if data.search:
+            query = query.filter(
+                or_(Company.name.ilike(f"%{data.search}%"), Company.city.ilike(f"%{data.search}%"))
+            )
+
+    ids = [row[0] for row in query.all()]
+    if not ids:
+        return {"message": "No companies matched", "deleted": 0}
+
+    db.query(UserCompanyState).filter(UserCompanyState.company_id.in_(ids)).delete(synchronize_session=False)
+    db.query(Company).filter(Company.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"message": f"Deleted {len(ids)} companies", "deleted": len(ids)}
+
+
+@router.post("/countries/merge")
+def merge_country(
+    data: MergeCountryRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Fold every company under one country spelling into another — fixes a
+    catalog that already has both e.g. "USA" and "United States" as separate
+    entries. `country_normalize.py` stops new duplicates; this cleans up the
+    ones that got in before that existed."""
+    from_name, to_name = data.from_name.strip(), data.to_name.strip()
+    if not from_name or not to_name or from_name == to_name:
+        raise HTTPException(status_code=400, detail="from_name and to_name must be different, non-empty country names")
+    moved = (
+        db.query(Company)
+        .filter(Company.country == from_name)
+        .update({Company.country: to_name}, synchronize_session=False)
+    )
+    db.commit()
+    return {"message": f"Moved {moved} companies from '{from_name}' to '{to_name}'", "moved": moved}
 
 
 @router.get("/{company_id}/history")

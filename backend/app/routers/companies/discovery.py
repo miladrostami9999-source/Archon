@@ -15,6 +15,7 @@ from app.models.database import (
 )
 from app.routers.auth import require_admin
 from app.services import discovery_sources
+from app.services.country_normalize import normalize_country
 from .schemas import HuntRequest, HuntSaveRequest, SavedHuntCreate, EnrichRequest
 from .utils import calculate_score
 
@@ -235,7 +236,7 @@ def save_hunted(data: HuntSaveRequest, admin: User = Depends(require_admin), db:
         company = Company(
             name=name, website=item.website or None, email=item.email or None,
             phone=item.phone or None,
-            country=item.country or None, city=item.city or None,
+            country=normalize_country(item.country) or None, city=item.city or None,
             industry=item.industry or None, company_size=item.company_size or None,
             linkedin=item.linkedin or None, instagram=item.instagram or None,
             employee_count=item.employee_count or None,

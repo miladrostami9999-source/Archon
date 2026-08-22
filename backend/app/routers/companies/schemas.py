@@ -32,6 +32,25 @@ class CompanyUpdate(BaseModel):
     opportunity_score: Optional[float] = None
 
 
+class BulkDeleteRequest(BaseModel):
+    """Delete either an explicit id list or everything matching the filters —
+    never both, so there's no ambiguity about what got hit. At least one
+    filter (or `confirm_all`) is required, so an empty form can't wipe the
+    whole catalog by accident."""
+    ids: Optional[List[int]] = None
+    country: Optional[str] = None
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    discovery_source: Optional[str] = None
+    search: Optional[str] = None
+    confirm_all: bool = False
+
+
+class MergeCountryRequest(BaseModel):
+    from_name: str
+    to_name: str
+
+
 class NoteCreate(BaseModel):
     content: str
     language: str = "en"

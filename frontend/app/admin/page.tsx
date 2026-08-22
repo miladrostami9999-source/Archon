@@ -52,6 +52,19 @@ export default function AdminPanel() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
 
+  // ── BULK DELETE ──
+  const [bulkFilters, setBulkFilters] = useState({ country: '', industry: '', company_size: '', discovery_source: '', search: '' })
+  const [bulkPreview, setBulkPreview] = useState<number | null>(null)
+  const [bulkChecking, setBulkChecking] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkMsg, setBulkMsg] = useState('')
+
+  // ── DUPLICATE COUNTRIES ──
+  const [merging, setMerging] = useState<string | null>(null)
+  const [mergeMsg, setMergeMsg] = useState('')
+  const [manualMergeFrom, setManualMergeFrom] = useState('')
+  const [manualMergeTo, setManualMergeTo] = useState('')
+
   // Admin-only page — members who navigate here directly get sent back
   useEffect(() => {
     try {
@@ -190,6 +203,86 @@ export default function AdminPanel() {
       setHeatMsg(`✓ 🔥${c.hot} 🌤${c.warm} ❄️${c.cold} across all ${res.data.total} companies — ${res.data.engaged} in your pipeline, ${res.data.changed} changed`)
     } catch (e: any) { setHeatMsg(`✗ ${e.response?.data?.detail || 'Error'}`) }
     setRecalcHeating(false)
+  }
+
+  // Same alias table as backend/app/services/country_normalize.py — kept in
+  // sync by hand since it's tiny; used only to group the catalog's own
+  // country names for the "suggested merges" list below.
+  const COUNTRY_ALIASES: Record<string, string> = {
+    usa: 'United States', us: 'United States', 'u.s.a.': 'United States', 'u.s.': 'United States',
+    'united states of america': 'United States', uae: 'United Arab Emirates', 'u.a.e.': 'United Arab Emirates',
+  }
+  const canonicalCountry = (name: string) => COUNTRY_ALIASES[name.trim().toLowerCase()] || name.trim()
+
+  const duplicateCountryGroups = (() => {
+    const groups: Record<string, { name: string; count: number }[]> = {}
+    catalogCountries.forEach(c => {
+      const key = canonicalCountry(c.name).toLowerCase()
+      ;(groups[key] ||= []).push(c)
+    })
+    return Object.values(groups).filter(g => g.length > 1).map(g => {
+      // Prefer the spelling that's already canonical (e.g. "United States"
+      // over "USA") as the merge target; only fall back to whichever has
+      // more companies when neither/both sides are aliases.
+      const sorted = [...g].sort((a, b) => {
+        const aCanon = canonicalCountry(a.name) === a.name.trim() ? 1 : 0
+        const bCanon = canonicalCountry(b.name) === b.name.trim() ? 1 : 0
+        if (aCanon !== bCanon) return bCanon - aCanon
+        return b.count - a.count
+      })
+      return { target: sorted[0], extras: sorted.slice(1) }
+    })
+  })()
+
+  const mergeCountries = async (from: string, to: string) => {
+    const key = `${from}->${to}`
+    setMerging(key); setMergeMsg('')
+    try {
+      const res = await axios.post(`${API}/companies/countries/merge`, { from_name: from, to_name: to }, { headers: headers() })
+      setMergeMsg(`✓ ${res.data.message}`)
+      const refreshed = await axios.get(`${API}/auth/catalog/countries`, { headers: headers() })
+      setCatalogCountries(refreshed.data)
+    } catch (e: any) {
+      setMergeMsg(`✗ ${e.response?.data?.detail || 'Merge failed'}`)
+    }
+    setMerging(null)
+  }
+
+  const bulkFilterParams = () => {
+    const p: Record<string, string> = {}
+    Object.entries(bulkFilters).forEach(([k, v]) => { if (v.trim()) p[k] = v.trim() })
+    return p
+  }
+
+  const checkBulkPreview = async () => {
+    setBulkChecking(true); setBulkMsg(''); setBulkPreview(null)
+    try {
+      const res = await axios.get(`${API}/companies/`, { headers: headers(), params: { ...bulkFilterParams(), limit: 1 } })
+      setBulkPreview(res.data.total)
+    } catch (e: any) {
+      setBulkMsg(`✗ ${e.response?.data?.detail || 'Could not check'}`)
+    }
+    setBulkChecking(false)
+  }
+
+  const runBulkDelete = async () => {
+    const params = bulkFilterParams()
+    if (Object.keys(params).length === 0) {
+      if (!window.confirm('No filters are set — this would delete the ENTIRE catalog. Are you absolutely sure?')) return
+    } else if (!window.confirm(`Delete ${bulkPreview ?? 'the matching'} companies? This can't be undone.`)) {
+      return
+    }
+    setBulkDeleting(true); setBulkMsg('')
+    try {
+      const res = await axios.post(`${API}/companies/bulk-delete`,
+        { ...params, confirm_all: Object.keys(params).length === 0 },
+        { headers: headers() })
+      setBulkMsg(`✓ ${res.data.message}`)
+      setBulkPreview(0)
+    } catch (e: any) {
+      setBulkMsg(`✗ ${e.response?.data?.detail || 'Delete failed'}`)
+    }
+    setBulkDeleting(false)
   }
 
   const kpiCards = [
@@ -449,6 +542,101 @@ export default function AdminPanel() {
               </div>
             ))}
           </div>
+          {/* ── DUPLICATE COUNTRIES ── */}
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Duplicate Countries</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
+            The same country sometimes lands in the catalog under two spellings (e.g. &quot;USA&quot; and &quot;United States&quot;), which splits one market
+            into two rows everywhere that groups by country. New imports/hunts are normalized automatically — this fixes rows that already exist.
+          </p>
+          {duplicateCountryGroups.length === 0 ? (
+            <p style={{ fontSize: '12.5px', color: '#34D399', marginBottom: '20px' }}>✓ No duplicate country names found in the catalog.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {duplicateCountryGroups.map(group => (
+                <div key={group.target.name} style={{ borderRadius: '12px', border: '1px solid rgba(251,191,36,0.25)', background: 'rgba(251,191,36,0.06)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text)', margin: 0 }}>
+                    <strong>{group.target.name}</strong> ({group.target.count}) also appears as{' '}
+                    {group.extras.map((e, i) => (
+                      <span key={e.name}>{i > 0 && ', '}<strong>{e.name}</strong> ({e.count})</span>
+                    ))}
+                  </p>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {group.extras.map(e => (
+                      <button key={e.name} onClick={() => mergeCountries(e.name, group.target.name)}
+                        disabled={merging === `${e.name}->${group.target.name}`}
+                        style={{ fontSize: '11.5px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', color: '#FBBF24', background: 'rgba(251,191,36,0.14)', border: '1px solid rgba(251,191,36,0.3)', cursor: 'pointer' }}>
+                        {merging === `${e.name}->${group.target.name}` ? 'Merging…' : `Merge "${e.name}" into "${group.target.name}"`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Merge this country…</label>
+              <input list="admin-country-list" value={manualMergeFrom} onChange={e => setManualMergeFrom(e.target.value)} placeholder="e.g. UK" style={{ ...input, width: '180px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>…into this one</label>
+              <input list="admin-country-list" value={manualMergeTo} onChange={e => setManualMergeTo(e.target.value)} placeholder="e.g. United Kingdom" style={{ ...input, width: '180px' }} />
+            </div>
+            <datalist id="admin-country-list">
+              {catalogCountries.map(c => <option key={c.name} value={c.name} />)}
+            </datalist>
+            <button onClick={() => mergeCountries(manualMergeFrom, manualMergeTo)}
+              disabled={!manualMergeFrom.trim() || !manualMergeTo.trim() || merging !== null}
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (!manualMergeFrom.trim() || !manualMergeTo.trim()) ? 0.5 : 1 }}>
+              Merge
+            </button>
+          </div>
+          {mergeMsg && <p style={{ fontSize: '12px', color: mergeMsg.startsWith('✓') ? '#34D399' : '#F87171', margin: '0 0 32px' }}>{mergeMsg}</p>}
+
+          {/* ── BULK DELETE COMPANIES ── */}
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Bulk Delete Companies</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
+            Delete many companies at once by category instead of one at a time. Set any combination of filters, check how many match, then delete. This is permanent.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Country</label>
+              <input list="admin-country-list" value={bulkFilters.country} onChange={e => { setBulkFilters(s => ({ ...s, country: e.target.value })); setBulkPreview(null) }} placeholder="Any" style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Industry</label>
+              <input value={bulkFilters.industry} onChange={e => { setBulkFilters(s => ({ ...s, industry: e.target.value })); setBulkPreview(null) }} placeholder="Any" style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Company size</label>
+              <input value={bulkFilters.company_size} onChange={e => { setBulkFilters(s => ({ ...s, company_size: e.target.value })); setBulkPreview(null) }} placeholder="Any" style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Discovery source</label>
+              <input value={bulkFilters.discovery_source} onChange={e => { setBulkFilters(s => ({ ...s, discovery_source: e.target.value })); setBulkPreview(null) }} placeholder="Any" style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Name/city contains</label>
+              <input value={bulkFilters.search} onChange={e => { setBulkFilters(s => ({ ...s, search: e.target.value })); setBulkPreview(null) }} placeholder="Any" style={input} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '32px' }}>
+            <button onClick={checkBulkPreview} disabled={bulkChecking}
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer', opacity: bulkChecking ? 0.6 : 1 }}>
+              {bulkChecking ? 'Checking…' : 'Preview count'}
+            </button>
+            {bulkPreview !== null && (
+              <span style={{ fontSize: '13px', fontWeight: 600, color: bulkPreview > 0 ? 'var(--text)' : 'var(--text-dim)' }}>
+                {bulkPreview} {bulkPreview === 1 ? 'company matches' : 'companies match'}
+              </span>
+            )}
+            <button onClick={runBulkDelete} disabled={bulkDeleting || bulkPreview === 0}
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', opacity: (bulkDeleting || bulkPreview === 0) ? 0.5 : 1 }}>
+              {bulkDeleting ? 'Deleting…' : 'Delete matching companies'}
+            </button>
+            {bulkMsg && <span style={{ fontSize: '12px', color: bulkMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bulkMsg}</span>}
+          </div>
+
           {/* PAYMENT INSTRUCTIONS EDITOR */}
           <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Payment instructions</p>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
