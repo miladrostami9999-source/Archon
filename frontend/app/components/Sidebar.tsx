@@ -59,6 +59,7 @@ export default function Sidebar() {
   // an admin flips it for this account, so it's fetched fresh rather than
   // read from the cached archon-user snapshot.
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(false)
+  const [mpPaymentCount, setMpPaymentCount] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -116,6 +117,10 @@ export default function Sidebar() {
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => setPaymentCount(d.count || 0))
         .catch(() => {})
+      fetch(`${API}/marketplace/admin/pending-count`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setMpPaymentCount(d.count || 0))
+        .catch(() => {})
     }
     load()
     const id = setInterval(load, 60000)  // refresh every minute
@@ -160,6 +165,7 @@ export default function Sidebar() {
     { label: 'Users',       iconKey: 'users',    href: '/users' },
     { label: 'Waitlist',    iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
     { label: 'Payments',    iconKey: 'payments', href: '/payments', badge: paymentCount },
+    { label: 'Marketplace Admin', iconKey: 'contracts', href: '/marketplace-admin', badge: mpPaymentCount },
   ] : []
 
   const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {
