@@ -123,6 +123,23 @@ def _purge_user_data(db: Session, user: User):
     db.flush()
 
 
+def _has_marketplace_activity(db: Session, user_id: int) -> bool:
+    """Whether this account is party to any project/proposal/contract.
+
+    Unlike notes/campaigns/etc. this isn't safe to silently cascade-delete —
+    a contract or payment record is something the *other* party relies on
+    too. Deletion is blocked instead; the admin resolves/cancels first.
+    """
+    from app.models.database import Project, Proposal, Contract
+    return (
+        db.query(Project).filter(Project.client_id == user_id).first() is not None
+        or db.query(Proposal).filter(Proposal.freelancer_id == user_id).first() is not None
+        or db.query(Contract).filter(
+            (Contract.client_id == user_id) | (Contract.freelancer_id == user_id)
+        ).first() is not None
+    )
+
+
 def activate_plan(db: Session, user: User, plan: str | None = None):
     """Mark a plan paid-for and start a fresh period."""
     from app.services.limits import get_plan_limit
@@ -180,6 +197,16 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
+
+def require_marketplace_beta(current_user: User = Depends(get_current_user)) -> User:
+    """Gate for every marketplace route while it's in beta — an admin flips
+    `marketplace_beta_enabled` on for test accounts from the Users page."""
+    if current_user.role == "admin":
+        return current_user
+    if not current_user.marketplace_beta_enabled:
+        raise HTTPException(status_code=403, detail="Marketplace is in private beta and isn't enabled for your account yet.")
+    return current_user
+
 # ─────────────────────────────────────────
 # SCHEMAS
 # ─────────────────────────────────────────
@@ -198,6 +225,7 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     plan: Optional[str] = None
     is_active: Optional[bool] = None
+    marketplace_beta_enabled: Optional[bool] = None
 
 # ─────────────────────────────────────────
 # ENDPOINTS
@@ -240,6 +268,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         # Single source of truth for the lock banner and blurred fields — the
         # frontend must never re-derive "is this account cut off" itself.
         "access": access_state(db, current_user),
+        "marketplace_beta_enabled": bool(current_user.marketplace_beta_enabled) or current_user.role == "admin",
     }
 
 @router.post("/change-password")
@@ -262,6 +291,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
         "role": u.role, "plan": u.plan, "is_active": u.is_active,
         "plan_status": u.plan_status or "active",
         "created_at": u.created_at, "last_login": u.last_login,
+        "marketplace_beta_enabled": bool(u.marketplace_beta_enabled),
     } for u in users]
 
 @router.post("/users")
@@ -300,6 +330,7 @@ def update_user(
         # a fresh billing window is stamped so an expired user regains access.
         activate_plan(db, user, data.plan)
     if data.is_active is not None: user.is_active = data.is_active
+    if data.marketplace_beta_enabled is not None: user.marketplace_beta_enabled = data.marketplace_beta_enabled
     db.commit()
     return {"message": "User updated"}
 
@@ -314,6 +345,11 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     if user.role == "admin":
         raise HTTPException(status_code=400, detail="Cannot delete admin user")
+    if _has_marketplace_activity(db, user.id):
+        raise HTTPException(
+            status_code=400,
+            detail="This account has marketplace projects, proposals, or contracts. Resolve or cancel those before deleting it.",
+        )
     _purge_user_data(db, user)
     db.delete(user); db.commit()
     return {"message": "User deleted"}

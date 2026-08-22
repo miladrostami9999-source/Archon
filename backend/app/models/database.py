@@ -59,6 +59,14 @@ class User(Base):
     # explore the app, but quota features stay locked until an admin approves.
     plan_status     = Column(String, default="active")
 
+    # ── MARKETPLACE (Phase 6, beta) ──
+    # Gated per-account while the marketplace is being tested — admins flip this
+    # on for test accounts from the Admin Panel. Every user can act as both
+    # client and freelancer; there is no separate role column for it.
+    marketplace_beta_enabled = Column(Boolean, default=False)
+    skills                   = Column(Text, nullable=True)   # comma-separated, freelancer profile
+    hourly_rate              = Column(Float, nullable=True)
+
 # ─────────────────────────────────────────
 # TABLE 2 — COMPANIES
 # ─────────────────────────────────────────
@@ -360,6 +368,129 @@ class WaitlistEntry(Base):
     status        = Column(String, default="pending")  # pending | approved | rejected
     created_at    = Column(DateTime, default=datetime.utcnow)
 
+
+# ─────────────────────────────────────────
+# MARKETPLACE (Phase 6, beta) — client posts a project, freelancers propose,
+# an accepted proposal becomes a contract with milestones. Payment reuses the
+# same "manual transfer + admin approval" pattern as PaymentRequest above
+# (see MilestonePayment) rather than a real held-funds escrow, because holding
+# third-party funds requires money-transmitter/EMI licensing that isn't
+# available yet. Any account can be both a client and a freelancer — there is
+# no separate role column; a Contract's client_id/freelancer_id decide it.
+# ─────────────────────────────────────────
+class Project(Base):
+    __tablename__ = "mp_projects"
+    id          = Column(Integer, primary_key=True, index=True)
+    client_id   = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title       = Column(String, nullable=False)
+    description = Column(Text)
+    category    = Column(String)
+    budget_min  = Column(Float)
+    budget_max  = Column(Float)
+    currency    = Column(String, default="USD")
+    deadline    = Column(DateTime, nullable=True)
+    status      = Column(String, default="open", index=True)  # open | in_progress | completed | cancelled
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+
+class Proposal(Base):
+    __tablename__ = "mp_proposals"
+    id               = Column(Integer, primary_key=True, index=True)
+    project_id       = Column(Integer, ForeignKey("mp_projects.id"), nullable=False, index=True)
+    freelancer_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    cover_letter     = Column(Text)
+    proposed_amount  = Column(Float)
+    proposed_days    = Column(Integer)
+    status           = Column(String, default="pending", index=True)  # pending | accepted | rejected | withdrawn
+    created_at       = Column(DateTime, default=datetime.utcnow)
+
+
+class Contract(Base):
+    __tablename__ = "mp_contracts"
+    id            = Column(Integer, primary_key=True, index=True)
+    project_id    = Column(Integer, ForeignKey("mp_projects.id"), nullable=False, index=True)
+    proposal_id   = Column(Integer, ForeignKey("mp_proposals.id"), nullable=False)
+    client_id     = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    freelancer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    total_amount  = Column(Float)
+    currency      = Column(String, default="USD")
+    status        = Column(String, default="active", index=True)  # active | completed | disputed | cancelled
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class Milestone(Base):
+    __tablename__ = "mp_milestones"
+    id             = Column(Integer, primary_key=True, index=True)
+    contract_id    = Column(Integer, ForeignKey("mp_contracts.id"), nullable=False, index=True)
+    title          = Column(String, nullable=False)
+    description    = Column(Text)
+    amount         = Column(Float, nullable=False)
+    due_date       = Column(DateTime, nullable=True)
+    order_index    = Column(Integer, default=0)
+    # pending (not yet funded) | funded (client paid, admin approved receipt) |
+    # delivered (freelancer submitted work) | approved (client accepted) |
+    # released (admin paid the freelancer out) | disputed
+    status         = Column(String, default="pending", index=True)
+    deliverable_url = Column(String, nullable=True)
+    delivered_at   = Column(DateTime, nullable=True)
+    approved_at    = Column(DateTime, nullable=True)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+
+
+class MilestonePayment(Base):
+    """Client's claim of having paid a milestone, awaiting admin confirmation —
+    the exact same shape/flow as PaymentRequest, just against a milestone
+    instead of a plan."""
+    __tablename__ = "mp_milestone_payments"
+    id          = Column(Integer, primary_key=True, index=True)
+    milestone_id = Column(Integer, ForeignKey("mp_milestones.id"), nullable=False, index=True)
+    amount      = Column(Float)
+    currency    = Column(String, default="USD")
+    method      = Column(String)
+    reference   = Column(String)
+    receipt_url = Column(String)
+    note        = Column(Text)
+    status      = Column(String, default="pending", index=True)  # pending | approved | rejected
+    admin_note  = Column(Text)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime)
+
+
+class MilestonePayout(Base):
+    """Admin's record of manually paying the freelancer out for a released
+    milestone — the mirror image of MilestonePayment."""
+    __tablename__ = "mp_milestone_payouts"
+    id           = Column(Integer, primary_key=True, index=True)
+    milestone_id = Column(Integer, ForeignKey("mp_milestones.id"), nullable=False, index=True)
+    amount       = Column(Float)
+    method       = Column(String)
+    reference    = Column(String)
+    admin_note   = Column(Text)
+    paid_at      = Column(DateTime, default=datetime.utcnow)
+
+
+class ContractMessage(Base):
+    __tablename__ = "mp_contract_messages"
+    id             = Column(Integer, primary_key=True, index=True)
+    contract_id    = Column(Integer, ForeignKey("mp_contracts.id"), nullable=False, index=True)
+    sender_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    body           = Column(Text)
+    attachment_url = Column(String, nullable=True)
+    created_at     = Column(DateTime, default=datetime.utcnow, index=True)
+    read_at        = Column(DateTime, nullable=True)
+
+
+class Review(Base):
+    __tablename__ = "mp_reviews"
+    id          = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("mp_contracts.id"), nullable=False, index=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reviewee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    rating      = Column(Integer, nullable=False)  # 1-5
+    comment     = Column(Text)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+
 # ─────────────────────────────────────────
 # MULTI-TENANCY BACKFILL
 # ─────────────────────────────────────────
@@ -529,6 +660,18 @@ def init_db():
                     if "user_id" not in cols:
                         conn.execute(_text(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER"))
                         conn.commit()
+
+            # ── Marketplace (Phase 6, beta) — new columns on the existing users table ──
+            if "marketplace_beta_enabled" not in user_cols:
+                default_val = "FALSE" if "postgresql" in str(engine.url) else "0"
+                conn.execute(_text(f"ALTER TABLE users ADD COLUMN marketplace_beta_enabled BOOLEAN DEFAULT {default_val}"))
+                conn.commit()
+            if "skills" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN skills TEXT"))
+                conn.commit()
+            if "hourly_rate" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN hourly_rate FLOAT"))
+                conn.commit()
     except Exception as e:
         print(f"⚠️  Column migration check: {e}")
 

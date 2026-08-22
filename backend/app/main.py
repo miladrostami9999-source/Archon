@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from app.models.database import init_db
 from app.routers import companies
 from app.routers import auth
+from app.routers import marketplace
 
 load_dotenv()
 
@@ -40,6 +41,7 @@ def startup():
 
 app.include_router(companies.router)
 app.include_router(auth.router)
+app.include_router(marketplace.router)
 
 @app.get("/")
 def root():
