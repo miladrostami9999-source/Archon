@@ -10,12 +10,20 @@ import {
   Geography,
   ZoomableGroup,
 } from 'react-simple-maps'
+import { geoCentroid, geoBounds } from 'd3-geo'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-// 50m rather than 110m: five times the boundary detail, so small countries and
-// coastlines are actually the right shape. Worth the ~600KB — it's cached and
-// fetched once.
-const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json'
+// Self-hosted rather than the world-atlas CDN file (which tops out at 1:50m
+// resolution). Built from Natural Earth's 1:10m admin-0 countries — five
+// times finer than 50m — via mapshaper (`-simplify dp 12% keep-shapes`, which
+// protects tiny polygons like Singapore/Bahrain from being simplified into
+// nothing), then quantized to topojson. Comparable file size to the old CDN
+// 50m file despite the much higher source resolution. Regenerate with:
+//   npx mapshaper ne_10m_admin_0_countries.geojson \
+//     -filter-fields NAME,ADMIN,SOVEREIGNT -rename-fields name=NAME \
+//     -simplify dp 12% keep-shapes -clean \
+//     -o format=topojson quantization=1e5 countries-10m.json
+const GEO_URL = '/geo/countries-10m.json'
 
 const getThemeColors = (isDark: boolean) => ({
   mapBg:        isDark ? '#0F1117' : '#E8ECF4',
@@ -27,6 +35,12 @@ const getThemeColors = (isDark: boolean) => ({
 })
 
 const SELECTED_FILL = '#FBBF24'   // amber reads clearly against every blue in the ramp
+
+// react-simple-maps defaults ZoomableGroup to maxZoom=8, which leaves a
+// micro-state like Singapore only ~8px wide even centered. Raised so manual
+// scroll-zoom and goToCountry (below) can bring tiny countries in close
+// enough to actually read their shape.
+const MAX_ZOOM = 20
 
 /**
  * Our country names vs. the atlas's.
@@ -94,6 +108,11 @@ export default function MapPage() {
   const [center, setCenter] = useState<[number, number]>([10, 20])
   const zoomRef = useRef(1)
   const centerRef = useRef<[number, number]>([10, 20])
+  // Cached once the atlas geometry loads (see the Geographies render prop
+  // below), keyed the same way as dataByName, so selecting a country by name
+  // — from the map or the Top Markets list — can look up its shape to pan
+  // and zoom to it without a second fetch of the same topojson.
+  const geoIndexRef = useRef<Record<string, any>>({})
   const [isDark, setIsDark] = useState(true)
   const [showPanel, setShowPanel] = useState(true)
   // Follows the cursor: name + count for whichever country it's currently
@@ -158,6 +177,25 @@ export default function MapPage() {
   // our canonical spelling over the atlas's when we happen to know it.
   const displayName = (geoName: string): string => reverseMap[norm(geoName)] || geoName
 
+  // Pans and zooms the map to a country by name — picking it from the map
+  // itself or from the Top Markets list both land here, so a tiny country
+  // like Singapore or Bahrain is never just a click that does nothing. Zoom
+  // level is a coarse tier off the country's bounding box rather than an
+  // exact fit — good enough to bring it from "a few sub-pixels" to clearly
+  // visible without per-country tuning.
+  const goToCountry = (name: string) => {
+    const geo = geoIndexRef.current[norm(name)]
+    if (!geo) return
+    const centroid = geoCentroid(geo)
+    const [[west, south], [east, north]] = geoBounds(geo)
+    const maxDim = Math.max(east - west, north - south)
+    const z = maxDim < 1 ? MAX_ZOOM : maxDim < 3 ? 12 : maxDim < 8 ? 5 : maxDim < 20 ? 3 : maxDim < 50 ? 1.8 : 1.2
+    zoomRef.current = z
+    centerRef.current = centroid
+    setZoom(z)
+    setCenter(centroid)
+  }
+
   const getFillColor = (data: CountryData | null) => {
     if (!data) return themeColors.countryEmpty
     // Square-root scale: with a few countries holding most of the catalog, a
@@ -183,7 +221,7 @@ export default function MapPage() {
       {/* ZOOM */}
       <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {[
-          { label: '+', action: () => { const nz = Math.min(zoomRef.current + 0.5, 8); zoomRef.current = nz; setZoom(nz) } },
+          { label: '+', action: () => { const nz = Math.min(zoomRef.current + 0.5, MAX_ZOOM); zoomRef.current = nz; setZoom(nz) } },
           { label: '−', action: () => { const nz = Math.max(zoomRef.current - 0.5, 1); zoomRef.current = nz; setZoom(nz) } },
           { label: '⌂', action: () => { zoomRef.current = 1; centerRef.current = [10,20]; setZoom(1); setCenter([10,20]) } },
         ].map(btn => (
@@ -234,7 +272,7 @@ export default function MapPage() {
           projection="geoMercator"
           style={{ width: '100%', height: '100%', background: themeColors.mapBg }}
         >
-          <ZoomableGroup zoom={zoom} center={center}
+          <ZoomableGroup zoom={zoom} center={center} maxZoom={MAX_ZOOM}
             onMoveEnd={({ coordinates, zoom: z }: { coordinates: [number, number]; zoom: number }) => {
               centerRef.current = coordinates as [number, number]
               zoomRef.current = z
@@ -244,13 +282,25 @@ export default function MapPage() {
               setLabelZoom(z)
             }}>
             <Geographies geography={GEO_URL}>
-              {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => {
+              {({ geographies }: { geographies: any[] }) => {
+                // Built once per load: raw atlas name and our canonical
+                // spelling both resolve to the same geometry, mirroring how
+                // dataByName is indexed above.
+                if (geographies.length && Object.keys(geoIndexRef.current).length === 0) {
+                  geographies.forEach((geo: any) => {
+                    const n = geo.properties.name
+                    geoIndexRef.current[norm(n)] = geo
+                    const canonical = reverseMap[norm(n)]
+                    if (canonical) geoIndexRef.current[norm(canonical)] = geo
+                  })
+                }
+                return geographies.map((geo: any) => {
                 const geoName = geo.properties.name
                 const data = getCountryData(geoName)
                 const isSelected = !!data && selected?.name === data.name
                 return (
                   <Geography key={geo.rsmKey} geography={geo}
-                    onClick={() => { if (data) { setSelected(data); setShowPanel(true) } }}
+                    onClick={() => { if (data) { setSelected(data); setShowPanel(true); goToCountry(data.name) } }}
                     // Permanent per-country labels used to overlap into an
                     // unreadable mess wherever a few small countries sit close
                     // together (the Gulf states, the Balkans...). A tooltip
@@ -286,7 +336,8 @@ export default function MapPage() {
                     }}
                   />
                 )
-              })}
+                })
+              }}
             </Geographies>
           </ZoomableGroup>
         </ComposableMap>
@@ -369,7 +420,7 @@ export default function MapPage() {
             ) : (
               <div style={{ padding: '8px' }}>
                 {mapData.map((country, i) => (
-                  <button key={country.name} onClick={() => { setSelected(country); setShowPanel(true) }}
+                  <button key={country.name} onClick={() => { setSelected(country); setShowPanel(true); goToCountry(country.name) }}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', marginBottom: '2px', transition: 'background 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
