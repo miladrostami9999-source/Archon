@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
+import ContractChat from '../../components/ContractChat'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -72,6 +73,14 @@ export default function ContractDetailPage() {
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('archon-user')
+      if (stored) setCurrentUserId(JSON.parse(stored).id)
+    } catch {}
+  }, [])
 
   const load = () => {
     if (!id) return
@@ -351,6 +360,12 @@ export default function ContractDetailPage() {
                   )
                 })}
               </div>
+
+              {currentUserId && contract.viewer_role !== 'observer' && (
+                <div style={{ paddingBottom: '32px' }}>
+                  <ContractChat contractId={contract.id} currentUserId={currentUserId} />
+                </div>
+              )}
             </>
           )}
         </div>
