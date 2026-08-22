@@ -33,6 +33,7 @@ def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
         "is_owner": p.client_id == viewer_id,
         "proposal_count": proposal_count,
         "my_proposal_status": my_proposal.status if my_proposal else None,
+        "my_proposal_id": my_proposal.id if my_proposal else None,
     }
 
 
