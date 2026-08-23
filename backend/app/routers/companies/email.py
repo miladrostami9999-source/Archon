@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Campaign, User
-from app.routers.auth import require_active_plan
+from app.routers.auth import require_active_plan, require_admin
 from app.services.email_service import send_email as resend_send_email
+from app.services import reputation
 from .schemas import SendEmailRequest
 
 router = APIRouter()
@@ -46,19 +47,34 @@ def send_email(req: SendEmailRequest, current_user: User = Depends(require_activ
                        f"(limit is {MAX_ATTACHMENTS_SIZE_BYTES // 1024 // 1024}MB total)"
             )
 
-    try:
-        resend_send_email(
-            to_email=req.to_email,
-            subject=req.subject,
-            html_body=html_body,
-            text_body=plain_body,
-            attachments=resend_attachments,
-        )
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+    # A connected Gmail account is tried first (so replies land in the user's
+    # own inbox), but only when there's nothing it can't carry — it doesn't
+    # support attachments today. Any Gmail failure falls back to Resend
+    # rather than failing the send outright.
+    sent_via_gmail = False
+    if current_user.google_refresh_token_encrypted and not resend_attachments:
+        try:
+            from app.services.gmail_service import send_email_via_gmail
+            send_email_via_gmail(current_user, req.to_email, req.subject, html_body, plain_body)
+            sent_via_gmail = True
+        except Exception as e:
+            print(f"⚠️  Gmail send failed for user {current_user.id}, falling back to Resend: {e}")
 
+    if not sent_via_gmail:
+        try:
+            resend_send_email(
+                to_email=req.to_email,
+                subject=req.subject,
+                html_body=html_body,
+                text_body=plain_body,
+                attachments=resend_attachments,
+            )
+        except RuntimeError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+    campaign = None
     if req.campaign_id:
         campaign = db.query(Campaign).filter(
             Campaign.id == req.campaign_id, Campaign.user_id == current_user.id
@@ -66,6 +82,28 @@ def send_email(req: SendEmailRequest, current_user: User = Depends(require_activ
         if campaign:
             campaign.status = "sent"
             campaign.sent_at = datetime.utcnow()
-            db.commit()
+
+    reputation.log_event(db, current_user.id, reputation.SENT, campaign.id if campaign else None)
+    db.commit()
 
     return {"message": "Email sent successfully", "to": req.to_email}
+
+
+@router.get("/email/reputation")
+def my_reputation(current_user: User = Depends(require_active_plan), db: Session = Depends(get_db)):
+    return reputation.score_for_user(db, current_user.id)
+
+
+@router.get("/admin/reputation/{user_id}")
+def user_reputation(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    return reputation.score_for_user(db, user_id)
+
+
+@router.post("/email/{campaign_id}/mark-bounced")
+def mark_bounced(campaign_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    reputation.log_event(db, campaign.user_id, reputation.BOUNCED_MANUAL, campaign.id)
+    db.commit()
+    return {"message": "Marked as bounced"}

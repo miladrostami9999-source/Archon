@@ -28,6 +28,9 @@ MILESTONE_RELEASED = "milestone_released"
 REVIEW_RECEIVED = "review_received"
 VERIFICATION_SUBMITTED = "verification_submitted"   # → admin
 VERIFICATION_REVIEWED = "verification_reviewed"
+BROADCAST = "broadcast"                              # admin → segment
+POST_LIKED = "post_liked"
+POST_COMMENTED = "post_commented"
 
 # Kinds an admin should also get by email — the ones where money is waiting on
 # them and a missed in-app badge means someone is left hanging.
@@ -73,6 +76,20 @@ def _email_admins(admins, title: str, body: str, link: str) -> None:
                 send_email(to_email=a.email, subject=f"Archon — {title}", html_body=html, text_body=body)
     except Exception as e:
         print(f"⚠️  admin email skipped: {e}")
+
+
+def broadcast(db: Session, recipients: list, title: str, body: str = "", link: str = "", also_email: bool = False) -> int:
+    """Raise the same notification for an arbitrary list of users (an admin
+    broadcast, not the fixed admin-only audience of notify_admins). Returns
+    how many recipients were notified. Best-effort — one bad row never stops
+    the rest."""
+    sent = 0
+    for u in recipients:
+        notify(db, u.id, BROADCAST, title, body, link)
+        sent += 1
+    if also_email:
+        _email_admins(recipients, title, body, link)  # same best-effort emailer, any recipient list works
+    return sent
 
 
 def unread_count(db: Session, user_id: int) -> int:

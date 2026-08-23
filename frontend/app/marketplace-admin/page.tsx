@@ -57,7 +57,8 @@ const STATUS_META: Record<string, { color: string; bg: string; label: string }> 
 
 export default function MarketplaceAdminPage() {
   const isMobile = useIsMobile()
-  const [tab, setTab] = useState<'payments' | 'verifications' | 'projects' | 'contracts' | 'payouts'>('payments')
+  const [tab, setTab] = useState<'payments' | 'verifications' | 'projects' | 'contracts' | 'payouts' | 'reports'>('payments')
+  const [reports, setReports] = useState<{ id: number; post_id: number; post_text: string | null; post_deleted: boolean; reporter_id: number; reporter_name: string | null; reason: string | null; created_at: string }[]>([])
   const [verifications, setVerifications] = useState<any[]>([])
   const [rejectVerifyId, setRejectVerifyId] = useState<number | null>(null)
   const [verifyNote, setVerifyNote] = useState('')
@@ -143,6 +144,9 @@ export default function MarketplaceAdminPage() {
     axios.get(`${API}/marketplace/verification/admin/pending`)
       .then(r => setVerifications(r.data))
       .catch(() => {})
+    axios.get(`${API}/marketplace/feed/admin/reports`)
+      .then(r => setReports(r.data))
+      .catch(() => {})
   }
   useEffect(() => { load() }, [])
 
@@ -163,6 +167,17 @@ export default function MarketplaceAdminPage() {
       setRejectingId(null); setRejectNote('')
       load()
     } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Reject failed'}`) }
+    setBusy(null)
+  }
+
+  const deleteReportedPost = async (postId: number) => {
+    if (!window.confirm('Delete this post?')) return
+    setBusy(postId); setMsg('')
+    try {
+      await axios.delete(`${API}/marketplace/feed/posts/${postId}`)
+      setMsg('✓ Post deleted')
+      load()
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Delete failed'}`) }
     setBusy(null)
   }
 
@@ -216,6 +231,7 @@ export default function MarketplaceAdminPage() {
               ['projects', 'All Projects'],
               ['contracts', 'All Contracts'],
               ['payouts', 'Payouts'],
+              ['reports', `Reported Posts${reports.length ? ` (${reports.length})` : ''}`],
             ] as const).map(([t, label]) => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
@@ -385,6 +401,34 @@ export default function MarketplaceAdminPage() {
                     </button>
                   )
                 })}
+              </div>
+            )
+          ) : tab === 'reports' ? (
+            reports.length === 0 ? (
+              <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>No reports.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {reports.map(r => (
+                  <div key={r.id} style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 4px' }}>
+                          Reported by {r.reporter_name || `user #${r.reporter_id}`} · {new Date(r.created_at).toLocaleDateString()}
+                          {r.reason && <> · reason: {r.reason}</>}
+                        </p>
+                        <p style={{ fontSize: '13.5px', color: 'var(--text)', margin: 0, whiteSpace: 'pre-wrap' }}>
+                          {r.post_deleted ? <em style={{ color: 'var(--text-dim)' }}>[already deleted]</em> : r.post_text}
+                        </p>
+                      </div>
+                      {!r.post_deleted && (
+                        <button onClick={() => deleteReportedPost(r.post_id)} disabled={busy === r.post_id}
+                          style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', flexShrink: 0 }}>
+                          {busy === r.post_id ? 'Deleting…' : 'Delete post'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           ) : (

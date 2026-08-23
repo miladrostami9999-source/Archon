@@ -21,6 +21,11 @@ interface Member {
   is_me: boolean
 }
 
+interface Post {
+  id: number; text: string; image_url: string | null; created_at: string
+  like_count: number; comment_count: number
+}
+
 export default function MemberProfilePage() {
   const params = useParams()
   const id = params?.id
@@ -30,6 +35,7 @@ export default function MemberProfilePage() {
   const [notFound, setNotFound] = useState(false)
   const [messaging, setMessaging] = useState(false)
   const [err, setErr] = useState('')
+  const [posts, setPosts] = useState<Post[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -40,6 +46,10 @@ export default function MemberProfilePage() {
         else if (e.response?.status === 401) window.location.href = '/login'
       })
       .finally(() => setLoading(false))
+
+    axios.get(`${API}/marketplace/feed/users/${id}/posts`)
+      .then(r => setPosts(r.data.items))
+      .catch(() => {})
   }, [id])
 
   const message = async () => {
@@ -146,6 +156,26 @@ export default function MemberProfilePage() {
                           </span>
                         </div>
                         {r.comment && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{r.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* POSTS */}
+              {posts.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>Posts</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {posts.map(p => (
+                      <div key={p.id} style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '14px 16px' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--text)', margin: '0 0 8px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.text}</p>
+                        {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                          <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                          <span>♡ {p.like_count}</span>
+                          <span>💬 {p.comment_count}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -49,6 +49,7 @@ const PLAN_META: Record<string, { label: string; color: string; bg: string; desc
 interface UserProfile {
   id: number; name: string; email: string
   role: string; plan: string; created_at: string; last_login: string | null
+  google_email?: string | null
 }
 
 interface PortfolioImage { id: string; data: string; name: string; alt?: string }
@@ -96,11 +97,18 @@ export default function ProfilePage() {
   const [deletePwd, setDeletePwd] = useState('')
   const [dangerErr, setDangerErr] = useState('')
   const [dangerBusy, setDangerBusy] = useState(false)
+  const [reputation, setReputation] = useState<{ sent: number; replied: number; reply_rate: number; bounced_manual: number; score: number } | null>(null)
+  const [gmailConnecting, setGmailConnecting] = useState(false)
+  const [gmailMsg, setGmailMsg] = useState('')
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
       .then(res => { setUser(res.data); setAccountMode(res.data.account_mode === 'client' ? 'client' : 'freelancer') })
       .catch(() => { window.location.href = '/login' })
+
+    axios.get(`${API}/companies/email/reputation`, { headers: headers() })
+      .then(res => setReputation(res.data))
+      .catch(() => {})
 
     // Show cached profile immediately, then reconcile with the server, which is
     // the source of truth (and what the public profile page reads from).
@@ -170,6 +178,28 @@ export default function ProfilePage() {
       signOutAfter('Your account has been deactivated. Contact us when you want it back.')
     } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not deactivate the account.') }
     setDangerBusy(false)
+  }
+
+  const connectGmail = async () => {
+    setGmailConnecting(true); setGmailMsg('')
+    try {
+      const res = await axios.get(`${API}/auth/google/authorize`, { headers: headers() })
+      window.location.href = res.data.authorize_url
+    } catch (e: any) {
+      setGmailMsg(`✗ ${e.response?.data?.detail || 'Could not start Gmail connect'}`)
+      setGmailConnecting(false)
+    }
+  }
+
+  const disconnectGmail = async () => {
+    setGmailConnecting(true); setGmailMsg('')
+    try {
+      await axios.post(`${API}/auth/google/disconnect`, {}, { headers: headers() })
+      setUser(u => u ? { ...u, google_email: null } : u)
+    } catch (e: any) {
+      setGmailMsg(`✗ ${e.response?.data?.detail || 'Could not disconnect'}`)
+    }
+    setGmailConnecting(false)
   }
 
   const switchAccountMode = async (mode: 'freelancer' | 'client') => {
@@ -566,6 +596,30 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {reputation && reputation.sent > 0 && (
+              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>Email Reputation</h2>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                  A rough health signal for your outreach, based on how often people reply.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px', fontWeight: 800,
+                    color: reputation.score >= 60 ? '#34D399' : reputation.score >= 30 ? '#FBBF24' : '#F87171',
+                    border: `2px solid ${reputation.score >= 60 ? 'rgba(52,211,153,0.4)' : reputation.score >= 30 ? 'rgba(251,191,36,0.4)' : 'rgba(248,113,113,0.4)'}`,
+                  }}>
+                    {reputation.score}
+                  </div>
+                  <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                    <div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Sent</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{reputation.sent}</div></div>
+                    <div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Replied</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{reputation.replied}</div></div>
+                    <div><div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Reply rate</div><div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{Math.round(reputation.reply_rate * 100)}%</div></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px' }}>Personal Information</h2>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
@@ -829,6 +883,28 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </div>
+              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>📧 Send emails from Gmail</h2>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                  Connect your own Gmail so outreach sends from your address instead of Archon's shared sender. Send-only access — Archon never reads your inbox.
+                </p>
+                {user?.google_email ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', color: '#34D399' }}>✓ Connected as {user.google_email}</span>
+                    <button onClick={disconnectGmail} disabled={gmailConnecting}
+                      style={{ padding: '8px 16px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
+                      {gmailConnecting ? 'Disconnecting…' : 'Disconnect'}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={connectGmail} disabled={gmailConnecting}
+                    style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
+                    {gmailConnecting ? 'Redirecting…' : 'Connect Gmail'}
+                  </button>
+                )}
+                {gmailMsg && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '10px 0 0' }}>{gmailMsg}</p>}
+              </div>
+
               <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 16px' }}>Account Information</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

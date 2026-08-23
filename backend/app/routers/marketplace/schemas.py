@@ -69,3 +69,21 @@ class MilestonePayoutRequest(BaseModel):
     method: Optional[str] = None
     reference: Optional[str] = None
     admin_note: Optional[str] = None
+
+
+class PostCreate(BaseModel):
+    text: str
+    image_url: Optional[str] = None
+
+
+class PostUpdate(BaseModel):
+    text: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+class CommentCreate(BaseModel):
+    text: str
+
+
+class PostReportCreate(BaseModel):
+    reason: Optional[str] = None

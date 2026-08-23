@@ -5,6 +5,7 @@ from datetime import datetime
 from app.models.database import get_db, Company, Campaign, History, User
 from app.routers.auth import get_current_user, require_active_plan
 from app.services.claude import generate_email as claude_generate_email
+from app.services import reputation
 from .schemas import EmailRequest
 from .utils import to_dict
 
@@ -48,6 +49,7 @@ def update_campaign(company_id: int, campaign_id: int, status: str, current_user
         # the period window is measured from.
         if not campaign.sent_at:
             campaign.sent_at = datetime.utcnow()
+        reputation.log_event(db, current_user.id, reputation.REPLIED, campaign.id)
     db.add(History(
         company_id=company_id,
         user_id=current_user.id,

@@ -74,6 +74,15 @@ class User(Base):
     skills                   = Column(Text, nullable=True)   # comma-separated, freelancer profile
     hourly_rate              = Column(Float, nullable=True)
 
+    # ── GMAIL SEND-ONLY OAUTH (Phase 5 leftover) ──
+    # Lets a user send outreach from their own Gmail address instead of the
+    # shared Resend sender. Scope is gmail.send only — never read/modify.
+    # The refresh token is encrypted at rest (services/crypto.py) since it's
+    # the first reversible secret stored in this database.
+    google_refresh_token_encrypted = Column(Text, nullable=True)
+    google_email                   = Column(String, nullable=True)
+    google_connected_at            = Column(DateTime, nullable=True)
+
 # ─────────────────────────────────────────
 # TABLE 2 — COMPANIES
 # ─────────────────────────────────────────
@@ -198,6 +207,17 @@ class WeeklyReport(Base):
     report_json  = Column(Text, nullable=False)   # the generated report content
     lang         = Column(String, default="en")
     generated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WeeklyDigestLog(Base):
+    """One row per digest actually mailed to a user, so the scheduler can tell
+    whether this week's digest already went out — guards against a double
+    send if the process restarts mid-week."""
+    __tablename__ = "weekly_digest_log"
+    id      = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    sent_at = Column(DateTime, default=datetime.utcnow, index=True)
+    status  = Column(String, default="sent")   # sent | failed
 
 
 class DailyTask(Base):
@@ -533,6 +553,19 @@ class Notification(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
+class EmailReputationEvent(Base):
+    """One row per send-health event, so a per-user reputation score can be
+    derived without a bounce webhook (Resend isn't wired to one). ``sent`` and
+    ``replied`` are logged automatically; ``bounced_manual`` is an admin's own
+    record that a send is known to have failed, entered by hand."""
+    __tablename__ = "email_reputation_events"
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=True)
+    event_type  = Column(String, nullable=False)   # sent | replied | bounced_manual
+    created_at  = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class UserVerification(Base):
     """Identity and payout details.
 
@@ -579,6 +612,46 @@ class Review(Base):
     rating      = Column(Integer, nullable=False)  # 1-5
     comment     = Column(Text)
     created_at  = Column(DateTime, default=datetime.utcnow)
+
+
+class Post(Base):
+    """A short text+image update in the marketplace's community feed."""
+    __tablename__ = "mp_posts"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    text       = Column(Text, nullable=False)
+    image_url  = Column(String, nullable=True)
+    is_deleted = Column(Boolean, default=False, index=True)  # soft-delete keeps reports meaningful
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostLike(Base):
+    __tablename__ = "mp_post_likes"
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("mp_posts.id"), nullable=False, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_post_like"),)
+
+
+class PostComment(Base):
+    __tablename__ = "mp_post_comments"
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("mp_posts.id"), nullable=False, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    text       = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class PostReport(Base):
+    __tablename__ = "mp_post_reports"
+    id          = Column(Integer, primary_key=True, index=True)
+    post_id     = Column(Integer, ForeignKey("mp_posts.id"), nullable=False, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    reason      = Column(String, nullable=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (UniqueConstraint("post_id", "reporter_id", name="uq_post_report"),)
 
 
 # ─────────────────────────────────────────
@@ -850,6 +923,15 @@ def init_db():
                 conn.commit()
             if "hourly_rate" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN hourly_rate FLOAT"))
+                conn.commit()
+            if "google_refresh_token_encrypted" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN google_refresh_token_encrypted TEXT"))
+                conn.commit()
+            if "google_email" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN google_email VARCHAR"))
+                conn.commit()
+            if "google_connected_at" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN google_connected_at DATETIME"))
                 conn.commit()
     except Exception as e:
         print(f"⚠️  Column migration check: {e}")

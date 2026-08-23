@@ -283,6 +283,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "access": access_state(db, current_user),
         "marketplace_beta_enabled": bool(current_user.marketplace_beta_enabled) or current_user.role == "admin",
         "account_mode": current_user.account_mode or "freelancer",
+        "google_email": current_user.google_email,
     }
 
 @router.post("/change-password")

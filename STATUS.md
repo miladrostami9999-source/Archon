@@ -3,7 +3,50 @@
 > این فایل خلاصه‌ی وضعیت پروژه‌ست. هر وقت گفتید «استاتوس رو ثبت کن»، این فایل رو با آخرین وضعیت آپدیت می‌کنم.
 > طراحی شده که قابل کپی/انتقال به یک AI دیگه باشه برای مشاوره — همه چیز خودایستا و بدون نیاز به context قبلی نوشته می‌شه.
 
-**آخرین آپدیت:** 2026-08-23 (دور سوم) — ✅ افکت گذار نرم بین صفحات + هاور یکپارچه روی کل پلتفرم اضافه شد. پیش از اون: **Phase 6 (Project Marketplace) بسته شد و بعد از تست واقعی Milad، ۹ ایراد رفع شد.** هر ۷ فاز نقشه راه پیاده شد (تابلوی پروژه، پروپوزال، قرارداد با مایلستون، چرخه‌ی کامل پرداخت دستی، چت، ریویو، محدودیت‌های بتا)، سپس دور دوم اضافه کرد: آپدیت زنده بدون رفرش، سیستم نوتیفیکیشن با ایمیل، احراز هویت + اطلاعات بانکی، صفحه‌ی پرداخت ادمین، پیام مستقیم، ریویو در پروفایل، و ویرایش/حذف پروژه. به‌علاوه نقشه‌ی بازار به داده‌ی ۱:۱۰m ارتقا پیدا کرد و ابزارهای مدیریتی کاتالوگ اضافه شد.
+**آخرین آپدیت:** 2026-08-23 (دور چهارم) — ✅ **۵ آیتم باقی‌مانده‌ی نقشه راه بسته شد**: از فاز ۶، Broadcast & Notification Center، Email Reputation Score، Automated Weekly Digest، و Community Feed؛ و از فاز ۵، Gmail OAuth Connect (ارسال از ایمیل خود کاربر). فاز ۶ حالا **کامل** است. پیش از اون: افکت گذار نرم بین صفحات + هاور یکپارچه، و پیش‌تر Phase 6 (Project Marketplace) با ۹ ایراد رفع‌شده بعد از تست واقعی Milad. هر ۷ فاز اصلی نقشه راه پیاده شد (تابلوی پروژه، پروپوزال، قرارداد با مایلستون، چرخه‌ی کامل پرداخت دستی، چت، ریویو، محدودیت‌های بتا)، دور دوم اضافه کرد: آپدیت زنده بدون رفرش، سیستم نوتیفیکیشن با ایمیل، احراز هویت + اطلاعات بانکی، صفحه‌ی پرداخت ادمین، پیام مستقیم، ریویو در پروفایل، و ویرایش/حذف پروژه. به‌علاوه نقشه‌ی بازار به داده‌ی ۱:۱۰m ارتقا پیدا کرد و ابزارهای مدیریتی کاتالوگ اضافه شد.
+
+---
+
+## 🆕 دور چهارم 2026-08-23 — تکمیل فاز ۶ + Gmail OAuth از فاز ۵
+
+بررسی روی روی‌بگ اصلی (`Vision and Roadmap V04.html`) نشون داد ۴ آیتم فاز ۶ و یک آیتم فاز ۵ هیچ‌وقت پیاده نشده بودن، هرچند STATUS.md قبلاً فاز ۶ رو «تکمیل» اعلام کرده بود. این دور همه‌شون رو بست.
+
+### ۱. Broadcast & Notification Center
+- `services/notifications.py` → تابع `broadcast()` (بازاستفاده از `notify()` موجود روی لیست دلخواه کاربران).
+- `routers/marketplace/admin.py` → `GET /marketplace/admin/broadcast/preview` + `POST /marketplace/admin/broadcast` — فیلتر بر اساس plan، `marketplace_beta_enabled`، و `last_login`. **کشور پشتیبانی نمی‌شه** چون روی `User` وجود نداره (فقط روی `Company`/`UserVerification` هست).
+- UI در `admin/page.tsx`: فیلتر → Preview count → تایید → ارسال (دقیقاً الگوی bulk-delete موجود).
+
+### ۲. Email Reputation Score
+- بدون webhook از Resend (تنظیم نشده) — فرمول تقریبی: `score = clamp(0,100, reply_rate*100 - bounced_manual*10)`.
+- جدول جدید `email_reputation_events` (`services/reputation.py`). رویداد `sent` هر بار ارسال موفق (`companies/email.py`)، `replied` وقتی کمپین به replied می‌ره (`companies/campaigns.py`)، `bounced_manual` با دکمه‌ی دستی ادمین (`POST /companies/email/{id}/mark-bounced`).
+- کارت امتیاز در **صفحه‌ی پروفایل خود کاربر** (`profile/page.tsx`) — فقط وقتی حداقل یک ایمیل ارسال شده نشون داده می‌شه.
+
+### ۳. Automated Weekly Digest
+- APScheduler داخل خود پروسه (هیچ cron خارجی توی ریپو نبود) — `services/digest_scheduler.py`، استارت در `main.py` روی `startup` event موجود.
+- زمان‌بندی: **دوشنبه ۸:۰۰ UTC**. محتوا: خلاصه‌ی کوتاه (تعداد ایمیل ارسالی/ریپلای هفته) نه گزارش کامل مثل صفحه‌ی Weekly Report موجود (اون جداست، AI-generated، با قفل ۷روزه‌ی خودش).
+- جدول `weekly_digest_log` جلوی ارسال دوباره رو موقع ری‌استارت سرور می‌گیره. **ارسال Digest جزو سهمیه‌ی ماهانه‌ی ایمیل کاربر حساب نمی‌شه.**
+- ⚠️ نیاز به `APScheduler==3.10.4` (اضافه به `requirements.txt`) — روی Railway باید نصب بشه.
+
+### ۴. Community Feed
+- ۴ جدول جدید: `mp_posts` (با soft-delete)، `mp_post_likes`، `mp_post_comments`، `mp_post_reports`.
+- روتر جدید `routers/marketplace/feed.py` (الگوی استاندارد ماژول‌های مارکت‌پلیس) — پست/لایک/کامنت/ریپورت/ادیت/حذف، به‌علاوه `GET /marketplace/feed/users/{id}/posts` برای نمایش در پروفایل.
+- **اولین پیجینیشن پروژه**: `services/pagination.py` (`limit`/`offset`/`has_more`) — قبلاً همه‌ی لیست‌ها `.all()` بدون صفحه‌بندی بودن.
+- فرانت: صفحه‌ی `/feed` جدید، آیتم Feed در Sidebar، بخش «Posts» در `/members/[id]`، و تب «Reported Posts» در Marketplace Admin برای دیدن و حذف پست‌های ریپورت‌شده.
+- دامنه‌ی نهایی طبق خواسته‌ی Milad: متن + عکس + لایک + کامنت + ریپورت + ادیت/حذف توسط خود کاربر.
+
+### ۵. Gmail OAuth Connect (باقی‌مانده‌ی فاز ۵)
+- فقط اسکوپ `gmail.send` — Archon هرگز inbox رو نمی‌خونه.
+- ستون‌های جدید nullable روی `users`: `google_refresh_token_encrypted`, `google_email`, `google_connected_at` (auto-ALTER، امن روی دیتابیس موجود).
+- **اولین سکرت reversible این دیتابیس** (بقیه مثل رمز عبور one-way hash هستن) — پس `services/crypto.py` با Fernet رمزنگاریش می‌کنه؛ کلید رمزنگاری فقط در env var جدید `ENCRYPTION_KEY` هست، هرگز در دیتابیس.
+- روتر جدید `routers/google_oauth.py`: `/auth/google/authorize` → ریدایرکت گوگل → `/auth/google/callback` → ذخیره‌ی توکن رمزشده. `/auth/google/disconnect` برای قطع اتصال.
+- نقطه‌ی سوییچ در `companies/email.py`: اگه کاربر Gmail وصل کرده **و ایمیل ضمیمه نداره** (Gmail service فعلاً attachment ساپورت نمی‌کنه)، اول با Gmail امتحان می‌شه؛ هر خطایی fallback به Resend مشترک.
+- UI: کارت «Send emails from Gmail» در تب Security پروفایل — Connect/Disconnect.
+- ⚠️ **نیاز به تنظیم دستی خارج از کد**: ساخت پروژه در Google Cloud Console، فعال‌سازی Gmail API، OAuth consent screen، ساخت OAuth Client (Web)، ثبت redirect URI (`{BACKEND_URL}/auth/google/callback`)، و ست‌کردن `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ENCRYPTION_KEY` (تولید با `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`), و `BACKEND_URL` روی env محلی و Railway. **بدون این env varها، بقیه‌ی اپ عادی کار می‌کنه** — این فیچر فقط غیرفعال می‌مونه.
+
+### تست
+هر ۵ فیچر با HTTP واقعی روی سرور لوکال تست شد (نه فقط import/compile check): لاگین، ساخت پست، لایک، کامنت، ریپورت، دیدن در پنل ادمین، حذف؛ preview/send برودکست؛ خوندن reputation. فرانت‌اند هم در مرورگر واقعی چک شد (صفحه‌ی Feed، تب Security پروفایل، Admin Panel، Marketplace Admin) — بدون خطای کنسول. `tsc --noEmit` تمیز پاس شد. دیتابیس تست (`dev_smoke.db`) بعد از تست پاک شد.
+
+⚠️ **نکته‌ی migration:** سه جدول جدید (`email_reputation_events`, `weekly_digest_log`, `mp_posts`+`mp_post_likes`+`mp_post_comments`+`mp_post_reports`) خودکار با `create_all` ساخته می‌شن، بدون نیاز به دستور دستی. ستون‌های جدید `users` (Gmail) با auto-ALTER اضافه می‌شن. **قبل از deploy روی production بک‌آپ بگیر.**
 
 ---
 

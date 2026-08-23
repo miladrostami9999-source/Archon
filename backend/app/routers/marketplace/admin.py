@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from app.models.database import (
     get_db, MilestonePayment, MilestonePayout, Milestone, Contract, Project, User,
@@ -248,3 +248,59 @@ def create_payout(
                              f"/contracts/{contract.id}")
     db.commit()
     return {"message": "Payout recorded — milestone released"}
+
+
+# ── Broadcast & Notification Center ──────────────────────────────────────
+# Segments a user can target: plan tier, whether marketplace is enabled for
+# them, and recency of login. No country filter — User has no country field
+# (country only lives on Company / UserVerification).
+
+class BroadcastSend(BaseModel):
+    title: str
+    body: str = ""
+    link: str = ""
+    also_email: bool = False
+    plan: Optional[str] = None
+    marketplace_beta: Optional[bool] = None
+    active_since_days: Optional[int] = None
+
+
+def _segment_query(db: Session, plan: Optional[str], marketplace_beta: Optional[bool], active_since_days: Optional[int]):
+    q = db.query(User).filter(User.is_active.is_(True))
+    if plan:
+        q = q.filter(User.plan == plan)
+    if marketplace_beta is not None:
+        q = q.filter(User.marketplace_beta_enabled.is_(marketplace_beta))
+    if active_since_days is not None:
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=active_since_days)
+        q = q.filter(User.last_login.isnot(None), User.last_login >= cutoff)
+    return q
+
+
+@router.get("/broadcast/preview")
+def broadcast_preview(
+    plan: Optional[str] = None,
+    marketplace_beta: Optional[bool] = None,
+    active_since_days: Optional[int] = None,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    count = _segment_query(db, plan, marketplace_beta, active_since_days).count()
+    return {"count": count}
+
+
+@router.post("/broadcast")
+def send_broadcast(
+    data: BroadcastSend,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if not data.title.strip():
+        raise HTTPException(status_code=400, detail="A title is required")
+    recipients = _segment_query(db, data.plan, data.marketplace_beta, data.active_since_days).all()
+    if not recipients:
+        return {"sent": 0}
+    sent = notif.broadcast(db, recipients, data.title, data.body, data.link, data.also_email)
+    db.commit()
+    return {"sent": sent}

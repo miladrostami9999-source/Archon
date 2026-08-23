@@ -65,6 +65,17 @@ export default function AdminPanel() {
   const [manualMergeFrom, setManualMergeFrom] = useState('')
   const [manualMergeTo, setManualMergeTo] = useState('')
 
+  // ── BROADCAST & NOTIFICATION CENTER ──
+  const [bcFilters, setBcFilters] = useState<{ plan: string; marketplace_beta: string; active_since_days: string }>({ plan: '', marketplace_beta: '', active_since_days: '' })
+  const [bcTitle, setBcTitle] = useState('')
+  const [bcBody, setBcBody] = useState('')
+  const [bcLink, setBcLink] = useState('')
+  const [bcAlsoEmail, setBcAlsoEmail] = useState(false)
+  const [bcPreview, setBcPreview] = useState<number | null>(null)
+  const [bcChecking, setBcChecking] = useState(false)
+  const [bcSending, setBcSending] = useState(false)
+  const [bcMsg, setBcMsg] = useState('')
+
   // Admin-only page — members who navigate here directly get sent back
   useEffect(() => {
     try {
@@ -283,6 +294,41 @@ export default function AdminPanel() {
       setBulkMsg(`✗ ${e.response?.data?.detail || 'Delete failed'}`)
     }
     setBulkDeleting(false)
+  }
+
+  const bcParams = () => {
+    const p: Record<string, any> = {}
+    if (bcFilters.plan) p.plan = bcFilters.plan
+    if (bcFilters.marketplace_beta) p.marketplace_beta = bcFilters.marketplace_beta === 'true'
+    if (bcFilters.active_since_days) p.active_since_days = Number(bcFilters.active_since_days)
+    return p
+  }
+
+  const checkBcPreview = async () => {
+    setBcChecking(true); setBcMsg(''); setBcPreview(null)
+    try {
+      const res = await axios.get(`${API}/marketplace/admin/broadcast/preview`, { headers: headers(), params: bcParams() })
+      setBcPreview(res.data.count)
+    } catch (e: any) {
+      setBcMsg(`✗ ${e.response?.data?.detail || 'Could not check'}`)
+    }
+    setBcChecking(false)
+  }
+
+  const sendBroadcast = async () => {
+    if (!bcTitle.trim()) { setBcMsg('✗ Title is required'); return }
+    if (!window.confirm(`Send this to ${bcPreview ?? 'the matching'} user(s)?`)) return
+    setBcSending(true); setBcMsg('')
+    try {
+      const res = await axios.post(`${API}/marketplace/admin/broadcast`,
+        { ...bcParams(), title: bcTitle, body: bcBody, link: bcLink, also_email: bcAlsoEmail },
+        { headers: headers() })
+      setBcMsg(`✓ Sent to ${res.data.sent} user(s)`)
+      setBcPreview(0)
+    } catch (e: any) {
+      setBcMsg(`✗ ${e.response?.data?.detail || 'Send failed'}`)
+    }
+    setBcSending(false)
   }
 
   const kpiCards = [
@@ -635,6 +681,69 @@ export default function AdminPanel() {
               {bulkDeleting ? 'Deleting…' : 'Delete matching companies'}
             </button>
             {bulkMsg && <span style={{ fontSize: '12px', color: bulkMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bulkMsg}</span>}
+          </div>
+
+          {/* ── BROADCAST & NOTIFICATION CENTER ── */}
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Broadcast &amp; Notification Center</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
+            Send an in-app notification (optionally also by email) to every user matching a segment. Leave all filters empty to target everyone.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Plan</label>
+              <select value={bcFilters.plan} onChange={e => { setBcFilters(s => ({ ...s, plan: e.target.value })); setBcPreview(null) }} style={input}>
+                <option value="">Any</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="agency">Agency</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Marketplace enabled</label>
+              <select value={bcFilters.marketplace_beta} onChange={e => { setBcFilters(s => ({ ...s, marketplace_beta: e.target.value })); setBcPreview(null) }} style={input}>
+                <option value="">Any</option>
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Active in the last (days)</label>
+              <input type="number" min={1} value={bcFilters.active_since_days} onChange={e => { setBcFilters(s => ({ ...s, active_since_days: e.target.value })); setBcPreview(null) }} placeholder="Any" style={input} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Title</label>
+              <input value={bcTitle} onChange={e => setBcTitle(e.target.value)} placeholder="e.g. New feature: Community Feed" style={input} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Link (optional, e.g. /feed)</label>
+              <input value={bcLink} onChange={e => setBcLink(e.target.value)} placeholder="/feed" style={input} />
+            </div>
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Message</label>
+            <textarea value={bcBody} onChange={e => setBcBody(e.target.value)} rows={3} placeholder="What do you want to tell them?" style={{ ...input, resize: 'vertical' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '32px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+              <input type="checkbox" checked={bcAlsoEmail} onChange={e => setBcAlsoEmail(e.target.checked)} />
+              Also send by email
+            </label>
+            <button onClick={checkBcPreview} disabled={bcChecking}
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer', opacity: bcChecking ? 0.6 : 1 }}>
+              {bcChecking ? 'Checking…' : 'Preview count'}
+            </button>
+            {bcPreview !== null && (
+              <span style={{ fontSize: '13px', fontWeight: 600, color: bcPreview > 0 ? 'var(--text)' : 'var(--text-dim)' }}>
+                {bcPreview} {bcPreview === 1 ? 'user matches' : 'users match'}
+              </span>
+            )}
+            <button onClick={sendBroadcast} disabled={bcSending || bcPreview === 0 || !bcTitle.trim()}
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (bcSending || bcPreview === 0 || !bcTitle.trim()) ? 0.5 : 1 }}>
+              {bcSending ? 'Sending…' : 'Send broadcast'}
+            </button>
+            {bcMsg && <span style={{ fontSize: '12px', color: bcMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bcMsg}</span>}
           </div>
 
           {/* PAYMENT INSTRUCTIONS EDITOR */}

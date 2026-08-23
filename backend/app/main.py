@@ -6,6 +6,7 @@ from app.models.database import init_db
 from app.routers import companies
 from app.routers import auth
 from app.routers import marketplace
+from app.routers import google_oauth
 
 load_dotenv()
 
@@ -38,10 +39,19 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
+    from app.services import digest_scheduler
+    digest_scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    from app.services import digest_scheduler
+    digest_scheduler.shutdown()
 
 app.include_router(companies.router)
 app.include_router(auth.router)
 app.include_router(marketplace.router)
+app.include_router(google_oauth.router)
 
 @app.get("/")
 def root():
