@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import ContractChat from '../components/ContractChat'
+import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -85,7 +86,7 @@ export default function MessagesPage() {
           {totalUnread > 0 && (
             <span style={{ fontSize: '11px', fontWeight: 700, color: 'white', background: '#EF4444', padding: '1px 7px', borderRadius: '999px' }}>{totalUnread}</span>
           )}
-          <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 7px', borderRadius: '999px', textTransform: 'uppercase', marginLeft: 'auto' }}>Beta</span>
+          <BetaTag />
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           {(['all', 'unread'] as const).map(f => (

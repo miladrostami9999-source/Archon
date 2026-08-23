@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 import PublishSection from './PublishSection'
 
@@ -533,7 +534,7 @@ export default function ProfilePage() {
             <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Marketplace mode</h2>
-                <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 7px', borderRadius: '999px', textTransform: 'uppercase' }}>Beta</span>
+                <BetaTag />
               </div>
               <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
                 Switch any time — one account does both. Hiring and working just lead with different views, and your

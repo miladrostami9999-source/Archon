@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -119,7 +120,7 @@ export default function ProjectsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Projects</h1>
-              <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase' }}>Beta</span>
+              <BetaTag />
             </div>
             <button onClick={() => setShowPost(s => !s)}
               style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
@@ -131,6 +132,8 @@ export default function ProjectsPage() {
               ? 'Post a project to get proposals from freelancers. You can also browse the open board and propose on other people’s work.'
               : 'Browse open projects and send a proposal. You can post your own project here too — same account, no switching needed.'}
           </p>
+
+          <MarketplaceBeta />
 
           {showPost && (
             <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px', marginBottom: '20px' }}>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
+import MarketplaceBeta from '../../components/MarketplaceBeta'
 import ContractChat from '../../components/ContractChat'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
@@ -231,6 +232,8 @@ export default function ContractDetailPage() {
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '780px', margin: '0 auto' }}>
           <a href="/contracts" style={{ fontSize: '12.5px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: '14px' }}>← Back to contracts</a>
+
+          <MarketplaceBeta />
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>

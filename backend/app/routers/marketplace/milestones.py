@@ -35,6 +35,14 @@ def fund_milestone(
         raise HTTPException(status_code=403, detail="Only the client on this contract can fund it")
     if m.status != "pending":
         raise HTTPException(status_code=400, detail="This milestone isn't awaiting funding")
+    # The claimed figure has to be the milestone's own — an admin still eyeballs
+    # the receipt, but they shouldn't have to catch arithmetic too, and a
+    # short payment approved by mistake would leave the freelancer owed money.
+    if abs((data.amount or 0) - (m.amount or 0)) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"This milestone is {m.amount:,.2f} {c.currency}. Enter that amount to fund it.",
+        )
     payment = MilestonePayment(
         milestone_id=m.id, amount=data.amount, currency=data.currency, method=data.method,
         reference=data.reference, receipt_url=data.receipt_url, note=data.note, status="pending",

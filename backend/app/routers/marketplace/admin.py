@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
@@ -34,6 +35,37 @@ def _payment_to_dict(p: MilestonePayment, db: Session) -> dict:
         "created_at": p.created_at.isoformat() if p.created_at else None,
         "reviewed_at": p.reviewed_at.isoformat() if p.reviewed_at else None,
     }
+
+
+class MarketplaceSettingsUpdate(BaseModel):
+    max_contract_usd: float
+
+
+@router.get("/settings")
+def get_marketplace_settings(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.services.marketplace_limits import get_contract_cap_usd
+    return {"max_contract_usd": get_contract_cap_usd(db)}
+
+
+@router.put("/settings")
+def update_marketplace_settings(
+    data: MarketplaceSettingsUpdate,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Raise or lift the beta contract ceiling without a deploy. 0 = no limit."""
+    from app.models.database import AppSetting
+    from app.services.marketplace_limits import CAP_KEY
+
+    if data.max_contract_usd < 0:
+        raise HTTPException(status_code=400, detail="The cap can't be negative (use 0 for no limit)")
+    row = db.query(AppSetting).filter(AppSetting.key == CAP_KEY).first()
+    if row:
+        row.value = str(data.max_contract_usd)
+    else:
+        db.add(AppSetting(key=CAP_KEY, value=str(data.max_contract_usd)))
+    db.commit()
+    return {"message": "Marketplace settings saved", "max_contract_usd": data.max_contract_usd}
 
 
 @router.get("/payments")

@@ -183,6 +183,25 @@ def accept_proposal(
     if project.status != "open":
         raise HTTPException(status_code=400, detail="This project already has an accepted proposal")
 
+    # Accepting is the moment money is committed, so the beta ceiling is
+    # enforced here rather than at posting time — a project's budget range is
+    # only an estimate, but a contract total is real.
+    from app.services.marketplace_limits import check_contract_amount
+    check_contract_amount(db, proposal.proposed_amount or 0, project.currency)
+
+    # Milestones are what actually get funded, so they have to add up to the
+    # figure that was just capped — otherwise the ceiling is trivially
+    # sidestepped by splitting a big job into oversized milestones.
+    if data.milestones:
+        if any((m.amount or 0) <= 0 for m in data.milestones):
+            raise HTTPException(status_code=400, detail="Every milestone needs an amount above zero")
+        total = sum(m.amount or 0 for m in data.milestones)
+        if abs(total - (proposal.proposed_amount or 0)) > 0.01:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Milestones add up to {total:,.2f} but the agreed amount is {proposal.proposed_amount:,.2f}.",
+            )
+
     proposal.status = "accepted"
     project.status = "in_progress"
     # Every other pending proposal on this project is now moot.

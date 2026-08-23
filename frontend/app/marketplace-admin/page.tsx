@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -69,6 +70,17 @@ export default function MarketplaceAdminPage() {
   const [msg, setMsg] = useState('')
 
   const [payoutForm, setPayoutForm] = useState({ milestone_id: '', amount: '', method: '', reference: '', admin_note: '' })
+  const [cap, setCap] = useState('')
+  const [capSaving, setCapSaving] = useState(false)
+
+  const saveCap = async () => {
+    setCapSaving(true); setMsg('')
+    try {
+      const r = await axios.put(`${API}/marketplace/admin/settings`, { max_contract_usd: Number(cap || 0) })
+      setMsg(`✓ ${r.data.message}`)
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not save'}`) }
+    setCapSaving(false)
+  }
   const approvedMilestones = contracts.flatMap(c => c.milestones.filter(m => m.status === 'approved').map(m => ({ ...m, contract: c })))
 
   const load = () => {
@@ -81,6 +93,9 @@ export default function MarketplaceAdminPage() {
       setPayments(p.data); setProjects(pr.data); setContracts(c.data)
     }).catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
+    axios.get(`${API}/marketplace/admin/settings`)
+      .then(r => setCap(String(r.data.max_contract_usd ?? '')))
+      .catch(() => {})
   }
   useEffect(() => { load() }, [])
 
@@ -139,11 +154,13 @@ export default function MarketplaceAdminPage() {
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Marketplace Admin</h1>
-            <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase' }}>Beta</span>
+            <BetaTag />
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
             Verify milestone payments, browse all projects and contracts, and record payouts to freelancers.
           </p>
+
+          <MarketplaceBeta />
 
           <div style={{ display: 'flex', gap: '6px', marginBottom: '18px', flexWrap: 'wrap' }}>
             {([
@@ -259,6 +276,27 @@ export default function MarketplaceAdminPage() {
               </div>
             )
           ) : (
+            <>
+            {/* Beta exposure limit — every open contract is money Archon is
+                holding, so this caps how much can be in flight at once. */}
+            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px' }}>Beta limits</p>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
+                The most a single contract may be worth while the marketplace is in beta. Checked when a client accepts a
+                proposal, converted from the contract&apos;s own currency. Use <strong>0</strong> to remove the limit.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ width: '190px' }}>
+                  <label style={label}>Max per contract (USD)</label>
+                  <input type="number" value={cap} onChange={e => setCap(e.target.value)} placeholder="500" style={input} />
+                </div>
+                <button onClick={saveCap} disabled={capSaving}
+                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: capSaving ? 0.6 : 1 }}>
+                  {capSaving ? 'Saving…' : 'Save limit'}
+                </button>
+              </div>
+            </div>
+
             <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
               <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '12px' }}>Record a payout</p>
               {approvedMilestones.length === 0 ? (
@@ -303,6 +341,7 @@ export default function MarketplaceAdminPage() {
                 </>
               )}
             </div>
+            </>
           )}
         </div>
       </main>

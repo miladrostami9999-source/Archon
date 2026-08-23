@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -52,11 +53,13 @@ export default function ContractsPage() {
         <div style={{ maxWidth: '860px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>My Contracts</h1>
-            <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase' }}>Beta</span>
+            <BetaTag />
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
             Every contract you're party to, whether you're the client or the freelancer.
           </p>
+
+          <MarketplaceBeta />
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
