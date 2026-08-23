@@ -43,11 +43,16 @@ const relative = (iso: string) => {
   return `${Math.floor(h / 24)}d`
 }
 
+const PANEL_WIDTH = 320
+const PANEL_MARGIN = 12  // keep clear of the viewport edge
+
 export default function NotificationBell({ dark = true }: { dark?: boolean }) {
   const [items, setItems] = useState<Item[]>([])
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const load = () => {
     axios.get(`${API}/marketplace/notifications`, { params: { limit: 20 } })
@@ -75,6 +80,17 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
     const willOpen = !open
     setOpen(willOpen)
     if (willOpen) {
+      // Anchor to the button's actual on-screen position rather than the
+      // narrow sidebar it sits in — `right: 0` on a relative ancestor near
+      // the sidebar's left edge pushed most of a 320px panel off-screen.
+      const rect = btnRef.current?.getBoundingClientRect()
+      if (rect) {
+        const left = Math.min(
+          Math.max(PANEL_MARGIN, rect.right - PANEL_WIDTH),
+          window.innerWidth - PANEL_WIDTH - PANEL_MARGIN,
+        )
+        setPos({ top: rect.bottom + 6, left })
+      }
       // Opening the list counts as having seen them — otherwise the badge
       // sits there forever unless every single item happens to get clicked.
       // Mark-read first, then reload, so the fetch doesn't race the local
@@ -105,7 +121,7 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={openList} aria-label="Notifications"
+      <button ref={btnRef} onClick={openList} aria-label="Notifications"
         style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: dim, padding: '5px', display: 'flex', alignItems: 'center', borderRadius: '8px' }}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -122,7 +138,7 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
 
       {open && (
         <div style={{
-          position: 'absolute', top: '32px', right: 0, zIndex: 60, width: '320px',
+          position: 'fixed', top: pos.top, left: pos.left, zIndex: 60, width: `${PANEL_WIDTH}px`,
           maxHeight: '420px', display: 'flex', flexDirection: 'column',
           background: surface, border: `1px solid ${border}`, borderRadius: '12px',
           boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden',
