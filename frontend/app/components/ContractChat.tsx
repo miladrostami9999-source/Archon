@@ -19,8 +19,17 @@ interface ChatMessage {
  * Chat between the two parties on a contract. Polling rather than
  * websockets — simpler to run correctly, and a 5s delay is fine for a
  * negotiation/status thread that isn't the primary interaction surface.
+ *
+ * `fill` switches from the boxed card used on the contract page (where the
+ * thread is one section among several in a scrolling column, so it needs a
+ * ceiling) to filling whatever height it's given — which is what the
+ * Messages page wants, since there the thread *is* the page.
  */
-export default function ContractChat({ contractId, currentUserId }: { contractId: number; currentUserId: number }) {
+export default function ContractChat({ contractId, currentUserId, fill = false }: {
+  contractId: number
+  currentUserId: number
+  fill?: boolean
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [attachment, setAttachment] = useState<{ url: string; name: string } | null>(null)
@@ -80,12 +89,21 @@ export default function ContractChat({ contractId, currentUserId }: { contractId
   }
 
   return (
-    <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', flexDirection: 'column', maxHeight: '480px' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Messages</p>
-      </div>
+    <div style={{
+      display: 'flex', flexDirection: 'column', background: 'var(--bg-card)',
+      ...(fill
+        // Fills the pane it's given; the page around it already supplies the
+        // frame and the "who am I talking to" header.
+        ? { height: '100%', minHeight: 0 }
+        : { borderRadius: '14px', border: '1px solid var(--border)', maxHeight: '480px' }),
+    }}>
+      {!fill && (
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Messages</p>
+        </div>
+      )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '160px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: fill ? 0 : '160px' }}>
         {messages.length === 0 ? (
           <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', textAlign: 'center', margin: 'auto 0' }}>No messages yet. Say hello.</p>
         ) : messages.map(m => {

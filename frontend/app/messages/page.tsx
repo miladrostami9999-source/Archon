@@ -172,10 +172,10 @@ export default function MessagesPage() {
           Open contract →
         </a>
       </div>
-      <div style={{ flex: 1, minHeight: 0, padding: '14px 18px', overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Keyed so switching threads remounts with fresh state instead of
             briefly showing the previous conversation's messages. */}
-        <ContractChat key={active.contract_id} contractId={active.contract_id} currentUserId={currentUserId} />
+        <ContractChat key={active.contract_id} contractId={active.contract_id} currentUserId={currentUserId} fill />
       </div>
     </div>
   ) : (
@@ -185,17 +185,22 @@ export default function MessagesPage() {
   )
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
+    // 100dvh rather than 100vh: this is a full-height chat, and on mobile the
+    // difference is the message box sitting under the browser's own bar.
+    <div style={{ display: 'flex', height: '100dvh', maxHeight: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
       <Sidebar />
-      <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', paddingTop: isMobile ? '52px' : 0, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+      <main style={{
+        flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100%',
+        paddingTop: isMobile ? '52px' : 0, display: 'flex', minWidth: 0, minHeight: 0, overflow: 'hidden',
+      }}>
         {isMobile ? (
-          <div style={{ flex: 1, minWidth: 0 }}>{selected ? Thread : ConversationList}</div>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>{selected ? Thread : ConversationList}</div>
         ) : (
           <>
-            <div style={{ width: '320px', flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+            <div style={{ width: '320px', flexShrink: 0, minHeight: 0, borderRight: '1px solid var(--border)', background: 'var(--bg-card)' }}>
               {ConversationList}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>{Thread}</div>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>{Thread}</div>
           </>
         )}
       </main>
