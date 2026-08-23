@@ -931,7 +931,7 @@ def init_db():
                 conn.execute(_text("ALTER TABLE users ADD COLUMN google_email VARCHAR"))
                 conn.commit()
             if "google_connected_at" not in user_cols:
-                conn.execute(_text("ALTER TABLE users ADD COLUMN google_connected_at DATETIME"))
+                conn.execute(_text("ALTER TABLE users ADD COLUMN google_connected_at TIMESTAMP"))
                 conn.commit()
     except Exception as e:
         print(f"⚠️  Column migration check: {e}")
