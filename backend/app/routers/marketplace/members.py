@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Contract, Review, User
 from app.routers.auth import get_current_user
-from app.services.marketplace_access import get_user_rating
+from app.services.marketplace_access import get_user_rating, is_verified
 
 router = APIRouter(prefix="/members", tags=["marketplace-members"])
 
@@ -60,6 +60,7 @@ def member_profile(
         "name": user.name,
         "username": user.username,
         "is_public": bool(user.is_public),
+        "is_verified": is_verified(db, user.id),
         "account_mode": user.account_mode or "freelancer",
         "avatar": data.get("avatar", ""),
         "bio": data.get("bio", ""),
@@ -78,6 +79,7 @@ def member_profile(
             "comment": r.comment,
             "reviewer_name": reviewer.name,
             "reviewer_id": reviewer.id,
+            "reviewer_verified": is_verified(db, reviewer.id),
             "created_at": r.created_at.isoformat() if r.created_at else None,
         } for r, reviewer in review_rows],
         "is_me": user.id == current_user.id,

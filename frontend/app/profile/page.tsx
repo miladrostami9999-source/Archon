@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 import PublishSection from './PublishSection'
 
@@ -50,6 +51,7 @@ interface UserProfile {
   id: number; name: string; email: string
   role: string; plan: string; created_at: string; last_login: string | null
   google_email?: string | null
+  is_verified?: boolean
 }
 
 interface PortfolioImage { id: string; data: string; name: string; alt?: string }
@@ -546,7 +548,9 @@ export default function ProfilePage() {
 
               {/* INFO */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em' }}>{user?.name || '—'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {user?.name || '—'}{user?.is_verified && <VerifiedBadge size={18} />}
+                </h1>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 8px' }}>{user?.email}</p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                   {plan && <span style={{ fontSize: '11px', fontWeight: 700, color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase' }}>{plan.label}</span>}

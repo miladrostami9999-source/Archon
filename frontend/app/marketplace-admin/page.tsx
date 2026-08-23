@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -13,6 +14,7 @@ interface Payment {
   milestone_title: string | null
   contract_id: number | null
   client_name: string | null
+  client_verified: boolean
   amount: number
   currency: string
   method: string | null
@@ -42,7 +44,9 @@ interface Contract {
   id: number
   project_title: string | null
   client_name: string | null
+  client_verified: boolean
   freelancer_name: string | null
+  freelancer_verified: boolean
   total_amount: number | null
   currency: string
   status: string
@@ -272,8 +276,8 @@ export default function MarketplaceAdminPage() {
                               <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{p.milestone_title || `Milestone #${p.milestone_id}`}</span>
                               <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
                             </div>
-                            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                              {p.client_name} · <a href={`/contracts/${p.contract_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>Contract #{p.contract_id}</a>
+                            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {p.client_name}{p.client_verified && <VerifiedBadge size={11} />} · <a href={`/contracts/${p.contract_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>Contract #{p.contract_id}</a>
                             </div>
                             <div style={{ fontSize: '12.5px', color: 'var(--text)', marginTop: '6px' }}>
                               {p.amount.toLocaleString('en-US')} {p.currency}
@@ -394,7 +398,7 @@ export default function MarketplaceAdminPage() {
                     <button key={c.id} onClick={() => openContract(c.id)}
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', borderRadius: '12px', border: `1px solid ${due ? 'rgba(52,211,153,0.35)' : 'var(--border)'}`, background: due ? 'rgba(52,211,153,0.06)' : 'var(--bg-card)', padding: '12px 16px', cursor: 'pointer', flexWrap: 'wrap', gap: '6px' }}>
                       <span style={{ fontSize: '13.5px', color: 'var(--text)' }}>
-                        {c.project_title || `Contract #${c.id}`} — {c.client_name} → {c.freelancer_name}
+                        {c.project_title || `Contract #${c.id}`} — {c.client_name}{c.client_verified && <VerifiedBadge size={11} />} → {c.freelancer_name}{c.freelancer_verified && <VerifiedBadge size={11} />}
                         {due > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.14)', padding: '2px 8px', borderRadius: '999px' }}>💰 payout due</span>}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{c.total_amount?.toLocaleString('en-US')} {c.currency} · {c.status}</span>
@@ -521,8 +525,10 @@ export default function MarketplaceAdminPage() {
                       </h2>
                       <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
                         <a href={`/members/${detail.client.id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{detail.client_name}</a>
+                        {detail.client_verified && <VerifiedBadge size={11} />}
                         {' → '}
                         <a href={`/members/${detail.freelancer.id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{detail.freelancer_name}</a>
+                        {detail.freelancer_verified && <VerifiedBadge size={11} />}
                         {' · '}{detail.total_amount?.toLocaleString('en-US')} {detail.currency} · {detail.status}
                       </p>
                     </div>

@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import MarketplaceBeta from '../../components/MarketplaceBeta'
+import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -21,6 +22,7 @@ interface Project {
   created_at: string
   client_id: number
   client_name: string | null
+  client_verified: boolean
   is_owner: boolean
   proposal_count: number
   my_proposal_status: string | null
@@ -32,6 +34,7 @@ interface Proposal {
   project_id: number
   freelancer_id: number
   freelancer_name: string | null
+  freelancer_verified: boolean
   freelancer_avatar: string
   freelancer_headline: string
   freelancer_username: string | null
@@ -310,7 +313,7 @@ export default function ProjectDetailPage() {
                   {budget && <span>💰 {budget}</span>}
                   {project.deadline && <span>📅 Due {new Date(project.deadline).toLocaleDateString()}</span>}
                   {!project.is_owner && (
-                    <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{project.client_name || 'a client'}</a></span>
+                    <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={11} />}</a></span>
                   )}
                 </div>
               </div>
@@ -351,8 +354,8 @@ export default function ProjectDetailPage() {
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
                                     <a href={`/members/${p.freelancer_id}`}
-                                      style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
-                                      {p.freelancer_name || 'Freelancer'}
+                                      style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      {p.freelancer_name || 'Freelancer'}{p.freelancer_verified && <VerifiedBadge size={12} />}
                                     </a>
                                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
                                   </div>

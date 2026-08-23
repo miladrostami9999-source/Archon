@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
+import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -12,12 +13,13 @@ interface PortfolioItem { id: string; title: string; desc: string; url: string; 
 
 interface Member {
   id: number; name: string; username: string | null; is_public: boolean
+  is_verified: boolean
   account_mode: string; avatar: string; bio: string; location: string
   website: string; company: string
   skills: string[]; customSkills: string[]; portfolio: PortfolioItem[]
   rating: number | null; review_count: number
   satisfaction: number | null; completed_contracts: number
-  reviews: { rating: number; comment: string | null; reviewer_name: string; reviewer_id: number; created_at: string }[]
+  reviews: { rating: number; comment: string | null; reviewer_name: string; reviewer_id: number; reviewer_verified: boolean; created_at: string }[]
   is_me: boolean
 }
 
@@ -92,7 +94,9 @@ export default function MemberProfilePage() {
                       : <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{initials}</span>}
                   </div>
                   <div style={{ flex: 1, minWidth: '180px' }}>
-                    <h1 style={{ fontSize: '21px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>{m.name}</h1>
+                    <h1 style={{ fontSize: '21px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      {m.name}{m.is_verified && <VerifiedBadge size={17} />}
+                    </h1>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
                       <span>{m.account_mode === 'client' ? '💼 Hires' : '🎨 Takes work'}</span>
                       {m.company && <span>🏢 {m.company}</span>}
@@ -150,7 +154,7 @@ export default function MemberProfilePage() {
                           <span style={{ fontSize: '13px', color: '#FBBF24', letterSpacing: '1px' }}>
                             {'★'.repeat(r.rating)}<span style={{ opacity: 0.25 }}>{'★'.repeat(5 - r.rating)}</span>
                           </span>
-                          <a href={`/members/${r.reviewer_id}`} style={{ fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>{r.reviewer_name}</a>
+                          <a href={`/members/${r.reviewer_id}`} style={{ fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{r.reviewer_name}{r.reviewer_verified && <VerifiedBadge size={11} />}</a>
                           <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: 'auto' }}>
                             {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                           </span>

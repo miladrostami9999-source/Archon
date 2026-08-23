@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -21,6 +22,7 @@ interface User {
   created_at: string; last_login: string | null
   marketplace_beta_enabled?: boolean
   account_mode?: string
+  is_verified?: boolean
 }
 
 export default function UsersPage() {
@@ -141,7 +143,7 @@ export default function UsersPage() {
                     )}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{detail.name}</h2>
+                    <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>{detail.name}{detail.is_verified && <VerifiedBadge size={15} />}</h2>
                     <a href={`mailto:${detail.email}`} style={{ fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>{detail.email}</a>
                     <div style={{ display: 'flex', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: '#A78BFA', background: 'rgba(139,92,246,0.12)', textTransform: 'uppercase' }}>{detail.plan}</span>
@@ -367,6 +369,7 @@ export default function UsersPage() {
                             style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}
                             onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text)' }}>{u.name}</a>
+                          {u.is_verified && <VerifiedBadge size={13} />}
 
                           {/* PLAN BADGE */}
                           {isEditing ? (

@@ -5,7 +5,7 @@ import NotificationBell from './NotificationBell'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-interface User { name: string; email: string; role: string; plan: string }
+interface User { name: string; email: string; role: string; plan: string; is_verified?: boolean }
 const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   trial:  { label: 'Trial',  color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)' },

@@ -21,6 +21,7 @@ from app.models.database import (
     get_db, Contract, ContractMessage, Conversation, Project, User,
 )
 from app.routers.auth import require_marketplace_beta
+from app.services.marketplace_access import is_verified
 from app.services import notifications as notif
 
 router = APIRouter(tags=["marketplace-chat"])
@@ -81,6 +82,7 @@ def _message_to_dict(m: ContractMessage, db: Session) -> dict:
         "conversation_id": m.conversation_id,
         "sender_id": m.sender_id,
         "sender_name": sender.name if sender else None,
+        "sender_verified": is_verified(db, m.sender_id),
         "body": m.body,
         "attachment_url": m.attachment_url,
         "created_at": m.created_at.isoformat() if m.created_at else None,
@@ -187,6 +189,7 @@ def list_conversations(
             "contract_status": contract.status if contract else None,
             "other_party_id": other_id,
             "other_party_name": other.name if other else None,
+            "other_party_verified": is_verified(db, other_id),
             "other_party_avatar": _avatar(other),
             "other_party_username": (other.username if other and other.is_public else None),
             "viewer_role": (

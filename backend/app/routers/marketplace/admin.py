@@ -8,7 +8,7 @@ from app.models.database import (
     get_db, MilestonePayment, MilestonePayout, Milestone, Contract, Project, User,
 )
 from app.routers.auth import require_admin
-from app.services.marketplace_access import serialize_contract
+from app.services.marketplace_access import serialize_contract, is_verified
 from app.services import notifications as notif
 from .schemas import MilestonePaymentReview, MilestonePayoutRequest
 
@@ -25,6 +25,7 @@ def _payment_to_dict(p: MilestonePayment, db: Session) -> dict:
         "milestone_title": m.title if m else None,
         "contract_id": c.id if c else None,
         "client_name": client.name if client else None,
+        "client_verified": is_verified(db, c.client_id) if c else False,
         "amount": p.amount,
         "currency": p.currency,
         "method": p.method,

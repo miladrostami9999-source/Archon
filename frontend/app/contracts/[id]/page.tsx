@@ -5,6 +5,7 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import MarketplaceBeta from '../../components/MarketplaceBeta'
 import ContractChat from '../../components/ContractChat'
+import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -27,6 +28,7 @@ interface Review {
   contract_id: number
   reviewer_id: number
   reviewer_name: string | null
+  reviewer_verified: boolean
   reviewee_id: number
   rating: number
   comment: string | null
@@ -39,8 +41,10 @@ interface Contract {
   project_title: string | null
   client_id: number
   client_name: string | null
+  client_verified: boolean
   freelancer_id: number
   freelancer_name: string | null
+  freelancer_verified: boolean
   total_amount: number | null
   currency: string
   status: string
@@ -234,6 +238,7 @@ export default function ContractDetailPage() {
 
   const sm = contract ? (CONTRACT_STATUS_META[contract.status] || CONTRACT_STATUS_META.active) : null
   const otherParty = contract && (contract.viewer_role === 'client' ? contract.freelancer_name : contract.client_name)
+  const otherPartyVerified = contract && (contract.viewer_role === 'client' ? contract.freelancer_verified : contract.client_verified)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
@@ -259,7 +264,7 @@ export default function ContractDetailPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
                   <span>💰 {contract.total_amount?.toLocaleString('en-US')} {contract.currency}</span>
-                  <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{otherParty || 'the other party'}</a></span>
+                  <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={12} />}</a></span>
                   <span style={{ textTransform: 'capitalize' }}>You're the {contract.viewer_role}</span>
                 </div>
               </div>

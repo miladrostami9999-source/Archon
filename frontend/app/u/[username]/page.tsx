@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
+import VerifiedBadge from '../../components/VerifiedBadge'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface PortfolioImage { id: string; data: string; name: string; alt?: string }
 interface PortfolioItem { id: string; title: string; desc: string; url: string; images: PortfolioImage[] }
 interface PublicProfile {
-  name: string; username: string; avatar: string; bio: string
+  name: string; username: string; is_verified: boolean; avatar: string; bio: string
   location: string; website: string; company: string
   skills: string[]; customSkills: string[]; portfolio: PortfolioItem[]
   marketplace_rating: number | null; marketplace_review_count: number
@@ -136,7 +137,9 @@ export default function PublicProfilePage() {
             )}
           </div>
           <div style={{ flex: 1, minWidth: '200px' }}>
-            <h1 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.01em' }}>{profile.name}</h1>
+            <h1 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {profile.name}{profile.is_verified && <VerifiedBadge size={19} />}
+            </h1>
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '13px', color: 'rgba(231,234,240,0.55)' }}>
               {profile.marketplace_review_count > 0 && (
                 <span style={{ color: '#FBBF24' }}>★ {profile.marketplace_rating} <span style={{ color: 'rgba(231,234,240,0.55)' }}>({profile.marketplace_review_count} contract{profile.marketplace_review_count === 1 ? '' : 's'})</span></span>

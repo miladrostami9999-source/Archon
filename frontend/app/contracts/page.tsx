@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -19,8 +20,10 @@ interface Contract {
   project_title: string | null
   client_id: number
   client_name: string | null
+  client_verified: boolean
   freelancer_id: number
   freelancer_name: string | null
+  freelancer_verified: boolean
   total_amount: number | null
   currency: string
   status: string
@@ -74,6 +77,7 @@ export default function ContractsPage() {
               {contracts.map(c => {
                 const sm = STATUS_META[c.status] || STATUS_META.active
                 const otherParty = c.viewer_role === 'client' ? c.freelancer_name : c.client_name
+                const otherPartyVerified = c.viewer_role === 'client' ? c.freelancer_verified : c.client_verified
                 const fundedCount = c.milestones.filter(m => m.status !== 'pending').length
                 return (
                   <a key={c.id} href={`/contracts/${c.id}`}
@@ -90,7 +94,7 @@ export default function ContractsPage() {
                         <div style={{ fontSize: '12.5px', color: 'var(--text-dim)' }}>
                           With{' '}
                           <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${c.viewer_role === 'client' ? c.freelancer_id : c.client_id}` }}
-                            style={{ cursor: 'pointer', color: '#60A5FA' }}>{otherParty || 'the other party'}</span>
+                            style={{ cursor: 'pointer', color: '#60A5FA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={11} />}</span>
                           {' '}· {c.total_amount?.toLocaleString('en-US')} {c.currency}
                         </div>
                       </div>

@@ -5,6 +5,7 @@ from typing import Optional
 
 from app.models.database import get_db, Contract, Review, User
 from app.routers.auth import require_marketplace_beta
+from app.services.marketplace_access import is_verified
 
 router = APIRouter(tags=["marketplace-reviews"])
 
@@ -21,6 +22,7 @@ def _review_to_dict(r: Review, db: Session) -> dict:
         "contract_id": r.contract_id,
         "reviewer_id": r.reviewer_id,
         "reviewer_name": reviewer.name if reviewer else None,
+        "reviewer_verified": is_verified(db, r.reviewer_id),
         "reviewee_id": r.reviewee_id,
         "rating": r.rating,
         "comment": r.comment,

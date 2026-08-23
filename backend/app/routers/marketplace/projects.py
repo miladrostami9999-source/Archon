@@ -4,6 +4,7 @@ from typing import Optional
 
 from app.models.database import get_db, Project, Proposal, User
 from app.routers.auth import require_marketplace_beta
+from app.services.marketplace_access import is_verified
 from .schemas import ProjectCreate, ProjectUpdate
 
 router = APIRouter(prefix="/projects", tags=["marketplace-projects"])
@@ -30,6 +31,7 @@ def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
         "created_at": p.created_at.isoformat() if p.created_at else None,
         "client_id": p.client_id,
         "client_name": client.name if client else None,
+        "client_verified": is_verified(db, p.client_id),
         "is_owner": p.client_id == viewer_id,
         "proposal_count": proposal_count,
         "my_proposal_status": my_proposal.status if my_proposal else None,

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db, Post, PostLike, PostComment, PostReport, User
 from app.routers.auth import require_marketplace_beta, require_admin
 from app.services.pagination import paginate
+from app.services.marketplace_access import is_verified
 from app.services import notifications as notif
 from .schemas import PostCreate, PostUpdate, CommentCreate, PostReportCreate
 
@@ -31,6 +32,7 @@ def _post_to_dict(p: Post, db: Session, viewer_id: int) -> dict:
         "user_id": p.user_id,
         "author_name": author.name if author else None,
         "author_avatar": _avatar_for(author),
+        "author_verified": is_verified(db, p.user_id),
         "text": p.text,
         "image_url": p.image_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
@@ -50,6 +52,7 @@ def _comment_to_dict(c: PostComment, db: Session) -> dict:
         "user_id": c.user_id,
         "author_name": author.name if author else None,
         "author_avatar": _avatar_for(author),
+        "author_verified": is_verified(db, c.user_id),
         "text": c.text,
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }

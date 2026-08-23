@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import ContractChat from '../components/ContractChat'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -16,6 +17,7 @@ interface Conversation {
   contract_status: string
   other_party_id: number
   other_party_name: string | null
+  other_party_verified: boolean
   other_party_avatar: string
   viewer_role: 'client' | 'freelancer' | 'peer'
   other_party_username: string | null
@@ -131,8 +133,9 @@ export default function MessagesPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: c.unread > 0 ? 700 : 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.other_party_name || 'Unknown'}
+                  <span style={{ fontSize: '13px', fontWeight: c.unread > 0 ? 700 : 600, color: 'var(--text)', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.other_party_name || 'Unknown'}</span>
+                    {c.other_party_verified && <VerifiedBadge size={12} />}
                   </span>
                   <span style={{ fontSize: '10px', color: 'var(--text-dim)', marginLeft: 'auto', flexShrink: 0 }}>{relative(c.last_message_at)}</span>
                 </div>
@@ -166,8 +169,8 @@ export default function MessagesPage() {
         )}
         <div style={{ minWidth: 0 }}>
           <a href={`/members/${active.other_party_id}`}
-            style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
-            {active.other_party_name}
+            style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            {active.other_party_name}{active.other_party_verified && <VerifiedBadge size={13} />}
           </a>
           <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
             {active.contract_id ? `${active.project_title} · you're the ${active.viewer_role}` : 'Direct message'}

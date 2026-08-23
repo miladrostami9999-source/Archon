@@ -10,7 +10,27 @@ built to carry them without a rework.
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.database import Contract, Milestone, Project, User, Review
+from app.models.database import Contract, Milestone, Project, User, Review, UserVerification
+
+
+def is_verified(db: Session, user_id: int) -> bool:
+    """Whether this account's identity/payout details have been approved by
+    an admin — the source for the blue checkmark shown next to a name
+    everywhere in the platform."""
+    return db.query(UserVerification).filter(
+        UserVerification.user_id == user_id, UserVerification.status == "verified",
+    ).first() is not None
+
+
+def verified_user_ids(db: Session, user_ids: list) -> set:
+    """Bulk form of is_verified, for list endpoints that would otherwise run
+    one query per row."""
+    if not user_ids:
+        return set()
+    rows = db.query(UserVerification.user_id).filter(
+        UserVerification.user_id.in_(set(user_ids)), UserVerification.status == "verified",
+    ).all()
+    return {r[0] for r in rows}
 
 
 def _milestone_to_dict(m: Milestone) -> dict:
@@ -63,8 +83,10 @@ def serialize_contract(contract: Contract, viewer_id: int, db: Session) -> dict:
         "project_title": project.title if project else None,
         "client_id": contract.client_id,
         "client_name": client.name if client else None,
+        "client_verified": is_verified(db, contract.client_id),
         "freelancer_id": contract.freelancer_id,
         "freelancer_name": freelancer.name if freelancer else None,
+        "freelancer_verified": is_verified(db, contract.freelancer_id),
         "total_amount": contract.total_amount,
         "currency": contract.currency,
         "status": contract.status,

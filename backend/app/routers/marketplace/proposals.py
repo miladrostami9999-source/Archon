@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Project, Proposal, Contract, Conversation, Milestone, User
 from app.routers.auth import require_marketplace_beta
-from app.services.marketplace_access import get_user_rating
+from app.services.marketplace_access import get_user_rating, is_verified
 from app.services import notifications as notif
 from .schemas import ProposalCreate, ProposalAccept
 
@@ -41,6 +41,7 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         "project_id": pr.project_id,
         "freelancer_id": pr.freelancer_id,
         "freelancer_name": freelancer.name if freelancer else None,
+        "freelancer_verified": is_verified(db, pr.freelancer_id),
         "freelancer_avatar": avatar,
         "freelancer_headline": headline,
         # Only linkable when the freelancer opted their profile public.

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -20,6 +21,7 @@ interface Project {
   created_at: string
   client_id: number
   client_name: string | null
+  client_verified: boolean
   is_owner: boolean
   proposal_count: number
   my_proposal_status: string | null
@@ -229,7 +231,9 @@ export default function ProjectsPage() {
                           {p.deadline && <span>📅 {new Date(p.deadline).toLocaleDateString()}</span>}
                           {!p.is_owner && (
                             <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
-                              style={{ cursor: 'pointer', color: '#60A5FA' }}>Posted by {p.client_name || 'a client'}</span>
+                              style={{ cursor: 'pointer', color: '#60A5FA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              Posted by {p.client_name || 'a client'}{p.client_verified && <VerifiedBadge size={11} />}
+                            </span>
                           )}
                         </div>
                       </div>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
+import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -31,6 +32,7 @@ interface Post {
   user_id: number
   author_name: string | null
   author_avatar: string | null
+  author_verified: boolean
   text: string
   image_url: string | null
   created_at: string
@@ -46,6 +48,7 @@ interface Comment {
   post_id: number
   user_id: number
   author_name: string | null
+  author_verified: boolean
   text: string
   created_at: string
 }
@@ -225,6 +228,7 @@ export default function FeedPage() {
                           : <span style={{ fontSize: '12px', fontWeight: 800, color: 'white' }}>{(p.author_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>}
                       </span>
                       {p.author_name || 'Someone'}
+                      {p.author_verified && <VerifiedBadge />}
                     </a>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{new Date(p.created_at).toLocaleDateString()}</span>
@@ -270,7 +274,7 @@ export default function FeedPage() {
                     <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {openComments[p.id].map(c => (
                         <div key={c.id} style={{ fontSize: '12.5px' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{c.author_name || 'Someone'}</span>{' '}
+                          <span style={{ fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>{c.author_name || 'Someone'}{c.author_verified && <VerifiedBadge size={11} />}</span>{' '}
                           <span style={{ color: 'var(--text-muted)' }}>{c.text}</span>
                         </div>
                       ))}

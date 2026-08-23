@@ -13,7 +13,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
 import bcrypt
-from app.models.database import get_db, User, PasswordResetToken, WaitlistEntry
+from app.models.database import get_db, User, PasswordResetToken, WaitlistEntry, UserVerification
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -284,6 +284,9 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "marketplace_beta_enabled": bool(current_user.marketplace_beta_enabled) or current_user.role == "admin",
         "account_mode": current_user.account_mode or "freelancer",
         "google_email": current_user.google_email,
+        "is_verified": db.query(UserVerification).filter(
+            UserVerification.user_id == current_user.id, UserVerification.status == "verified",
+        ).first() is not None,
     }
 
 @router.post("/change-password")
@@ -301,6 +304,7 @@ def change_password(
 @router.get("/users")
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).all()
+    verified_ids = {r[0] for r in db.query(UserVerification.user_id).filter(UserVerification.status == "verified").all()}
     return [{
         "id": u.id, "name": u.name, "email": u.email,
         "role": u.role, "plan": u.plan, "is_active": u.is_active,
@@ -308,6 +312,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
         "created_at": u.created_at, "last_login": u.last_login,
         "marketplace_beta_enabled": bool(u.marketplace_beta_enabled),
         "account_mode": u.account_mode or "freelancer",
+        "is_verified": u.id in verified_ids,
     } for u in users]
 
 @router.post("/users")
@@ -879,6 +884,9 @@ def user_detail(user_id: int, admin: User = Depends(require_admin), db: Session 
         "plan_started_at": user.plan_started_at, "plan_expires_at": user.plan_expires_at,
         "username": user.username, "is_public": user.is_public,
         "public_url": f"/u/{user.username}" if user.username and user.is_public else None,
+        "is_verified": db.query(UserVerification).filter(
+            UserVerification.user_id == user.id, UserVerification.status == "verified",
+        ).first() is not None,
         "profile": {
             "bio": profile.get("bio", ""), "location": profile.get("location", ""),
             "website": profile.get("website", ""), "company": profile.get("company", ""),
@@ -1074,6 +1082,9 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     return {
         "name": user.name,
         "username": user.username,
+        "is_verified": db.query(UserVerification).filter(
+            UserVerification.user_id == user.id, UserVerification.status == "verified",
+        ).first() is not None,
         "avatar": data.get("avatar", ""),
         "bio": data.get("bio", ""),
         "location": data.get("location", ""),
