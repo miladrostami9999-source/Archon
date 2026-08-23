@@ -30,6 +30,7 @@ interface Post {
   id: number
   user_id: number
   author_name: string | null
+  author_avatar: string | null
   text: string
   image_url: string | null
   created_at: string
@@ -217,7 +218,12 @@ export default function FeedPage() {
               {posts.map(p => (
                 <div key={p.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <a href={`/members/${p.user_id}`} style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
+                    <a href={`/members/${p.user_id}`} style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
+                      <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                        {p.author_avatar
+                          ? <img src={p.author_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <span style={{ fontSize: '12px', fontWeight: 800, color: 'white' }}>{(p.author_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>}
+                      </span>
                       {p.author_name || 'Someone'}
                     </a>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

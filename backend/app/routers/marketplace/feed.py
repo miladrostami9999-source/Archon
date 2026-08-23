@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,6 +12,15 @@ from .schemas import PostCreate, PostUpdate, CommentCreate, PostReportCreate
 router = APIRouter(prefix="/feed", tags=["marketplace-feed"])
 
 
+def _avatar_for(user: User) -> str:
+    if not user or not user.profile_json:
+        return ""
+    try:
+        return json.loads(user.profile_json).get("avatar", "") or ""
+    except Exception:
+        return ""
+
+
 def _post_to_dict(p: Post, db: Session, viewer_id: int) -> dict:
     author = db.query(User).filter(User.id == p.user_id).first()
     like_count = db.query(PostLike).filter(PostLike.post_id == p.id).count()
@@ -19,6 +30,7 @@ def _post_to_dict(p: Post, db: Session, viewer_id: int) -> dict:
         "id": p.id,
         "user_id": p.user_id,
         "author_name": author.name if author else None,
+        "author_avatar": _avatar_for(author),
         "text": p.text,
         "image_url": p.image_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
@@ -37,6 +49,7 @@ def _comment_to_dict(c: PostComment, db: Session) -> dict:
         "post_id": c.post_id,
         "user_id": c.user_id,
         "author_name": author.name if author else None,
+        "author_avatar": _avatar_for(author),
         "text": c.text,
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }

@@ -75,7 +75,7 @@ export default function ProfilePage() {
 
   const [user, setUser] = useState<UserProfile | null>(null)
   const [profile, setProfile] = useState<LocalProfile>(defaultProfile)
-  const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'portfolio' | 'security'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'portfolio' | 'posts' | 'security'>('info')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [pwdForm, setPwdForm] = useState({ old_password: '', new_password: '', confirm: '' })
@@ -100,6 +100,10 @@ export default function ProfilePage() {
   const [reputation, setReputation] = useState<{ sent: number; replied: number; reply_rate: number; bounced_manual: number; score: number } | null>(null)
   const [gmailConnecting, setGmailConnecting] = useState(false)
   const [gmailMsg, setGmailMsg] = useState('')
+  const [myPosts, setMyPosts] = useState<{ id: number; text: string; image_url: string | null; created_at: string; like_count: number; comment_count: number }[]>([])
+  const [postsLoaded, setPostsLoaded] = useState(false)
+  const [editingPostId, setEditingPostId] = useState<number | null>(null)
+  const [editPostText, setEditPostText] = useState('')
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -129,6 +133,32 @@ export default function ProfilePage() {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'posts' || postsLoaded || !user) return
+    axios.get(`${API}/marketplace/feed/users/${user.id}/posts`, { headers: headers() })
+      .then(res => { setMyPosts(res.data.items); setPostsLoaded(true) })
+      .catch(() => setPostsLoaded(true))
+  }, [activeTab, user, postsLoaded])
+
+  const startEditPost = (p: { id: number; text: string }) => { setEditingPostId(p.id); setEditPostText(p.text) }
+
+  const saveEditPost = async (id: number) => {
+    if (!editPostText.trim()) return
+    try {
+      const res = await axios.patch(`${API}/marketplace/feed/posts/${id}`, { text: editPostText.trim() }, { headers: headers() })
+      setMyPosts(prev => prev.map(p => p.id === id ? { ...p, ...res.data } : p))
+      setEditingPostId(null)
+    } catch {}
+  }
+
+  const deleteMyPost = async (id: number) => {
+    if (!window.confirm('Delete this post?')) return
+    try {
+      await axios.delete(`${API}/marketplace/feed/posts/${id}`, { headers: headers() })
+      setMyPosts(prev => prev.filter(p => p.id !== id))
+    } catch {}
+  }
 
   const saveProfile = async (p = profile) => {
     setSaving(true)
@@ -373,6 +403,7 @@ export default function ProfilePage() {
     { id: 'info', label: 'Profile Info', icon: '👤' },
     { id: 'skills', label: 'Skills', icon: '⚡' },
     { id: 'portfolio', label: 'Portfolio', icon: '🖼' },
+    { id: 'posts', label: 'Posts', icon: '📝' },
     { id: 'security', label: 'Security', icon: '🔐' },
   ] as const
 
@@ -847,6 +878,52 @@ export default function ProfilePage() {
                     style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer' }}>
                     {saved ? '✓ Saved!' : 'Save Portfolio'}
                   </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB: POSTS ── */}
+          {activeTab === 'posts' && (
+            <div>
+              {!postsLoaded ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
+              ) : myPosts.length === 0 ? (
+                <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                  You haven't posted anything yet. <a href="/feed" style={{ color: '#60A5FA' }}>Share something on the Feed →</a>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {myPosts.map(p => (
+                    <div key={p.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{new Date(p.created_at).toLocaleDateString()}</span>
+                        {editingPostId !== p.id && (
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={() => startEditPost(p)} style={{ fontSize: '11px', color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Edit</button>
+                            <button onClick={() => deleteMyPost(p.id)} style={{ fontSize: '11px', color: '#F87171', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete</button>
+                          </div>
+                        )}
+                      </div>
+                      {editingPostId === p.id ? (
+                        <div>
+                          <textarea rows={3} value={editPostText} onChange={e => setEditPostText(e.target.value)}
+                            style={{ ...inputStyle, resize: 'vertical', marginBottom: '8px' }} />
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => saveEditPost(p.id)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>Save</button>
+                            <button onClick={() => setEditingPostId(null)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '13.5px', color: 'var(--text)', margin: '0 0 8px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.text}</p>
+                      )}
+                      {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
+                        <span>♡ {p.like_count}</span>
+                        <span>💬 {p.comment_count}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

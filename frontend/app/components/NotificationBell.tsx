@@ -29,6 +29,9 @@ const ICON: Record<string, string> = {
   review_received: '⭐',
   verification_submitted: '🪪',
   verification_reviewed: '🪪',
+  post_liked: '♥',
+  post_commented: '💬',
+  broadcast: '📣',
 }
 
 const relative = (iso: string) => {
@@ -69,8 +72,15 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
   }, [open])
 
   const openList = () => {
-    setOpen(o => !o)
-    if (!open) load()
+    const willOpen = !open
+    setOpen(willOpen)
+    if (willOpen) {
+      // Opening the list counts as having seen them — otherwise the badge
+      // sits there forever unless every single item happens to get clicked.
+      // Mark-read first, then reload, so the fetch doesn't race the local
+      // "read" update and briefly restore the unread state.
+      readAll().then(load)
+    }
   }
 
   const readAll = async () => {
@@ -127,7 +137,7 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
             )}
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
             {items.length === 0 ? (
               <p style={{ fontSize: '12.5px', color: dim, textAlign: 'center', padding: '28px 16px', margin: 0 }}>
                 Nothing yet.
@@ -141,12 +151,12 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
                 }}>
                 <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1.3 }}>{ICON[n.kind] || '🔔'}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <span style={{ fontSize: '12.5px', fontWeight: n.read ? 500 : 700, color: text }}>{n.title}</span>
-                    <span style={{ fontSize: '10px', color: dim, marginLeft: 'auto', flexShrink: 0 }}>{relative(n.created_at)}</span>
+                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: n.read ? 500 : 700, color: text, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>{n.title}</span>
+                    <span style={{ fontSize: '10px', color: dim, marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' }}>{relative(n.created_at)}</span>
                   </span>
                   {n.body && (
-                    <span style={{ display: 'block', fontSize: '11.5px', color: dim, marginTop: '2px', lineHeight: 1.5 }}>{n.body}</span>
+                    <span style={{ display: 'block', fontSize: '11.5px', color: dim, marginTop: '2px', lineHeight: 1.5, overflowWrap: 'break-word', wordBreak: 'break-word' }}>{n.body}</span>
                   )}
                 </span>
               </button>
