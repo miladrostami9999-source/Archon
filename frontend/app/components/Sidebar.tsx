@@ -85,6 +85,12 @@ export default function Sidebar() {
     if (stored) { try { setUser(JSON.parse(stored)) } catch {} }
     const prof = localStorage.getItem('archon-profile')
     if (prof) { try { const p = JSON.parse(prof); if (p.avatar) setAvatar(p.avatar) } catch {} }
+    // Marketplace-gated nav items (Projects, Feed, ...) used to always start
+    // hidden and pop in once /auth/me resolved, flashing on every reload.
+    // Seed from the last known value so they render in their final state
+    // immediately; the effect below still fetches the live value right after.
+    const cachedMarketplace = localStorage.getItem('archon-marketplace-enabled')
+    if (cachedMarketplace !== null) setMarketplaceEnabled(cachedMarketplace === 'true')
     setMounted(true)
 
     const onStorage = (e: StorageEvent) => {
@@ -107,7 +113,12 @@ export default function Sidebar() {
     const token = localStorage.getItem('archon-token') || ''
     fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setMarketplaceEnabled(!!d.marketplace_beta_enabled) })
+      .then(d => {
+        if (!d) return
+        const enabled = !!d.marketplace_beta_enabled
+        setMarketplaceEnabled(enabled)
+        localStorage.setItem('archon-marketplace-enabled', String(enabled))
+      })
       .catch(() => {})
   }, [user])
 
