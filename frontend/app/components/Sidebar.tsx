@@ -20,6 +20,7 @@ const ICONS: Record<string, ReactElement> = {
   admin:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
   projects:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
   contracts: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M9 15l2 2 4-4"/></svg>,
+  messages:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>,
   hunt:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>,
   report:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   users:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
@@ -60,6 +61,8 @@ export default function Sidebar() {
   // read from the cached archon-user snapshot.
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(false)
   const [mpPaymentCount, setMpPaymentCount] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [pendingProposals, setPendingProposals] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -103,6 +106,27 @@ export default function Sidebar() {
       .then(d => { if (d) setMarketplaceEnabled(!!d.marketplace_beta_enabled) })
       .catch(() => {})
   }, [user])
+
+  // Marketplace notification badges — unread messages, and proposals waiting
+  // on a decision. Polled on the same cadence as the admin badges.
+  useEffect(() => {
+    if (!marketplaceEnabled) return
+    const token = localStorage.getItem('archon-token') || ''
+    const h = { Authorization: `Bearer ${token}` }
+    const load = () => {
+      fetch(`${API}/marketplace/messages/unread-count`, { headers: h })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setUnreadMessages(d.count || 0))
+        .catch(() => {})
+      fetch(`${API}/marketplace/proposals/pending-count`, { headers: h })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setPendingProposals(d.count || 0))
+        .catch(() => {})
+    }
+    load()
+    const id = setInterval(load, 30000)
+    return () => clearInterval(id)
+  }, [marketplaceEnabled, path])
 
   // Poll pending waitlist count for the admin notification badge
   useEffect(() => {
@@ -152,8 +176,9 @@ export default function Sidebar() {
     // Marketplace is in private beta — hidden until an admin flips the flag
     // for this account (admins always see it).
     ...(marketplaceEnabled ? [
-      { label: 'Projects', iconKey: 'projects', href: '/projects' },
+      { label: 'Projects', iconKey: 'projects', href: '/projects', badge: pendingProposals },
       { label: 'My Contracts', iconKey: 'contracts', href: '/contracts' },
+      { label: 'Messages', iconKey: 'messages', href: '/messages', badge: unreadMessages },
     ] : []),
     // Admins are on an unlimited plan, so an upgrade page would be noise
     ...(isAdmin ? [] : [{ label: 'Upgrade', iconKey: 'upgrade', href: '/upgrade' }]),

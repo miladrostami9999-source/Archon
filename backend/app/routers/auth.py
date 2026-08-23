@@ -730,6 +730,28 @@ def reject_payment(request_id: int, data: PaymentReject, admin: User = Depends(r
     return {"message": "Payment request rejected"}
 
 
+@router.get("/payment-methods")
+def get_payment_methods(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Where to send money, for any authenticated user.
+
+    The plan-upgrade page gets these bundled into /billing/plans, but the
+    marketplace needs the same details when funding a milestone — without a
+    plan catalogue attached. Read-only and non-sensitive (it's the studio's
+    own payee details, which are shown to anyone being asked to pay).
+    """
+    from app.models.database import AppSetting
+    settings = {s.key: s.value for s in db.query(AppSetting).all()}
+    return {
+        "card_number": settings.get("pay_card_number", ""),
+        "card_holder": settings.get("pay_card_holder", ""),
+        "paypal_email": settings.get("pay_paypal_email", ""),
+        "support_email": settings.get("support_email", ""),
+        "support_phone": settings.get("support_phone", ""),
+        "instructions_en": settings.get("payment_instructions_en", ""),
+        "instructions_fa": settings.get("payment_instructions_fa", ""),
+    }
+
+
 @router.get("/settings/payment")
 def get_payment_settings(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     from app.models.database import AppSetting

@@ -1,13 +1,16 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
 
-from app.models.database import get_db, Contract, ContractMessage, User
+from app.models.database import get_db, Contract, ContractMessage, Project, User
 from app.routers.auth import require_marketplace_beta
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/contracts", tags=["marketplace-chat"])
+router = APIRouter(tags=["marketplace-chat"])
 
 
 class MessageCreate(BaseModel):
@@ -37,7 +40,84 @@ def _message_to_dict(m: ContractMessage, db: Session) -> dict:
     }
 
 
-@router.get("/{contract_id}/messages")
+@router.get("/messages/unread-count")
+def total_unread(
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Unread messages across every contract, for the sidebar badge."""
+    count = (
+        db.query(ContractMessage)
+        .join(Contract, Contract.id == ContractMessage.contract_id)
+        .filter(
+            or_(Contract.client_id == current_user.id, Contract.freelancer_id == current_user.id),
+            ContractMessage.sender_id != current_user.id,
+            ContractMessage.read_at.is_(None),
+        )
+        .count()
+    )
+    return {"count": count}
+
+
+@router.get("/conversations")
+def list_conversations(
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """One row per contract this account is party to — the inbox behind the
+    Messages page. Ordered by the most recent message so live threads rise to
+    the top, with contracts that have no messages yet listed after them."""
+    contracts = (
+        db.query(Contract)
+        .filter(or_(Contract.client_id == current_user.id, Contract.freelancer_id == current_user.id))
+        .all()
+    )
+    rows = []
+    for c in contracts:
+        other_id = c.freelancer_id if current_user.id == c.client_id else c.client_id
+        other = db.query(User).filter(User.id == other_id).first()
+        last = (
+            db.query(ContractMessage)
+            .filter(ContractMessage.contract_id == c.id)
+            .order_by(ContractMessage.created_at.desc())
+            .first()
+        )
+        unread = (
+            db.query(ContractMessage)
+            .filter(
+                ContractMessage.contract_id == c.id,
+                ContractMessage.sender_id != current_user.id,
+                ContractMessage.read_at.is_(None),
+            )
+            .count()
+        )
+        project = db.query(Project).filter(Project.id == c.project_id).first()
+
+        avatar = ""
+        if other and other.profile_json:
+            try:
+                avatar = json.loads(other.profile_json).get("avatar", "") or ""
+            except Exception:
+                pass
+
+        rows.append({
+            "contract_id": c.id,
+            "project_title": project.title if project else f"Contract #{c.id}",
+            "contract_status": c.status,
+            "other_party_id": other_id,
+            "other_party_name": other.name if other else None,
+            "other_party_avatar": avatar,
+            "viewer_role": "client" if current_user.id == c.client_id else "freelancer",
+            "last_message": (last.body or ("📎 Attachment" if last.attachment_url else "")) if last else None,
+            "last_message_at": last.created_at.isoformat() if last and last.created_at else None,
+            "last_message_mine": (last.sender_id == current_user.id) if last else None,
+            "unread": unread,
+        })
+    rows.sort(key=lambda r: r["last_message_at"] or "", reverse=True)
+    return rows
+
+
+@router.get("/contracts/{contract_id}/messages")
 def list_messages(
     contract_id: int,
     current_user: User = Depends(require_marketplace_beta),
@@ -62,7 +142,7 @@ def list_messages(
     return [_message_to_dict(m, db) for m in rows]
 
 
-@router.post("/{contract_id}/messages")
+@router.post("/contracts/{contract_id}/messages")
 def send_message(
     contract_id: int,
     data: MessageCreate,
@@ -84,7 +164,7 @@ def send_message(
     return _message_to_dict(message, db)
 
 
-@router.get("/{contract_id}/messages/unread-count")
+@router.get("/contracts/{contract_id}/messages/unread-count")
 def unread_count(
     contract_id: int,
     current_user: User = Depends(require_marketplace_beta),

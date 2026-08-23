@@ -28,6 +28,7 @@ class ProposalCreate(BaseModel):
     cover_letter: Optional[str] = None
     proposed_amount: float
     proposed_days: Optional[int] = None
+    attachment_url: Optional[str] = None
 
 
 class MilestoneInput(BaseModel):

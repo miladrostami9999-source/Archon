@@ -93,6 +93,24 @@ export default function ContractDetailPage() {
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewMsg, setReviewMsg] = useState('')
 
+  // Where the client actually sends the money. Without these on screen the
+  // Fund panel asks for a transfer without saying where to.
+  const [pay, setPay] = useState<{
+    card_number: string; card_holder: string; paypal_email: string
+    support_email: string; support_phone: string
+  } | null>(null)
+  const [copied, setCopied] = useState('')
+
+  useEffect(() => {
+    axios.get(`${API}/auth/payment-methods`).then(r => setPay(r.data)).catch(() => {})
+  }, [])
+
+  const copy = (label: string, value: string) => {
+    navigator.clipboard?.writeText(value)
+    setCopied(label)
+    setTimeout(() => setCopied(''), 1800)
+  }
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('archon-user')
@@ -304,6 +322,52 @@ export default function ContractDetailPage() {
                       {/* FUND PANEL */}
                       {panelOpen && openPanel!.kind === 'fund' && (
                         <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                          {/* Send the money first, then record it here. */}
+                          {pay && (pay.card_number || pay.paypal_email) ? (
+                            <div style={{ borderRadius: '10px', border: '1px solid rgba(79,123,247,0.25)', background: 'rgba(79,123,247,0.06)', padding: '12px 14px', marginBottom: '14px' }}>
+                              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#60A5FA', margin: '0 0 8px' }}>
+                                Step 1 — transfer {m.amount.toLocaleString('en-US')} {contract.currency}
+                              </p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {pay.card_number && (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                                    <div>
+                                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Card to card (Iran)</div>
+                                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', letterSpacing: '0.04em' }}>{pay.card_number}</div>
+                                      {pay.card_holder && <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{pay.card_holder}</div>}
+                                    </div>
+                                    <button onClick={() => copy('card', pay.card_number)}
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                      {copied === 'card' ? '✓ Copied' : 'Copy'}
+                                    </button>
+                                  </div>
+                                )}
+                                {pay.paypal_email && (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', paddingTop: pay.card_number ? '8px' : 0, borderTop: pay.card_number ? '1px solid var(--border)' : 'none' }}>
+                                    <div>
+                                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>PayPal</div>
+                                      <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{pay.paypal_email}</div>
+                                    </div>
+                                    <button onClick={() => copy('paypal', pay.paypal_email)}
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                      {copied === 'paypal' ? '✓ Copied' : 'Copy'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '10px 0 0', lineHeight: 1.6 }}>
+                                Archon holds the money and releases it to the freelancer once you approve their delivery.
+                                {(pay.support_email || pay.support_phone) && <> Questions? {pay.support_email}{pay.support_email && pay.support_phone ? ' · ' : ''}{pay.support_phone}</>}
+                              </p>
+                            </div>
+                          ) : (
+                            <div style={{ borderRadius: '10px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.07)', padding: '10px 12px', marginBottom: '14px', fontSize: '12px', color: '#FBBF24', lineHeight: 1.6 }}>
+                              No payment details are configured yet — an admin needs to add them in the Admin Panel before anyone can fund a milestone.
+                            </div>
+                          )}
+                          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px' }}>
+                            Step 2 — record what you sent
+                          </p>
                           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
                             <div>
                               <label style={label}>Amount</label>

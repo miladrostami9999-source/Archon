@@ -31,9 +31,14 @@ interface Proposal {
   project_id: number
   freelancer_id: number
   freelancer_name: string | null
+  freelancer_avatar: string
+  freelancer_headline: string
+  freelancer_username: string | null
   freelancer_rating: number | null
   freelancer_review_count: number
+  freelancer_completed_contracts: number
   cover_letter: string | null
+  attachment_url: string | null
   proposed_amount: number | null
   proposed_days: number | null
   status: string
@@ -65,6 +70,21 @@ export default function ProjectDetailPage() {
   const [busy, setBusy] = useState<number | 'submit' | null>(null)
   const [msg, setMsg] = useState('')
   const [form, setForm] = useState({ cover_letter: '', proposed_amount: '', proposed_days: '' })
+  const [sample, setSample] = useState<{ url: string; name: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const uploadSample = async (file: File) => {
+    setUploading(true); setMsg('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await axios.post(`${API}/auth/upload/receipt`, fd)
+      setSample({ url: r.data.url, name: file.name })
+    } catch (e: any) {
+      setMsg(`✗ ${e.response?.data?.detail || 'Could not upload the file'}`)
+    }
+    setUploading(false)
+  }
 
   const load = () => {
     axios.get(`${API}/marketplace/projects/${id}`)
@@ -90,6 +110,7 @@ export default function ProjectDetailPage() {
         cover_letter: form.cover_letter.trim() || null,
         proposed_amount: Number(form.proposed_amount),
         proposed_days: form.proposed_days ? Number(form.proposed_days) : null,
+        attachment_url: sample?.url || null,
       })
       setMsg('✓ Proposal submitted')
       load()
@@ -188,19 +209,59 @@ export default function ProjectDetailPage() {
                         return (
                           <div key={p.id} style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '14px 16px' }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                                  <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{p.freelancer_name || 'Freelancer'}</span>
-                                  {p.freelancer_review_count > 0 && (
-                                    <span style={{ fontSize: '11.5px', color: '#FBBF24' }}>★ {p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
+                              <div style={{ minWidth: 0, flex: 1, display: 'flex', gap: '12px' }}>
+                                {/* Avatar — links through to the portfolio when
+                                    the freelancer has made their profile public. */}
+                                {(() => {
+                                  const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+                                  const avatarEl = (
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(79,123,247,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                                      {p.freelancer_avatar
+                                        ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>{initials}</span>}
+                                    </div>
+                                  )
+                                  return p.freelancer_username
+                                    ? <a href={`/u/${p.freelancer_username}`} target="_blank" rel="noreferrer" title="View portfolio">{avatarEl}</a>
+                                    : avatarEl
+                                })()}
+
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                                    {p.freelancer_username ? (
+                                      <a href={`/u/${p.freelancer_username}`} target="_blank" rel="noreferrer"
+                                        style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+                                        {p.freelancer_name || 'Freelancer'} ↗
+                                      </a>
+                                    ) : (
+                                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{p.freelancer_name || 'Freelancer'}</span>
+                                    )}
+                                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
+                                  </div>
+
+                                  {/* Track record — what the hiring decision rests on */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--text-dim)', marginBottom: '6px' }}>
+                                    {p.freelancer_review_count > 0 ? (
+                                      <span style={{ color: '#FBBF24' }}>★ {p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
+                                    ) : (
+                                      <span>No reviews yet</span>
+                                    )}
+                                    {p.freelancer_completed_contracts > 0 && (
+                                      <span>✓ {p.freelancer_completed_contracts} completed</span>
+                                    )}
+                                    {p.freelancer_headline && <span>· {p.freelancer_headline}</span>}
+                                  </div>
+
+                                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                                    {p.proposed_amount?.toLocaleString('en-US')} {project.currency}
+                                    {p.proposed_days ? ` · ${p.proposed_days} days` : ''}
+                                  </div>
+                                  {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
+                                  {p.attachment_url && (
+                                    <a href={p.attachment_url} target="_blank" rel="noreferrer"
+                                      style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>📎 Work sample</a>
                                   )}
-                                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
                                 </div>
-                                <div style={{ fontSize: '12.5px', color: 'var(--text)', marginBottom: '4px' }}>
-                                  {p.proposed_amount?.toLocaleString('en-US')} {project.currency}
-                                  {p.proposed_days ? ` · ${p.proposed_days} days` : ''}
-                                </div>
-                                {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0, whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
                               </div>
                               {p.status === 'pending' && (
                                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -258,6 +319,21 @@ export default function ProjectDetailPage() {
                       <label style={label}>Estimated days</label>
                       <input type="number" value={form.proposed_days} onChange={e => setForm(f => ({ ...f, proposed_days: e.target.value }))} placeholder="0" style={input} />
                     </div>
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={label}>Work sample <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
+                    {sample ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <a href={sample.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}>📎 {sample.name}</a>
+                        <button onClick={() => setSample(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                      </div>
+                    ) : (
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        📎 {uploading ? 'Uploading…' : 'Attach an image or PDF'}
+                        <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadSample(f); e.target.value = '' }} />
+                      </label>
+                    )}
                   </div>
                   <button onClick={submitProposal} disabled={busy === 'submit'}
                     style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: busy === 'submit' ? 0.6 : 1 }}>

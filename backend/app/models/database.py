@@ -406,6 +406,9 @@ class Proposal(Base):
     project_id       = Column(Integer, ForeignKey("mp_projects.id"), nullable=False, index=True)
     freelancer_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     cover_letter     = Column(Text)
+    # Work samples sent with the bid — a portfolio link or an uploaded file.
+    # A cover letter alone rarely wins the job in this trade.
+    attachment_url   = Column(String, nullable=True)
     proposed_amount  = Column(Float)
     proposed_days    = Column(Integer)
     status           = Column(String, default="pending", index=True)  # pending | accepted | rejected | withdrawn
@@ -687,6 +690,11 @@ def init_db():
                 conn.execute(_text("ALTER TABLE users ADD COLUMN account_mode VARCHAR DEFAULT 'freelancer'"))
                 conn.execute(_text("UPDATE users SET account_mode = 'freelancer' WHERE account_mode IS NULL"))
                 conn.commit()
+            if _inspector.has_table("mp_proposals"):
+                prop_cols = [c["name"] for c in _inspector.get_columns("mp_proposals")]
+                if "attachment_url" not in prop_cols:
+                    conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN attachment_url VARCHAR"))
+                    conn.commit()
             if "skills" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN skills TEXT"))
                 conn.commit()

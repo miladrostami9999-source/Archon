@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,21 +12,64 @@ router = APIRouter(tags=["marketplace-proposals"])
 
 
 def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
+    """A proposal plus enough of the bidder to judge it.
+
+    Hiring decisions are made from this list, so it carries the freelancer's
+    face, reputation and a way through to their portfolio — otherwise the
+    client is picking between anonymous numbers.
+    """
     freelancer = db.query(User).filter(User.id == pr.freelancer_id).first()
     rating = get_user_rating(db, pr.freelancer_id)
+
+    avatar, headline = "", ""
+    if freelancer and freelancer.profile_json:
+        try:
+            data = json.loads(freelancer.profile_json)
+            avatar = data.get("avatar", "") or ""
+            headline = (data.get("company") or data.get("location") or "").strip()
+        except Exception:
+            pass  # a malformed profile must never break the proposal list
+
+    completed = (
+        db.query(Contract)
+        .filter(Contract.freelancer_id == pr.freelancer_id, Contract.status == "completed")
+        .count()
+    )
     return {
         "id": pr.id,
         "project_id": pr.project_id,
         "freelancer_id": pr.freelancer_id,
         "freelancer_name": freelancer.name if freelancer else None,
+        "freelancer_avatar": avatar,
+        "freelancer_headline": headline,
+        # Only linkable when the freelancer opted their profile public.
+        "freelancer_username": (freelancer.username if freelancer and freelancer.is_public else None),
         "freelancer_rating": rating["avg_rating"],
         "freelancer_review_count": rating["review_count"],
+        "freelancer_completed_contracts": completed,
         "cover_letter": pr.cover_letter,
+        "attachment_url": pr.attachment_url,
         "proposed_amount": pr.proposed_amount,
         "proposed_days": pr.proposed_days,
         "status": pr.status,
         "created_at": pr.created_at.isoformat() if pr.created_at else None,
     }
+
+
+@router.get("/proposals/pending-count")
+def pending_proposal_count(
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Proposals waiting on this account's decision, for the sidebar badge —
+    i.e. pending bids on projects they posted."""
+    count = (
+        db.query(Proposal)
+        .join(Project, Project.id == Proposal.project_id)
+        .filter(Project.client_id == current_user.id, Proposal.status == "pending")
+        .count()
+    )
+    return {"count": count}
 
 
 @router.post("/projects/{project_id}/proposals")
@@ -52,6 +97,7 @@ def submit_proposal(
         project_id=project_id,
         freelancer_id=current_user.id,
         cover_letter=data.cover_letter,
+        attachment_url=data.attachment_url,
         proposed_amount=data.proposed_amount,
         proposed_days=data.proposed_days,
         status="pending",
