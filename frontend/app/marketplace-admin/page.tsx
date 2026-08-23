@@ -308,7 +308,7 @@ export default function MarketplaceAdminPage() {
                   <div key={v.user_id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
                       <div>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{v.user_name}</span>
+                        <a href={`/members/${v.user_id}`} style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>{v.user_name}</a>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{v.user_email}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -476,7 +476,10 @@ export default function MarketplaceAdminPage() {
                         {detail.project_title || `Contract #${detail.id}`}
                       </h2>
                       <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
-                        {detail.client_name} → {detail.freelancer_name} · {detail.total_amount?.toLocaleString('en-US')} {detail.currency} · {detail.status}
+                        <a href={`/members/${detail.client.id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{detail.client_name}</a>
+                        {' → '}
+                        <a href={`/members/${detail.freelancer.id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{detail.freelancer_name}</a>
+                        {' · '}{detail.total_amount?.toLocaleString('en-US')} {detail.currency} · {detail.status}
                       </p>
                     </div>
                     <button onClick={() => setDetail(null)}

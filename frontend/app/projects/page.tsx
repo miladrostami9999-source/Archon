@@ -227,7 +227,10 @@ export default function ProjectsPage() {
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-dim)' }}>
                           {budget && <span>💰 {budget}</span>}
                           {p.deadline && <span>📅 {new Date(p.deadline).toLocaleDateString()}</span>}
-                          {!p.is_owner && <span>Posted by {p.client_name || 'a client'}</span>}
+                          {!p.is_owner && (
+                            <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
+                              style={{ cursor: 'pointer', color: '#60A5FA' }}>Posted by {p.client_name || 'a client'}</span>
+                          )}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>

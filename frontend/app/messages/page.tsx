@@ -165,14 +165,10 @@ export default function MessagesPage() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '15px', padding: 0 }}>←</button>
         )}
         <div style={{ minWidth: 0 }}>
-          {active.other_party_username ? (
-            <a href={`/u/${active.other_party_username}`} target="_blank" rel="noreferrer"
-              style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
-              {active.other_party_name} ↗
-            </a>
-          ) : (
-            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{active.other_party_name}</p>
-          )}
+          <a href={`/members/${active.other_party_id}`}
+            style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+            {active.other_party_name}
+          </a>
           <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
             {active.contract_id ? `${active.project_title} · you're the ${active.viewer_role}` : 'Direct message'}
           </p>

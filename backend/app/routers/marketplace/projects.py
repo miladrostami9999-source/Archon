@@ -92,6 +92,47 @@ def get_project(
     return _project_to_dict(project, db, current_user.id)
 
 
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Withdraw a project.
+
+    Only possible while no contract has come out of it — once work is agreed,
+    the freelancer has a claim on it and the project has to be seen through or
+    settled, not made to disappear. Anyone who had bid is told, since their
+    proposal vanishes with it.
+    """
+    from app.models.database import Contract
+    from app.services import notifications as notif
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.client_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only the project owner can delete it")
+
+    if db.query(Contract).filter(Contract.project_id == project_id).first():
+        raise HTTPException(
+            status_code=400,
+            detail="This project already has a contract, so it can't be deleted. Cancel the contract instead.",
+        )
+
+    for p in db.query(Proposal).filter(Proposal.project_id == project_id, Proposal.status == "pending").all():
+        notif.notify(
+            db, p.freelancer_id, notif.PROPOSAL_REJECTED,
+            "A project you bid on was withdrawn",
+            f"“{project.title}” was taken down by the client.",
+            "/projects",
+        )
+    db.query(Proposal).filter(Proposal.project_id == project_id).delete(synchronize_session=False)
+    db.delete(project)
+    db.commit()
+    return {"message": "Project deleted"}
+
+
 @router.patch("/{project_id}")
 def update_project(
     project_id: int,

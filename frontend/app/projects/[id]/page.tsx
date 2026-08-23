@@ -73,6 +73,54 @@ export default function ProjectDetailPage() {
   const [form, setForm] = useState({ cover_letter: '', proposed_amount: '', proposed_days: '' })
   const [sample, setSample] = useState<{ url: string; name: string } | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '' })
+
+  const startEdit = () => {
+    if (!project) return
+    setEditForm({
+      title: project.title,
+      description: project.description || '',
+      category: project.category || '',
+      budget_min: project.budget_min != null ? String(project.budget_min) : '',
+      budget_max: project.budget_max != null ? String(project.budget_max) : '',
+      currency: project.currency,
+      deadline: project.deadline ? project.deadline.slice(0, 10) : '',
+    })
+    setEditing(true); setMsg('')
+  }
+
+  const saveEdit = async () => {
+    if (!editForm.title.trim()) { setMsg('✗ Title is required'); return }
+    setBusy('submit'); setMsg('')
+    try {
+      await axios.patch(`${API}/marketplace/projects/${id}`, {
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || null,
+        category: editForm.category.trim() || null,
+        budget_min: editForm.budget_min ? Number(editForm.budget_min) : null,
+        budget_max: editForm.budget_max ? Number(editForm.budget_max) : null,
+        currency: editForm.currency,
+        deadline: editForm.deadline || null,
+      })
+      setEditing(false)
+      setMsg('✓ Project updated')
+      load()
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not save'}`) }
+    setBusy(null)
+  }
+
+  const deleteProject = async () => {
+    if (!window.confirm('Delete this project? Anyone who bid on it will be told, and their proposals go with it.')) return
+    setBusy('submit'); setMsg('')
+    try {
+      await axios.delete(`${API}/marketplace/projects/${id}`)
+      window.location.href = '/projects'
+    } catch (e: any) {
+      setMsg(`✗ ${e.response?.data?.detail || 'Could not delete'}`)
+      setBusy(null)
+    }
+  }
 
   const uploadSample = async (file: File) => {
     setUploading(true); setMsg('')
@@ -184,9 +232,72 @@ export default function ProjectDetailPage() {
             <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
               Project not found.
             </div>
+          ) : editing ? (
+            /* ── EDIT ── same fields as posting, so nothing is lost by
+               correcting a project after the fact. */
+            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '18px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '14px' }}>Edit project</p>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={label}>Title</label>
+                  <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} style={input} />
+                </div>
+                <div>
+                  <label style={label}>Category</label>
+                  <input value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} style={input} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={label}>Description</label>
+                <textarea rows={4} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} style={{ ...input, resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <label style={label}>Budget min</label>
+                  <input type="number" value={editForm.budget_min} onChange={e => setEditForm(f => ({ ...f, budget_min: e.target.value }))} style={input} />
+                </div>
+                <div>
+                  <label style={label}>Budget max</label>
+                  <input type="number" value={editForm.budget_max} onChange={e => setEditForm(f => ({ ...f, budget_max: e.target.value }))} style={input} />
+                </div>
+                <div>
+                  <label style={label}>Currency</label>
+                  <select value={editForm.currency} onChange={e => setEditForm(f => ({ ...f, currency: e.target.value }))} style={input}>
+                    <option value="USD">USD</option><option value="EUR">EUR</option><option value="IRR">IRR (Toman)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={label}>Deadline</label>
+                  <input type="date" value={editForm.deadline} onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))} style={input} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button onClick={saveEdit} disabled={busy === 'submit'}
+                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                  {busy === 'submit' ? 'Saving…' : 'Save changes'}
+                </button>
+                <button onClick={() => { setEditing(false); setMsg('') }}
+                  style={{ padding: '9px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                {msg && <span style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171' }}>{msg}</span>}
+              </div>
+            </div>
           ) : (
             <>
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '18px' }}>
+                {project.is_owner && (
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                    <button onClick={startEdit}
+                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer' }}>
+                      Edit
+                    </button>
+                    <button onClick={deleteProject} disabled={busy === 'submit'}
+                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.22)', cursor: 'pointer' }}>
+                      Delete
+                    </button>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                   <h1 style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{project.title}</h1>
                   <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: (STATUS_META[project.status] || STATUS_META.open).color, background: (STATUS_META[project.status] || STATUS_META.open).bg }}>
@@ -198,7 +309,9 @@ export default function ProjectDetailPage() {
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
                   {budget && <span>💰 {budget}</span>}
                   {project.deadline && <span>📅 Due {new Date(project.deadline).toLocaleDateString()}</span>}
-                  {!project.is_owner && <span>Posted by {project.client_name || 'a client'}</span>}
+                  {!project.is_owner && (
+                    <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{project.client_name || 'a client'}</a></span>
+                  )}
                 </div>
               </div>
 
@@ -232,21 +345,15 @@ export default function ProjectDetailPage() {
                                         : <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>{initials}</span>}
                                     </div>
                                   )
-                                  return p.freelancer_username
-                                    ? <a href={`/u/${p.freelancer_username}`} target="_blank" rel="noreferrer" title="View portfolio">{avatarEl}</a>
-                                    : avatarEl
+                                  return <a href={`/members/${p.freelancer_id}`} title="View profile">{avatarEl}</a>
                                 })()}
 
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                                    {p.freelancer_username ? (
-                                      <a href={`/u/${p.freelancer_username}`} target="_blank" rel="noreferrer"
-                                        style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
-                                        {p.freelancer_name || 'Freelancer'} ↗
-                                      </a>
-                                    ) : (
-                                      <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{p.freelancer_name || 'Freelancer'}</span>
-                                    )}
+                                    <a href={`/members/${p.freelancer_id}`}
+                                      style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+                                      {p.freelancer_name || 'Freelancer'}
+                                    </a>
                                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
                                   </div>
 

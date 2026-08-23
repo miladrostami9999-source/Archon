@@ -259,7 +259,7 @@ export default function ContractDetailPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
                   <span>💰 {contract.total_amount?.toLocaleString('en-US')} {contract.currency}</span>
-                  <span>With {otherParty || 'the other party'}</span>
+                  <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{otherParty || 'the other party'}</a></span>
                   <span style={{ textTransform: 'capitalize' }}>You're the {contract.viewer_role}</span>
                 </div>
               </div>

@@ -31,6 +31,18 @@ export default function UsersPage() {
   const [detail, setDetail] = useState<any | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [addForm, setAddForm] = useState({ name: '', email: '', password: '', plan: 'basic' })
+  const [messagingId, setMessagingId] = useState<number | null>(null)
+
+  const messageUser = async (userId: number) => {
+    setMessagingId(userId)
+    try {
+      await axios.post(`${API}/marketplace/conversations/start`, { user_id: userId }, { headers: headers() })
+      window.location.href = '/messages'
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Could not open a conversation.')
+      setMessagingId(null)
+    }
+  }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [editUser, setEditUser] = useState<User | null>(null)
@@ -351,7 +363,10 @@ export default function UsersPage() {
                       {/* INFO */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                          <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 700, color: 'var(--text)' }}>{u.name}</span>
+                          <a href={`/members/${u.id}`}
+                            style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text)' }}>{u.name}</a>
 
                           {/* PLAN BADGE */}
                           {isEditing ? (
@@ -410,6 +425,12 @@ export default function UsersPage() {
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#A78BFA', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', fontWeight: 600 }}>View</button>
                             <button onClick={() => setEditUser(u)}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                            {/* Reach a member directly rather than only ever
+                                seeing them as a row in a table. */}
+                            <button onClick={() => messageUser(u.id)} disabled={messagingId === u.id}
+                              style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', cursor: 'pointer', fontWeight: 600 }}>
+                              {messagingId === u.id ? '…' : (isMobile ? '💬' : '💬 Message')}
+                            </button>
                             <button onClick={() => updateUser(u.id, { is_active: !u.is_active })}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: u.is_active ? '#F87171' : '#34D399', background: u.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)', border: `1px solid ${u.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)'}`, cursor: 'pointer', fontWeight: 600 }}>
                               {u.is_active ? (isMobile ? 'Off' : 'Disable') : (isMobile ? 'On' : 'Enable')}

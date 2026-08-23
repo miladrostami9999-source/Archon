@@ -17,7 +17,9 @@ interface Milestone {
 interface Contract {
   id: number
   project_title: string | null
+  client_id: number
   client_name: string | null
+  freelancer_id: number
   freelancer_name: string | null
   total_amount: number | null
   currency: string
@@ -86,7 +88,10 @@ export default function ContractsPage() {
                           <span style={{ fontSize: '10.5px', color: 'var(--text-dim)', textTransform: 'capitalize' }}>You're the {c.viewer_role}</span>
                         </div>
                         <div style={{ fontSize: '12.5px', color: 'var(--text-dim)' }}>
-                          With {otherParty || 'the other party'} · {c.total_amount?.toLocaleString('en-US')} {c.currency}
+                          With{' '}
+                          <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${c.viewer_role === 'client' ? c.freelancer_id : c.client_id}` }}
+                            style={{ cursor: 'pointer', color: '#60A5FA' }}>{otherParty || 'the other party'}</span>
+                          {' '}· {c.total_amount?.toLocaleString('en-US')} {c.currency}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0, fontSize: '12px', color: 'var(--text-dim)' }}>
