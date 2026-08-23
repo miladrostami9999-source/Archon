@@ -21,6 +21,17 @@ interface Milestone {
   approved_at: string | null
 }
 
+interface Review {
+  id: number
+  contract_id: number
+  reviewer_id: number
+  reviewer_name: string | null
+  reviewee_id: number
+  rating: number
+  comment: string | null
+  created_at: string
+}
+
 interface Contract {
   id: number
   project_id: number
@@ -75,6 +86,13 @@ export default function ContractDetailPage() {
   const [msg, setMsg] = useState('')
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHover, setReviewHover] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewBusy, setReviewBusy] = useState(false)
+  const [reviewMsg, setReviewMsg] = useState('')
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('archon-user')
@@ -85,7 +103,12 @@ export default function ContractDetailPage() {
   const load = () => {
     if (!id) return
     axios.get(`${API}/marketplace/contracts/${id}`)
-      .then(r => setContract(r.data))
+      .then(r => {
+        setContract(r.data)
+        if (r.data.status === 'completed') {
+          axios.get(`${API}/marketplace/contracts/${id}/reviews`).then(rv => setReviews(rv.data)).catch(() => {})
+        }
+      })
       .catch((e) => {
         if (e.response?.status === 404) setNotFound(true)
         else if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard'
@@ -93,6 +116,17 @@ export default function ContractDetailPage() {
       .finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [id])
+
+  const submitReview = async () => {
+    if (!reviewRating) { setReviewMsg('✗ Pick a star rating'); return }
+    setReviewBusy(true); setReviewMsg('')
+    try {
+      await axios.post(`${API}/marketplace/contracts/${id}/review`, { rating: reviewRating, comment: reviewComment.trim() || null })
+      setReviewComment('')
+      load()
+    } catch (e: any) { setReviewMsg(`✗ ${e.response?.data?.detail || 'Could not submit review'}`) }
+    setReviewBusy(false)
+  }
 
   const uploadFile = async (file: File, setter: (v: { url: string; name: string } | null) => void) => {
     setUploading(true); setMsg('')
@@ -360,6 +394,57 @@ export default function ContractDetailPage() {
                   )
                 })}
               </div>
+
+              {contract.status === 'completed' && currentUserId && contract.viewer_role !== 'observer' && (() => {
+                const myReview = reviews.find(r => r.reviewer_id === currentUserId)
+                const theirReview = reviews.find(r => r.reviewer_id !== currentUserId)
+                return (
+                  <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '18px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '12px' }}>
+                      Review
+                    </p>
+                    {myReview ? (
+                      <div style={{ marginBottom: theirReview ? '14px' : 0 }}>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Your review:</p>
+                        <div style={{ fontSize: '15px', color: '#FBBF24' }}>{'★'.repeat(myReview.rating)}{'☆'.repeat(5 - myReview.rating)}</div>
+                        {myReview.comment && <p style={{ fontSize: '13px', color: 'var(--text)', margin: '6px 0 0' }}>{myReview.comment}</p>}
+                      </div>
+                    ) : (
+                      <div style={{ marginBottom: theirReview ? '14px' : 0 }}>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 8px' }}>
+                          How was working with {contract.viewer_role === 'client' ? contract.freelancer_name : contract.client_name}?
+                        </p>
+                        <div style={{ display: 'flex', gap: '4px', marginBottom: '10px' }}>
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button key={n} onClick={() => setReviewRating(n)}
+                              onMouseEnter={() => setReviewHover(n)} onMouseLeave={() => setReviewHover(0)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', padding: 0, lineHeight: 1, color: n <= (reviewHover || reviewRating) ? '#FBBF24' : 'var(--border)' }}>
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <textarea rows={2} value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                          placeholder="Optional comment"
+                          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px', fontSize: '13px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', resize: 'vertical', marginBottom: '10px' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <button onClick={submitReview} disabled={reviewBusy}
+                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: reviewBusy ? 0.6 : 1 }}>
+                            {reviewBusy ? 'Submitting…' : 'Submit review'}
+                          </button>
+                          {reviewMsg && <span style={{ fontSize: '12px', color: '#F87171' }}>{reviewMsg}</span>}
+                        </div>
+                      </div>
+                    )}
+                    {theirReview && (
+                      <div style={{ paddingTop: myReview ? '14px' : 0, borderTop: myReview ? '1px solid var(--border)' : 'none' }}>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 4px' }}>{theirReview.reviewer_name} said:</p>
+                        <div style={{ fontSize: '15px', color: '#FBBF24' }}>{'★'.repeat(theirReview.rating)}{'☆'.repeat(5 - theirReview.rating)}</div>
+                        {theirReview.comment && <p style={{ fontSize: '13px', color: 'var(--text)', margin: '6px 0 0' }}>{theirReview.comment}</p>}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {currentUserId && contract.viewer_role !== 'observer' && (
                 <div style={{ paddingBottom: '32px' }}>

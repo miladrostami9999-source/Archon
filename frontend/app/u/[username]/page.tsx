@@ -11,6 +11,7 @@ interface PublicProfile {
   name: string; username: string; avatar: string; bio: string
   location: string; website: string; company: string
   skills: string[]; customSkills: string[]; portfolio: PortfolioItem[]
+  marketplace_rating: number | null; marketplace_review_count: number
 }
 
 export default function PublicProfilePage() {
@@ -113,6 +114,9 @@ export default function PublicProfilePage() {
           <div style={{ flex: 1, minWidth: '200px' }}>
             <h1 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.01em' }}>{profile.name}</h1>
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '13px', color: 'rgba(231,234,240,0.55)' }}>
+              {profile.marketplace_review_count > 0 && (
+                <span style={{ color: '#FBBF24' }}>★ {profile.marketplace_rating} <span style={{ color: 'rgba(231,234,240,0.55)' }}>({profile.marketplace_review_count} contract{profile.marketplace_review_count === 1 ? '' : 's'})</span></span>
+              )}
               {profile.company && <span>🏢 {profile.company}</span>}
               {profile.location && <span>📍 {profile.location}</span>}
               {profile.website && <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" style={{ color: '#8FB3FF', textDecoration: 'none' }}>🌐 {profile.website.replace(/^https?:\/\//, '')}</a>}

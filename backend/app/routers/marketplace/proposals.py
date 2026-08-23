@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Project, Proposal, Contract, Milestone, User
 from app.routers.auth import require_marketplace_beta
+from app.services.marketplace_access import get_user_rating
 from .schemas import ProposalCreate, ProposalAccept
 
 router = APIRouter(tags=["marketplace-proposals"])
@@ -10,11 +11,14 @@ router = APIRouter(tags=["marketplace-proposals"])
 
 def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
     freelancer = db.query(User).filter(User.id == pr.freelancer_id).first()
+    rating = get_user_rating(db, pr.freelancer_id)
     return {
         "id": pr.id,
         "project_id": pr.project_id,
         "freelancer_id": pr.freelancer_id,
         "freelancer_name": freelancer.name if freelancer else None,
+        "freelancer_rating": rating["avg_rating"],
+        "freelancer_review_count": rating["review_count"],
         "cover_letter": pr.cover_letter,
         "proposed_amount": pr.proposed_amount,
         "proposed_days": pr.proposed_days,

@@ -31,6 +31,8 @@ interface Proposal {
   project_id: number
   freelancer_id: number
   freelancer_name: string | null
+  freelancer_rating: number | null
+  freelancer_review_count: number
   cover_letter: string | null
   proposed_amount: number | null
   proposed_days: number | null
@@ -189,6 +191,9 @@ export default function ProjectDetailPage() {
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{p.freelancer_name || 'Freelancer'}</span>
+                                  {p.freelancer_review_count > 0 && (
+                                    <span style={{ fontSize: '11.5px', color: '#FBBF24' }}>★ {p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
+                                  )}
                                   <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
                                 </div>
                                 <div style={{ fontSize: '12.5px', color: 'var(--text)', marginBottom: '4px' }}>

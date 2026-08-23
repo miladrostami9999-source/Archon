@@ -8,8 +8,9 @@ approve actions themselves land in a later phase, but the shape here is
 built to carry them without a rework.
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
-from app.models.database import Contract, Milestone, Project, User
+from app.models.database import Contract, Milestone, Project, User, Review
 
 
 def _milestone_to_dict(m: Milestone) -> dict:
@@ -25,6 +26,19 @@ def _milestone_to_dict(m: Milestone) -> dict:
         "delivered_at": m.delivered_at.isoformat() if m.delivered_at else None,
         "approved_at": m.approved_at.isoformat() if m.approved_at else None,
     }
+
+
+def get_user_rating(db: Session, user_id: int) -> dict:
+    """Average rating and count of reviews this account received as either
+    client or freelancer — one reputation, not two, since the same person
+    plays both roles across different contracts."""
+    row = (
+        db.query(func.avg(Review.rating), func.count(Review.id))
+        .filter(Review.reviewee_id == user_id)
+        .first()
+    )
+    avg, count = row if row else (None, 0)
+    return {"avg_rating": round(avg, 1) if avg else None, "review_count": count or 0}
 
 
 def serialize_contract(contract: Contract, viewer_id: int, db: Session) -> dict:

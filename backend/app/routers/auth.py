@@ -967,6 +967,12 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
 
     data = json.loads(user.profile_json) if user.profile_json else {}
 
+    # Marketplace reputation — only meaningful once the account has
+    # completed contracts and been reviewed; the frontend hides it at
+    # review_count 0 rather than showing an empty "★ —".
+    from app.services.marketplace_access import get_user_rating
+    rating = get_user_rating(db, user.id)
+
     # Only expose safe, public-facing fields — never email, phone, plan, role
     return {
         "name": user.name,
@@ -979,6 +985,8 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "skills": data.get("skills", []),
         "customSkills": data.get("customSkills", []),
         "portfolio": data.get("portfolio", []),
+        "marketplace_rating": rating["avg_rating"],
+        "marketplace_review_count": rating["review_count"],
     }
 
 
