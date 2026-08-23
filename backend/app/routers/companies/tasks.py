@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Company, DailyTask, User, UserCompanyState
 from app.routers.auth import get_current_user, require_active_plan
+from app.services.timezone_utils import iran_day_start_utc
 from .schemas import TaskGenerateRequest, PersonalTaskCreate
 from .utils import to_dict, company_to_dict
 
@@ -37,8 +38,10 @@ def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(requi
         print("TASK ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Only replace this user's own tasks for today
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Only replace this user's own tasks for today (Iran calendar day — the
+    # business runs on Tehran time, and generating right after Iran midnight
+    # must count as "today", not spill into what UTC still calls yesterday).
+    today_start = iran_day_start_utc()
     db.query(DailyTask).filter(
         DailyTask.date >= today_start,
         DailyTask.user_id == current_user.id,
@@ -71,7 +74,7 @@ def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(requi
 
 @router.get("/tasks/today")
 def get_today_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = iran_day_start_utc()
     tasks = db.query(DailyTask).filter(
         DailyTask.date >= today_start,
         DailyTask.user_id == current_user.id,

@@ -42,23 +42,18 @@ def get_weekly_report_status(current_user: User = Depends(get_current_user), db:
     return _report_status(db, current_user.id)
 
 
-@router.post("/report/weekly")
-def generate_weekly_report(request: ReportRequest, current_user: User = Depends(require_feature("weekly_report")), db: Session = Depends(get_db)):
+def build_and_save_report(db: Session, user: User, lang: str = "en") -> dict:
+    """Everything from 'gather this user's pipeline' to 'report saved and
+    the 7-day lock reset' — shared by the manual Generate button and the
+    automatic weekly regeneration job so the two can never drift apart."""
     from app.services.claude import generate_weekly_report as gen_report
-
-    status = _report_status(db, current_user.id)
-    if status["locked"]:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Weekly report already generated. Next one available after {status['next_available_at']}."
-        )
 
     # The report covers this user's own pipeline — the companies they unlocked.
     # It used to run over the entire catalog, which both leaked names the plan
     # hadn't paid for and made the report meaningless once the catalog grew.
     rows = db.query(Company, UserCompanyState).join(
         UserCompanyState,
-        (UserCompanyState.company_id == Company.id) & (UserCompanyState.user_id == current_user.id),
+        (UserCompanyState.company_id == Company.id) & (UserCompanyState.user_id == user.id),
     ).all()
     companies_list = [company_to_dict(c, s) for c, s in rows]
 
@@ -67,7 +62,7 @@ def generate_weekly_report(request: ReportRequest, current_user: User = Depends(
         s = c.get('status', 'new')
         status_counts[s] = status_counts.get(s, 0) + 1
 
-    campaigns = db.query(Campaign).filter(Campaign.user_id == current_user.id).all()
+    campaigns = db.query(Campaign).filter(Campaign.user_id == user.id).all()
     emails_sent = len([c for c in campaigns if c.status in ['sent', 'replied']])
     emails_replied = len([c for c in campaigns if c.status == 'replied'])
     reply_rate = round((emails_replied / emails_sent * 100)) if emails_sent > 0 else 0
@@ -83,11 +78,22 @@ def generate_weekly_report(request: ReportRequest, current_user: User = Depends(
         "companies": companies_list,
     }
 
-    report = gen_report(data, lang=request.lang)
+    report = gen_report(data, lang=lang)
 
     # Persist per-user so the lock survives refresh/logout and is isolated
-    saved = WeeklyReport(user_id=current_user.id, report_json=_json.dumps(report), lang=request.lang)
+    saved = WeeklyReport(user_id=user.id, report_json=_json.dumps(report), lang=lang)
     db.add(saved)
     db.commit()
 
     return report
+
+
+@router.post("/report/weekly")
+def generate_weekly_report(request: ReportRequest, current_user: User = Depends(require_feature("weekly_report")), db: Session = Depends(get_db)):
+    status = _report_status(db, current_user.id)
+    if status["locked"]:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Weekly report already generated. Next one available after {status['next_available_at']}."
+        )
+    return build_and_save_report(db, current_user, request.lang)
