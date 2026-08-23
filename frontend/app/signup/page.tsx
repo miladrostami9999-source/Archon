@@ -21,6 +21,10 @@ function SignupInner() {
   const [confirm, setConfirm] = useState('')
   const [company, setCompany] = useState('')
   const [note, setNote] = useState('')
+  // Which side of the marketplace they mainly work on. Only decides which
+  // view leads — either mode can both post work and take work, and it's
+  // switchable later from the profile page.
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client'>('freelancer')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -38,7 +42,8 @@ function SignupInner() {
     setLoading(true); setError('')
     try {
       const res = await axios.post(`${API}/auth/signup`, {
-        name: name.trim(), email: email.trim(), password, plan, company: company.trim(), note: note.trim(),
+        name: name.trim(), email: email.trim(), password, plan,
+        company: company.trim(), note: note.trim(), account_mode: accountMode,
       })
       // Self-serve plans (the free trial) come back with a token — sign in
       // straight away instead of showing a "we'll be in touch" screen.
@@ -110,6 +115,33 @@ function SignupInner() {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>How will you use Archon? *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {([
+                      { key: 'freelancer', icon: '🎨', title: 'I take work', sub: 'Find projects and send proposals' },
+                      { key: 'client', icon: '💼', title: 'I hire', sub: 'Post projects and hire freelancers' },
+                    ] as const).map(opt => {
+                      const on = accountMode === opt.key
+                      return (
+                        <button key={opt.key} type="button" onClick={() => setAccountMode(opt.key)}
+                          style={{
+                            textAlign: 'left', padding: '12px', borderRadius: '10px', cursor: 'pointer',
+                            border: `1px solid ${on ? 'rgba(79,123,247,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                            background: on ? 'rgba(79,123,247,0.14)' : 'rgba(255,255,255,0.03)',
+                            transition: 'all 0.15s',
+                          }}>
+                          <div style={{ fontSize: '17px', marginBottom: '4px' }}>{opt.icon}</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: on ? '#8FB3FF' : '#E2E8F0' }}>{opt.title}</div>
+                          <div style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', lineHeight: 1.4 }}>{opt.sub}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.3)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                    You can do both either way — this just sets which view you land on, and you can switch it any time.
+                  </p>
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Full name *</label>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />

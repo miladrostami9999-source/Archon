@@ -60,10 +60,17 @@ class User(Base):
     plan_status     = Column(String, default="active")
 
     # ── MARKETPLACE (Phase 6, beta) ──
-    # Gated per-account while the marketplace is being tested — admins flip this
-    # on for test accounts from the Admin Panel. Every user can act as both
-    # client and freelancer; there is no separate role column for it.
-    marketplace_beta_enabled = Column(Boolean, default=False)
+    # On for everyone by default — the marketplace is labelled Beta in the UI
+    # rather than hidden, since a section nobody can see gets no testing. Kept
+    # as a per-account column so an admin can still switch it off for a
+    # specific account from the Users page.
+    marketplace_beta_enabled = Column(Boolean, default=True)
+    # Which side of the marketplace this account mainly works on. Purely a UI
+    # preference — it decides which view leads (post work vs find work) and is
+    # switchable at any time. It grants nothing: permissions come from being
+    # the client_id/freelancer_id on a specific contract, so one account can
+    # hire on one project and deliver on another without a second login.
+    account_mode             = Column(String, default="freelancer")  # freelancer | client
     skills                   = Column(Text, nullable=True)   # comma-separated, freelancer profile
     hourly_rate              = Column(Float, nullable=True)
 
@@ -569,6 +576,16 @@ def _seed_plan_limits():
                 if row and not (row.allowed_countries or "").strip():
                     row.allowed_countries = vals.get("allowed_countries", "")
             db.add(AppSetting(key="country_lock_seeded", value="1"))
+
+        # The marketplace first shipped opt-in, so accounts created before this
+        # have the flag off and would never see the section. Switch them on
+        # exactly once; after that an "off" value is the admin's deliberate
+        # choice for that account and must be left alone.
+        if not db.query(AppSetting).filter(AppSetting.key == "marketplace_opened_to_all").first():
+            db.query(User).filter(
+                (User.marketplace_beta_enabled.is_(False)) | (User.marketplace_beta_enabled.is_(None))
+            ).update({User.marketplace_beta_enabled: True}, synchronize_session=False)
+            db.add(AppSetting(key="marketplace_opened_to_all", value="1"))
         db.commit()
     except Exception as e:
         db.rollback()
@@ -663,8 +680,12 @@ def init_db():
 
             # ── Marketplace (Phase 6, beta) — new columns on the existing users table ──
             if "marketplace_beta_enabled" not in user_cols:
-                default_val = "FALSE" if "postgresql" in str(engine.url) else "0"
+                default_val = "TRUE" if "postgresql" in str(engine.url) else "1"
                 conn.execute(_text(f"ALTER TABLE users ADD COLUMN marketplace_beta_enabled BOOLEAN DEFAULT {default_val}"))
+                conn.commit()
+            if "account_mode" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN account_mode VARCHAR DEFAULT 'freelancer'"))
+                conn.execute(_text("UPDATE users SET account_mode = 'freelancer' WHERE account_mode IS NULL"))
                 conn.commit()
             if "skills" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN skills TEXT"))

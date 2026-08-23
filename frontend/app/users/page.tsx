@@ -19,6 +19,8 @@ interface User {
   id: number; name: string; email: string
   role: string; plan: string; is_active: boolean
   created_at: string; last_login: string | null
+  marketplace_beta_enabled?: boolean
+  account_mode?: string
 }
 
 export default function UsersPage() {
@@ -363,6 +365,13 @@ export default function UsersPage() {
                             </span>
                           )}
 
+                          {/* Which marketplace view this account leads with */}
+                          {!isEditing && u.role !== 'admin' && (
+                            <span title="Marketplace mode" style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+                              {u.account_mode === 'client' ? '💼 hires' : '🎨 takes work'}
+                            </span>
+                          )}
+
                           {/* ROLE */}
                           {isEditing ? (
                             <select value={editUser.role} onChange={e => setEditUser({ ...editUser, role: e.target.value })}
@@ -405,6 +414,19 @@ export default function UsersPage() {
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: u.is_active ? '#F87171' : '#34D399', background: u.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)', border: `1px solid ${u.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)'}`, cursor: 'pointer', fontWeight: 600 }}>
                               {u.is_active ? (isMobile ? 'Off' : 'Disable') : (isMobile ? 'On' : 'Enable')}
                             </button>
+                            {/* Marketplace is on for everyone by default; this is
+                                the per-account kill switch for abuse. */}
+                            {u.role !== 'admin' && (
+                              <button
+                                title={u.marketplace_beta_enabled === false ? 'Marketplace is off for this account' : 'Marketplace is on for this account'}
+                                onClick={() => updateUser(u.id, { marketplace_beta_enabled: u.marketplace_beta_enabled === false })}
+                                style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
+                                  color: u.marketplace_beta_enabled === false ? 'var(--text-dim)' : '#A78BFA',
+                                  background: u.marketplace_beta_enabled === false ? 'var(--bg-input)' : 'rgba(139,92,246,0.1)',
+                                  border: `1px solid ${u.marketplace_beta_enabled === false ? 'var(--border)' : 'rgba(139,92,246,0.2)'}` }}>
+                                {u.marketplace_beta_enabled === false ? '🛒 Off' : '🛒 On'}
+                              </button>
+                            )}
                             {u.role !== 'admin' && (
                               <button onClick={() => setDeleteConfirm(u.id)}
                                 style={{ fontSize: '14px', padding: '5px 8px', borderRadius: '8px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}

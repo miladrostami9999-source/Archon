@@ -48,6 +48,10 @@ const budgetLabel = (p: Project) => {
 export default function ProjectsPage() {
   const isMobile = useIsMobile()
   const [tab, setTab] = useState<'open' | 'mine'>('open')
+  // Which view leads. A client lands on the projects they've posted (where
+  // proposals arrive); a freelancer lands on the open board. Either can use
+  // both tabs — this only picks the starting one.
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client' | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showPost, setShowPost] = useState(false)
@@ -65,6 +69,16 @@ export default function ProjectsPage() {
       .finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [tab])
+
+  useEffect(() => {
+    axios.get(`${API}/auth/me`)
+      .then(r => {
+        const mode = r.data.account_mode === 'client' ? 'client' : 'freelancer'
+        setAccountMode(mode)
+        if (mode === 'client') setTab('mine')
+      })
+      .catch(() => setAccountMode('freelancer'))
+  }, [])
 
   const submitPost = async () => {
     if (!form.title.trim()) { setPostMsg('✗ Title is required'); return }
@@ -113,7 +127,9 @@ export default function ProjectsPage() {
             </button>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
-            Post a project to get proposals from freelancers, or browse the open board and submit your own.
+            {accountMode === 'client'
+              ? 'Post a project to get proposals from freelancers. You can also browse the open board and propose on other people’s work.'
+              : 'Browse open projects and send a proposal. You can post your own project here too — same account, no switching needed.'}
           </p>
 
           {showPost && (

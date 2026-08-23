@@ -89,6 +89,8 @@ export default function ProfilePage() {
   const avatarRef = useRef<HTMLInputElement>(null)
   const portfolioImgRef = useRef<HTMLInputElement>(null)
   const [addingImagesTo, setAddingImagesTo] = useState<string | null>(null)
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client'>('freelancer')
+  const [modeSaving, setModeSaving] = useState(false)
   const [dangerMode, setDangerMode] = useState<'' | 'deactivate' | 'delete'>('')
   const [deletePwd, setDeletePwd] = useState('')
   const [dangerErr, setDangerErr] = useState('')
@@ -96,7 +98,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
-      .then(res => setUser(res.data))
+      .then(res => { setUser(res.data); setAccountMode(res.data.account_mode === 'client' ? 'client' : 'freelancer') })
       .catch(() => { window.location.href = '/login' })
 
     // Show cached profile immediately, then reconcile with the server, which is
@@ -167,6 +169,28 @@ export default function ProfilePage() {
       signOutAfter('Your account has been deactivated. Contact us when you want it back.')
     } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not deactivate the account.') }
     setDangerBusy(false)
+  }
+
+  const switchAccountMode = async (mode: 'freelancer' | 'client') => {
+    if (mode === accountMode) return
+    setModeSaving(true)
+    const previous = accountMode
+    setAccountMode(mode)
+    try {
+      await axios.patch(`${API}/auth/me/account-mode`, { account_mode: mode }, { headers: headers() })
+      // Keep the cached user in step so the rest of the app doesn't show the
+      // old mode until the next sign-in.
+      try {
+        const stored = localStorage.getItem('archon-user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          localStorage.setItem('archon-user', JSON.stringify({ ...u, account_mode: mode }))
+        }
+      } catch {}
+    } catch {
+      setAccountMode(previous)
+    }
+    setModeSaving(false)
   }
 
   const deleteAccount = async () => {
@@ -502,6 +526,45 @@ export default function ProfilePage() {
 
           {/* ── TAB: INFO ── */}
           {activeTab === 'info' && (
+            <>
+            {/* Marketplace mode — a view preference, not a permission. Both
+                modes can post work and take work; this decides which one the
+                Projects page leads with. */}
+            <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Marketplace mode</h2>
+                <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', padding: '2px 7px', borderRadius: '999px', textTransform: 'uppercase' }}>Beta</span>
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
+                Switch any time — one account does both. Hiring and working just lead with different views, and your
+                reviews build up on the same profile either way.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                {([
+                  { key: 'freelancer', icon: '🎨', title: 'I take work', sub: 'Browse the open board and send proposals' },
+                  { key: 'client', icon: '💼', title: 'I hire', sub: 'Post projects and review proposals' },
+                ] as const).map(opt => {
+                  const on = accountMode === opt.key
+                  return (
+                    <button key={opt.key} type="button" onClick={() => switchAccountMode(opt.key)} disabled={modeSaving}
+                      style={{
+                        textAlign: 'left', padding: '14px', borderRadius: '12px', cursor: modeSaving ? 'wait' : 'pointer',
+                        border: `1px solid ${on ? 'rgba(79,123,247,0.5)' : 'var(--border)'}`,
+                        background: on ? 'rgba(79,123,247,0.1)' : 'var(--bg-input)',
+                        transition: 'all 0.15s',
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '17px' }}>{opt.icon}</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: on ? '#60A5FA' : 'var(--text)' }}>{opt.title}</span>
+                        {on && <span style={{ fontSize: '10px', fontWeight: 700, color: '#34D399', marginLeft: 'auto' }}>✓ Active</span>}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', lineHeight: 1.5 }}>{opt.sub}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px' }}>Personal Information</h2>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
@@ -544,6 +607,7 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
+            </>
           )}
 
           {/* ── TAB: SKILLS ── */}

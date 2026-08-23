@@ -199,12 +199,16 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
 
 
 def require_marketplace_beta(current_user: User = Depends(get_current_user)) -> User:
-    """Gate for every marketplace route while it's in beta — an admin flips
-    `marketplace_beta_enabled` on for test accounts from the Users page."""
+    """Gate for every marketplace route.
+
+    On for every account by default — the marketplace is labelled Beta in the
+    UI rather than hidden. This stays as a switch so an admin can turn it off
+    for a specific account from the Users page if it's ever being abused.
+    """
     if current_user.role == "admin":
         return current_user
-    if not current_user.marketplace_beta_enabled:
-        raise HTTPException(status_code=403, detail="Marketplace is in private beta and isn't enabled for your account yet.")
+    if current_user.marketplace_beta_enabled is False:
+        raise HTTPException(status_code=403, detail="The marketplace has been disabled for your account. Contact support if you think that's a mistake.")
     return current_user
 
 # ─────────────────────────────────────────
@@ -226,6 +230,14 @@ class UserUpdate(BaseModel):
     plan: Optional[str] = None
     is_active: Optional[bool] = None
     marketplace_beta_enabled: Optional[bool] = None
+    account_mode: Optional[str] = None
+
+
+ACCOUNT_MODES = {"freelancer", "client"}
+
+
+class AccountModeUpdate(BaseModel):
+    account_mode: str
 
 # ─────────────────────────────────────────
 # ENDPOINTS
@@ -245,6 +257,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         "user": {
             "id": user.id, "name": user.name, "email": user.email,
             "role": user.role, "plan": user.plan,
+            "account_mode": user.account_mode or "freelancer",
             "limits": PLAN_LIMITS.get(user.plan, PLAN_LIMITS["basic"]),
         }
     }
@@ -269,6 +282,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         # frontend must never re-derive "is this account cut off" itself.
         "access": access_state(db, current_user),
         "marketplace_beta_enabled": bool(current_user.marketplace_beta_enabled) or current_user.role == "admin",
+        "account_mode": current_user.account_mode or "freelancer",
     }
 
 @router.post("/change-password")
@@ -292,6 +306,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
         "plan_status": u.plan_status or "active",
         "created_at": u.created_at, "last_login": u.last_login,
         "marketplace_beta_enabled": bool(u.marketplace_beta_enabled),
+        "account_mode": u.account_mode or "freelancer",
     } for u in users]
 
 @router.post("/users")
@@ -331,8 +346,33 @@ def update_user(
         activate_plan(db, user, data.plan)
     if data.is_active is not None: user.is_active = data.is_active
     if data.marketplace_beta_enabled is not None: user.marketplace_beta_enabled = data.marketplace_beta_enabled
+    if data.account_mode is not None:
+        if data.account_mode not in ACCOUNT_MODES:
+            raise HTTPException(status_code=400, detail="Unknown account mode")
+        user.account_mode = data.account_mode
     db.commit()
     return {"message": "User updated"}
+
+
+@router.patch("/me/account-mode")
+def switch_account_mode(
+    data: AccountModeUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Switch between hiring and working views.
+
+    Deliberately self-serve rather than admin-only: a freelancer who wants to
+    post a project of their own shouldn't need a second account (which would
+    split their reputation across two identities). The mode only decides which
+    view leads — what an account may actually do on a given contract still
+    comes from being its client or its freelancer.
+    """
+    if data.account_mode not in ACCOUNT_MODES:
+        raise HTTPException(status_code=400, detail="Unknown account mode")
+    current_user.account_mode = data.account_mode
+    db.commit()
+    return {"message": "Account mode updated", "account_mode": current_user.account_mode}
 
 @router.delete("/users/{user_id}")
 def delete_user(
@@ -348,7 +388,11 @@ def delete_user(
     if _has_marketplace_activity(db, user.id):
         raise HTTPException(
             status_code=400,
-            detail="This account has marketplace projects, proposals, or contracts. Resolve or cancel those before deleting it.",
+            detail=(
+                "This account is party to marketplace projects or contracts, and deleting it would "
+                "break records the other side relies on. Use Disable instead — it blocks sign-in and "
+                "keeps the history intact."
+            ),
         )
     _purge_user_data(db, user)
     db.delete(user); db.commit()
@@ -1029,6 +1073,7 @@ class WaitlistSignup(BaseModel):
     plan: Optional[str] = "basic"
     company: Optional[str] = None
     note: Optional[str] = None
+    account_mode: Optional[str] = "freelancer"
 
 
 @router.post("/signup")
@@ -1071,6 +1116,7 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         plan_status="active" if instant_use else "pending",
         plan_started_at=now if instant_use else None,
         plan_expires_at=now + timedelta(days=get_plan_limit(db, plan)["period_days"]) if instant_use else None,
+        account_mode=req.account_mode if req.account_mode in ACCOUNT_MODES else "freelancer",
     )
     db.add(user)
     # Mirror into the waitlist so the admin has one list of every signup, with
@@ -1094,7 +1140,10 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         "instant": True,
         "plan_status": user.plan_status,
         "token": create_token({"user_id": user.id, "email": user.email, "role": user.role}),
-        "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "plan": user.plan},
+        "user": {
+            "id": user.id, "name": user.name, "email": user.email,
+            "role": user.role, "plan": user.plan, "account_mode": user.account_mode,
+        },
     }
 
 
