@@ -10,13 +10,15 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 10000
 
 interface Conversation {
-  contract_id: number
+  conversation_id: number
+  contract_id: number | null
   project_title: string
   contract_status: string
   other_party_id: number
   other_party_name: string | null
   other_party_avatar: string
-  viewer_role: 'client' | 'freelancer'
+  viewer_role: 'client' | 'freelancer' | 'peer'
+  other_party_username: string | null
   last_message: string | null
   last_message_at: string | null
   last_message_mine: boolean | null
@@ -61,7 +63,7 @@ export default function MessagesPage() {
         // is still false on the first render, which made the mobile layout
         // jump straight into a thread instead of showing the inbox.
         const wideEnough = typeof window !== 'undefined' && window.innerWidth >= 768
-        if (firstTime && r.data.length && wideEnough) setSelected(r.data[0].contract_id)
+        if (firstTime && r.data.length && wideEnough) setSelected(r.data[0].conversation_id)
       })
       .catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
@@ -76,7 +78,7 @@ export default function MessagesPage() {
 
   const shown = filter === 'unread' ? convos.filter(c => c.unread > 0) : convos
   const totalUnread = convos.reduce((a, c) => a + c.unread, 0)
-  const active = convos.find(c => c.contract_id === selected) || null
+  const active = convos.find(c => c.conversation_id === selected) || null
 
   const ConversationList = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -111,10 +113,10 @@ export default function MessagesPage() {
               : 'No conversations yet. A thread opens automatically once a proposal is accepted and a contract starts.'}
           </p>
         ) : shown.map(c => {
-          const on = c.contract_id === selected
+          const on = c.conversation_id === selected
           const initials = (c.other_party_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
           return (
-            <button key={c.contract_id} onClick={() => setSelected(c.contract_id)}
+            <button key={c.conversation_id} onClick={() => setSelected(c.conversation_id)}
               style={{
                 width: '100%', display: 'flex', gap: '10px', alignItems: 'center', textAlign: 'left',
                 padding: '12px 16px', border: 'none', cursor: 'pointer',
@@ -163,20 +165,29 @@ export default function MessagesPage() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '15px', padding: 0 }}>←</button>
         )}
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{active.other_party_name}</p>
+          {active.other_party_username ? (
+            <a href={`/u/${active.other_party_username}`} target="_blank" rel="noreferrer"
+              style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+              {active.other_party_name} ↗
+            </a>
+          ) : (
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{active.other_party_name}</p>
+          )}
           <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
-            {active.project_title} · you're the {active.viewer_role}
+            {active.contract_id ? `${active.project_title} · you're the ${active.viewer_role}` : 'Direct message'}
           </p>
         </div>
-        <a href={`/contracts/${active.contract_id}`}
-          style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', flexShrink: 0 }}>
-          Open contract →
-        </a>
+        {active.contract_id && (
+          <a href={`/contracts/${active.contract_id}`}
+            style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', flexShrink: 0 }}>
+            Open contract →
+          </a>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Keyed so switching threads remounts with fresh state instead of
             briefly showing the previous conversation's messages. */}
-        <ContractChat key={active.contract_id} contractId={active.contract_id} currentUserId={currentUserId} fill />
+        <ContractChat key={active.conversation_id} conversationId={active.conversation_id} currentUserId={currentUserId} fill />
       </div>
     </div>
   ) : (

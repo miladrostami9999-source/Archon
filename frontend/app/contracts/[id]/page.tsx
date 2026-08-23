@@ -134,7 +134,16 @@ export default function ContractDetailPage() {
       })
       .finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [id])
+  // The contract changes underneath you — the other party delivers, an admin
+  // confirms a payment — so the page keeps itself current instead of making
+  // people reload to find out. Skipped while a form panel is open so a poll
+  // can't wipe what someone is halfway through typing.
+  useEffect(() => {
+    load()
+    const timer = setInterval(() => { if (!openPanel) load() }, 6000)
+    return () => clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, openPanel])
 
   const submitReview = async () => {
     if (!reviewRating) { setReviewMsg('✗ Pick a star rating'); return }

@@ -57,7 +57,21 @@ const STATUS_META: Record<string, { color: string; bg: string; label: string }> 
 
 export default function MarketplaceAdminPage() {
   const isMobile = useIsMobile()
-  const [tab, setTab] = useState<'payments' | 'projects' | 'contracts' | 'payouts'>('payments')
+  const [tab, setTab] = useState<'payments' | 'verifications' | 'projects' | 'contracts' | 'payouts'>('payments')
+  const [verifications, setVerifications] = useState<any[]>([])
+  const [rejectVerifyId, setRejectVerifyId] = useState<number | null>(null)
+  const [verifyNote, setVerifyNote] = useState('')
+
+  const reviewVerification = async (userId: number, action: 'approve' | 'reject') => {
+    setBusy(userId); setMsg('')
+    try {
+      await axios.post(`${API}/marketplace/verification/admin/${userId}/${action}`,
+        action === 'reject' ? { admin_note: verifyNote } : {})
+      setRejectVerifyId(null); setVerifyNote('')
+      load()
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Failed'}`) }
+    setBusy(null)
+  }
 
   const [payments, setPayments] = useState<Payment[]>([])
   const [paymentFilter, setPaymentFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending')
@@ -72,6 +86,36 @@ export default function MarketplaceAdminPage() {
   const [payoutForm, setPayoutForm] = useState({ milestone_id: '', amount: '', method: '', reference: '', admin_note: '' })
   const [cap, setCap] = useState('')
   const [capSaving, setCapSaving] = useState(false)
+  const [detail, setDetail] = useState<any | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [copied, setCopied] = useState('')
+
+  const openContract = async (contractId: number) => {
+    setDetailLoading(true); setDetail(null); setMsg('')
+    try {
+      const r = await axios.get(`${API}/marketplace/admin/contracts/${contractId}`)
+      setDetail(r.data)
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not open contract'}`) }
+    setDetailLoading(false)
+  }
+
+  const copy = (key: string, value: string) => {
+    navigator.clipboard?.writeText(value)
+    setCopied(key)
+    setTimeout(() => setCopied(''), 1800)
+  }
+
+  const payMilestone = async (milestoneId: number, amount: number) => {
+    if (!window.confirm(`Record a payout of ${amount.toLocaleString('en-US')}? Do this after the transfer has actually gone out.`)) return
+    setBusy(milestoneId); setMsg('')
+    try {
+      const r = await axios.post(`${API}/marketplace/admin/payouts`, { milestone_id: milestoneId, amount })
+      setMsg(`✓ ${r.data.message}`)
+      await openContract(detail.id)
+      load()
+    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Payout failed'}`) }
+    setBusy(null)
+  }
 
   const saveCap = async () => {
     setCapSaving(true); setMsg('')
@@ -95,6 +139,9 @@ export default function MarketplaceAdminPage() {
       .finally(() => setLoading(false))
     axios.get(`${API}/marketplace/admin/settings`)
       .then(r => setCap(String(r.data.max_contract_usd ?? '')))
+      .catch(() => {})
+    axios.get(`${API}/marketplace/verification/admin/pending`)
+      .then(r => setVerifications(r.data))
       .catch(() => {})
   }
   useEffect(() => { load() }, [])
@@ -165,6 +212,7 @@ export default function MarketplaceAdminPage() {
           <div style={{ display: 'flex', gap: '6px', marginBottom: '18px', flexWrap: 'wrap' }}>
             {([
               ['payments', `Pending Payments${pendingCount ? ` (${pendingCount})` : ''}`],
+              ['verifications', `Verifications${verifications.length ? ` (${verifications.length})` : ''}`],
               ['projects', 'All Projects'],
               ['contracts', 'All Contracts'],
               ['payouts', 'Payouts'],
@@ -249,6 +297,63 @@ export default function MarketplaceAdminPage() {
                 </div>
               )}
             </>
+          ) : tab === 'verifications' ? (
+            verifications.length === 0 ? (
+              <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>
+                Nobody is waiting on verification.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {verifications.map(v => (
+                  <div key={v.user_id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      <div>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{v.user_name}</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{v.user_email}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                        <button onClick={() => reviewVerification(v.user_id, 'approve')} disabled={busy === v.user_id}
+                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
+                          {busy === v.user_id ? '…' : 'Approve'}
+                        </button>
+                        <button onClick={() => { setRejectVerifyId(rejectVerifyId === v.user_id ? null : v.user_id); setVerifyNote('') }}
+                          style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: '12.5px' }}>
+                      {([
+                        ['Legal name', v.legal_name], ['National ID', v.national_id],
+                        ['Phone', v.phone], ['City', v.city],
+                        ['Address', v.address], ['Bank', v.bank_name],
+                        ['Account holder', v.account_holder], ['Card', v.card_number],
+                        ['IBAN', v.iban],
+                      ] as [string, string][]).filter(([, val]) => val).map(([name, val]) => (
+                        <div key={name}>
+                          <span style={{ color: 'var(--text-dim)' }}>{name}: </span>
+                          <span style={{ color: 'var(--text)', wordBreak: 'break-all' }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {v.id_document_url && (
+                      <a href={v.id_document_url} target="_blank" rel="noreferrer"
+                        style={{ display: 'inline-block', marginTop: '8px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>📎 View ID document</a>
+                    )}
+                    {rejectVerifyId === v.user_id && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <input value={verifyNote} onChange={e => setVerifyNote(e.target.value)}
+                          placeholder="What needs correcting? (shown to them)" style={input} />
+                        <button onClick={() => reviewVerification(v.user_id, 'reject')} disabled={busy === v.user_id}
+                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: '#EF4444', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+                          Confirm
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           ) : tab === 'projects' ? (
             projects.length === 0 ? (
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>No projects yet.</div>
@@ -267,12 +372,19 @@ export default function MarketplaceAdminPage() {
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>No contracts yet.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {contracts.map(c => (
-                  <a key={c.id} href={`/contracts/${c.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '12px 16px', textDecoration: 'none', flexWrap: 'wrap', gap: '6px' }}>
-                    <span style={{ fontSize: '13.5px', color: 'var(--text)' }}>{c.project_title || `Contract #${c.id}`} — {c.client_name} → {c.freelancer_name}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{c.total_amount?.toLocaleString('en-US')} {c.currency} · {c.status}</span>
-                  </a>
-                ))}
+                {contracts.map(c => {
+                  const due = c.milestones.filter(m => m.status === 'approved').length
+                  return (
+                    <button key={c.id} onClick={() => openContract(c.id)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', borderRadius: '12px', border: `1px solid ${due ? 'rgba(52,211,153,0.35)' : 'var(--border)'}`, background: due ? 'rgba(52,211,153,0.06)' : 'var(--bg-card)', padding: '12px 16px', cursor: 'pointer', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ fontSize: '13.5px', color: 'var(--text)' }}>
+                        {c.project_title || `Contract #${c.id}`} — {c.client_name} → {c.freelancer_name}
+                        {due > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.14)', padding: '2px 8px', borderRadius: '999px' }}>💰 payout due</span>}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{c.total_amount?.toLocaleString('en-US')} {c.currency} · {c.status}</span>
+                    </button>
+                  )
+                })}
               </div>
             )
           ) : (
@@ -344,6 +456,124 @@ export default function MarketplaceAdminPage() {
             </>
           )}
         </div>
+
+        {/* ── CONTRACT DETAIL ──
+            Everything needed to act on one contract in a single place: where
+            each milestone stands, and — when a payout is due — the account to
+            transfer to, so there's no hunting through another page for it. */}
+        {(detail || detailLoading) && (
+          <div onClick={() => setDetail(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px' : '40px 20px', overflowY: 'auto' }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: '680px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden' }}>
+              {detailLoading || !detail ? (
+                <p style={{ padding: '32px', color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Loading…</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: '0 0 3px' }}>
+                        {detail.project_title || `Contract #${detail.id}`}
+                      </h2>
+                      <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
+                        {detail.client_name} → {detail.freelancer_name} · {detail.total_amount?.toLocaleString('en-US')} {detail.currency} · {detail.status}
+                      </p>
+                    </div>
+                    <button onClick={() => setDetail(null)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '16px', padding: '2px' }}>✕</button>
+                  </div>
+
+                  <div style={{ padding: '18px 20px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>Milestones</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                      {detail.milestone_detail.map((m: any) => {
+                        const payable = m.status === 'approved'
+                        const pending = m.payments.find((p: any) => p.status === 'pending')
+                        return (
+                          <div key={m.id} style={{ borderRadius: '11px', border: `1px solid ${payable ? 'rgba(52,211,153,0.35)' : 'var(--border)'}`, background: payable ? 'rgba(52,211,153,0.06)' : 'var(--bg-input)', padding: '13px 15px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                              <div>
+                                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: '8px' }}>{m.amount?.toLocaleString('en-US')} {detail.currency}</span>
+                              </div>
+                              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'capitalize', color: payable ? '#34D399' : 'var(--text-dim)' }}>
+                                {m.status === 'pending' ? 'awaiting funding' : m.status}
+                              </span>
+                            </div>
+
+                            {/* What the admin is being asked to do, if anything */}
+                            {pending && (
+                              <p style={{ fontSize: '12px', color: '#FBBF24', margin: '8px 0 0' }}>
+                                💳 Client says they paid {pending.amount?.toLocaleString('en-US')} {pending.currency}
+                                {pending.reference ? ` · ref ${pending.reference}` : ''} — confirm it in the Pending Payments tab.
+                              </p>
+                            )}
+                            {m.deliverable_url && (
+                              <a href={m.deliverable_url} target="_blank" rel="noreferrer"
+                                style={{ display: 'inline-block', marginTop: '6px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>📎 Delivered work</a>
+                            )}
+                            {m.payouts.length > 0 && (
+                              <p style={{ fontSize: '12px', color: '#A78BFA', margin: '6px 0 0' }}>
+                                🏦 Paid out {m.payouts[0].amount?.toLocaleString('en-US')}
+                                {m.payouts[0].reference ? ` · ref ${m.payouts[0].reference}` : ''}
+                              </p>
+                            )}
+                            {payable && (
+                              <button onClick={() => payMilestone(m.id, m.amount)} disabled={busy === m.id}
+                                style={{ marginTop: '10px', padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
+                                {busy === m.id ? 'Recording…' : `Mark as paid — ${m.amount?.toLocaleString('en-US')} ${detail.currency}`}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Payout details — only worth showing when money is due */}
+                    {detail.payout_due.length > 0 && (
+                      <>
+                        <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>Send it here</p>
+                        {detail.freelancer.verification_status !== 'verified' && (
+                          <div style={{ borderRadius: '10px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.07)', padding: '10px 12px', marginBottom: '10px', fontSize: '12px', color: '#FBBF24', lineHeight: 1.6 }}>
+                            ⚠ This freelancer is <strong>{detail.freelancer.verification_status}</strong> — their details haven&apos;t been checked. Verify them before transferring.
+                          </div>
+                        )}
+                        <div style={{ borderRadius: '11px', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '14px 16px', marginBottom: '8px' }}>
+                          {([
+                            ['Account holder', detail.freelancer.account_holder || detail.freelancer.legal_name],
+                            ['Card number', detail.freelancer.card_number],
+                            ['IBAN / Sheba', detail.freelancer.iban],
+                            ['Bank', detail.freelancer.bank_name],
+                            ['National ID', detail.freelancer.national_id],
+                            ['Phone', detail.freelancer.phone],
+                          ] as [string, string][]).filter(([, val]) => val).map(([name, val]) => (
+                            <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '5px 0' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{name}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-all' }}>{val}</div>
+                              </div>
+                              <button onClick={() => copy(name, val)}
+                                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', color: copied === name ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === name ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                {copied === name ? '✓' : 'Copy'}
+                              </button>
+                            </div>
+                          ))}
+                          {!detail.freelancer.card_number && !detail.freelancer.iban && (
+                            <p style={{ fontSize: '12px', color: '#F87171', margin: 0, lineHeight: 1.6 }}>
+                              This freelancer hasn&apos;t entered payout details yet. Ask them to complete verification before you transfer.
+                            </p>
+                          )}
+                        </div>
+                        <a href={`/contracts/${detail.id}`}
+                          style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>Open the contract as a participant →</a>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

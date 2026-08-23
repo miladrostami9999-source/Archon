@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.models.database import get_db, Milestone, Contract, MilestonePayment, User
 from app.routers.auth import require_marketplace_beta
+from app.services import notifications as notif
 from .schemas import MilestoneFundRequest, MilestoneDeliverRequest
 
 router = APIRouter(prefix="/milestones", tags=["marketplace-milestones"])
@@ -48,6 +49,14 @@ def fund_milestone(
         reference=data.reference, receipt_url=data.receipt_url, note=data.note, status="pending",
     )
     db.add(payment)
+    db.flush()
+    notif.notify_admins(
+        db, notif.PAYMENT_SUBMITTED,
+        "Payment to verify",
+        f"{current_user.name} says they sent {data.amount:,.0f} {data.currency} for “{m.title}”. "
+        f"Confirm it landed, then approve to fund the milestone.",
+        "/marketplace-admin",
+    )
     db.commit()
     db.refresh(payment)
     return {"message": "Payment submitted for review", "id": payment.id}
@@ -68,6 +77,12 @@ def deliver_milestone(
     m.deliverable_url = data.deliverable_url
     m.status = "delivered"
     m.delivered_at = datetime.utcnow()
+    notif.notify(
+        db, c.client_id, notif.MILESTONE_DELIVERED,
+        "Work delivered",
+        f"“{m.title}” is ready for your review.",
+        f"/contracts/{c.id}",
+    )
     db.commit()
     return {"message": "Delivery submitted"}
 
@@ -85,5 +100,21 @@ def approve_milestone(
         raise HTTPException(status_code=400, detail="This milestone hasn't been delivered yet")
     m.status = "approved"
     m.approved_at = datetime.utcnow()
+    freelancer = db.query(User).filter(User.id == c.freelancer_id).first()
+    # The one event nothing else can move past: money is now owed and only an
+    # admin can send it, so this goes out by email as well as in-app.
+    notif.notify_admins(
+        db, notif.MILESTONE_APPROVED,
+        "Payout due",
+        f"{freelancer.name if freelancer else 'The freelancer'} is owed "
+        f"{m.amount:,.0f} {c.currency} for “{m.title}” — the client approved the delivery.",
+        f"/marketplace-admin?contract={c.id}",
+    )
+    notif.notify(
+        db, c.freelancer_id, notif.MILESTONE_APPROVED,
+        "Delivery approved",
+        f"“{m.title}” was approved. Payout is being processed.",
+        f"/contracts/{c.id}",
+    )
     db.commit()
     return {"message": "Delivery approved — the admin will process payout to the freelancer"}

@@ -1037,7 +1037,37 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     # completed contracts and been reviewed; the frontend hides it at
     # review_count 0 rather than showing an empty "★ —".
     from app.services.marketplace_access import get_user_rating
+    from app.models.database import Review, Contract
     rating = get_user_rating(db, user.id)
+
+    # Reviews are the whole point of a public profile in a marketplace — a
+    # score with no words behind it tells a prospective client nothing.
+    review_rows = (
+        db.query(Review, User)
+        .join(User, User.id == Review.reviewer_id)
+        .filter(Review.reviewee_id == user.id)
+        .order_by(Review.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    reviews = [{
+        "rating": r.rating,
+        "comment": r.comment,
+        "reviewer_name": reviewer.name,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    } for r, reviewer in review_rows]
+
+    completed = (
+        db.query(Contract)
+        .filter(
+            ((Contract.freelancer_id == user.id) | (Contract.client_id == user.id)),
+            Contract.status == "completed",
+        )
+        .count()
+    )
+    # "Satisfaction" reads more plainly than a 1–5 average for someone
+    # skimming; both are shown so neither has to be taken on faith.
+    satisfaction = round((rating["avg_rating"] / 5) * 100) if rating["avg_rating"] else None
 
     # Only expose safe, public-facing fields — never email, phone, plan, role
     return {
@@ -1053,6 +1083,10 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "portfolio": data.get("portfolio", []),
         "marketplace_rating": rating["avg_rating"],
         "marketplace_review_count": rating["review_count"],
+        "marketplace_satisfaction": satisfaction,
+        "marketplace_completed_contracts": completed,
+        "marketplace_reviews": reviews,
+        "user_id": user.id,   # so a viewer can open a message thread
     }
 
 

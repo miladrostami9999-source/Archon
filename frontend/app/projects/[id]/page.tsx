@@ -101,7 +101,15 @@ export default function ProjectDetailPage() {
       })
       .finally(() => setLoading(false))
   }
-  useEffect(() => { if (id) load() }, [id])
+  // Proposals arrive while the owner is looking at the page, so it refreshes
+  // itself rather than needing a reload to show them.
+  useEffect(() => {
+    if (!id) return
+    load()
+    const timer = setInterval(load, 8000)
+    return () => clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const submitProposal = async () => {
     if (!form.proposed_amount) { setMsg('✗ Proposed amount is required'); return }

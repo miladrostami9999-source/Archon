@@ -1,6 +1,7 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, type ReactElement } from 'react'
+import NotificationBell from './NotificationBell'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -63,6 +64,8 @@ export default function Sidebar() {
   const [mpPaymentCount, setMpPaymentCount] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [pendingProposals, setPendingProposals] = useState(0)
+  const [verifyStatus, setVerifyStatus] = useState<string | null>(null)
+  const [pendingVerifications, setPendingVerifications] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -122,6 +125,10 @@ export default function Sidebar() {
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => setPendingProposals(d.count || 0))
         .catch(() => {})
+      fetch(`${API}/marketplace/verification/me`, { headers: h })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setVerifyStatus(d.status) })
+        .catch(() => {})
     }
     load()
     const id = setInterval(load, 30000)
@@ -144,6 +151,10 @@ export default function Sidebar() {
       fetch(`${API}/marketplace/admin/pending-count`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => setMpPaymentCount(d.count || 0))
+        .catch(() => {})
+      fetch(`${API}/marketplace/verification/admin/pending-count`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setPendingVerifications(d.count || 0))
         .catch(() => {})
     }
     load()
@@ -190,7 +201,7 @@ export default function Sidebar() {
     { label: 'Users',       iconKey: 'users',    href: '/users' },
     { label: 'Waitlist',    iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
     { label: 'Payments',    iconKey: 'payments', href: '/payments', badge: paymentCount },
-    { label: 'Marketplace Admin', iconKey: 'contracts', href: '/marketplace-admin', badge: mpPaymentCount },
+    { label: 'Marketplace Admin', iconKey: 'contracts', href: '/marketplace-admin', badge: mpPaymentCount + pendingVerifications },
   ] : []
 
   const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {
@@ -247,13 +258,16 @@ export default function Sidebar() {
             <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
           </div>
         </a>
-        {/* Close button on mobile */}
-        {isMobile && (
-          <button onClick={() => setMobileOpen(false)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
-            <CloseIcon />
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+          {user && <NotificationBell dark={dark} />}
+          {/* Close button on mobile */}
+          {isMobile && (
+            <button onClick={() => setMobileOpen(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+              <CloseIcon />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* NAV */}
@@ -273,6 +287,28 @@ export default function Sidebar() {
 
       {/* FOOTER */}
       <div style={{ padding: '12px 14px', borderTop: `1px solid ${b}`, flexShrink: 0, maxHeight: '48vh', overflowY: 'auto' }}>
+        {/* Verification is what makes a payout possible, so it's prompted
+            here rather than left to be discovered. Hidden once verified. */}
+        {marketplaceEnabled && verifyStatus && verifyStatus !== 'verified' && (
+          <a href="/verification"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
+              padding: '9px 10px', borderRadius: '9px', marginBottom: '10px',
+              border: `1px solid ${verifyStatus === 'pending' ? 'rgba(251,191,36,0.3)' : 'rgba(79,123,247,0.3)'}`,
+              background: verifyStatus === 'pending' ? 'rgba(251,191,36,0.08)' : 'rgba(79,123,247,0.08)',
+            }}>
+            <span style={{ fontSize: '13px', flexShrink: 0 }}>{verifyStatus === 'pending' ? '⏳' : '🪪'}</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: verifyStatus === 'pending' ? '#FBBF24' : '#60A5FA' }}>
+                {verifyStatus === 'pending' ? 'Verification in review' : 'Verify your identity'}
+              </span>
+              <span style={{ display: 'block', fontSize: '10.5px', color: td, lineHeight: 1.4, marginTop: '1px' }}>
+                {verifyStatus === 'pending' ? "We'll let you know shortly" : 'Needed before you can be paid'}
+              </span>
+            </span>
+          </a>
+        )}
+
         <button onClick={() => setDark(!dark)}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '8px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>

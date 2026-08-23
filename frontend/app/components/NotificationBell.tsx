@@ -1,0 +1,159 @@
+'use client'
+import { useEffect, useRef, useState } from 'react'
+import axios from 'axios'
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const POLL_MS = 20000
+
+interface Item {
+  id: number
+  kind: string
+  title: string
+  body: string
+  link: string
+  read: boolean
+  created_at: string
+}
+
+// One glyph per event so a full list is scannable without reading every line.
+const ICON: Record<string, string> = {
+  proposal_received: '📩',
+  proposal_accepted: '🎉',
+  proposal_rejected: '—',
+  message_received: '💬',
+  payment_submitted: '💳',
+  milestone_funded: '✅',
+  milestone_delivered: '📦',
+  milestone_approved: '💰',
+  milestone_released: '🏦',
+  review_received: '⭐',
+  verification_submitted: '🪪',
+  verification_reviewed: '🪪',
+}
+
+const relative = (iso: string) => {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (m < 1) return 'now'
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
+}
+
+export default function NotificationBell({ dark = true }: { dark?: boolean }) {
+  const [items, setItems] = useState<Item[]>([])
+  const [unread, setUnread] = useState(0)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const load = () => {
+    axios.get(`${API}/marketplace/notifications`, { params: { limit: 20 } })
+      .then(r => { setItems(r.data.items); setUnread(r.data.unread) })
+      .catch(() => {})
+  }
+
+  useEffect(() => {
+    load()
+    const timer = setInterval(load, POLL_MS)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Close on an outside click, the way every other dropdown behaves.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const openList = () => {
+    setOpen(o => !o)
+    if (!open) load()
+  }
+
+  const readAll = async () => {
+    await axios.post(`${API}/marketplace/notifications/read-all`).catch(() => {})
+    setUnread(0)
+    setItems(list => list.map(i => ({ ...i, read: true })))
+  }
+
+  const go = async (n: Item) => {
+    if (!n.read) {
+      axios.post(`${API}/marketplace/notifications/${n.id}/read`).catch(() => {})
+      setUnread(u => Math.max(0, u - 1))
+    }
+    if (n.link) window.location.href = n.link
+    else setOpen(false)
+  }
+
+  const border = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
+  const surface = dark ? '#161B27' : '#FFFFFF'
+  const text = dark ? '#E2E8F0' : '#1A1A2E'
+  const dim = dark ? 'rgba(255,255,255,0.45)' : '#6B7280'
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={openList} aria-label="Notifications"
+        style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: dim, padding: '5px', display: 'flex', alignItems: 'center', borderRadius: '8px' }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+        </svg>
+        {unread > 0 && (
+          <span style={{
+            position: 'absolute', top: '-1px', right: '-2px', minWidth: '15px', height: '15px',
+            padding: '0 4px', borderRadius: '999px', background: '#EF4444', color: 'white',
+            fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{unread > 99 ? '99+' : unread}</span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '32px', right: 0, zIndex: 60, width: '320px',
+          maxHeight: '420px', display: 'flex', flexDirection: 'column',
+          background: surface, border: `1px solid ${border}`, borderRadius: '12px',
+          boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderBottom: `1px solid ${border}`, flexShrink: 0 }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: text }}>Notifications</span>
+            {unread > 0 && (
+              <button onClick={readAll}
+                style={{ fontSize: '11px', fontWeight: 600, color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer' }}>
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            {items.length === 0 ? (
+              <p style={{ fontSize: '12.5px', color: dim, textAlign: 'center', padding: '28px 16px', margin: 0 }}>
+                Nothing yet.
+              </p>
+            ) : items.map(n => (
+              <button key={n.id} onClick={() => go(n)}
+                style={{
+                  width: '100%', display: 'flex', gap: '9px', textAlign: 'left', cursor: 'pointer',
+                  padding: '11px 14px', border: 'none', borderBottom: `1px solid ${border}`,
+                  background: n.read ? 'transparent' : (dark ? 'rgba(79,123,247,0.07)' : 'rgba(79,123,247,0.05)'),
+                }}>
+                <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1.3 }}>{ICON[n.kind] || '🔔'}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: n.read ? 500 : 700, color: text }}>{n.title}</span>
+                    <span style={{ fontSize: '10px', color: dim, marginLeft: 'auto', flexShrink: 0 }}>{relative(n.created_at)}</span>
+                  </span>
+                  {n.body && (
+                    <span style={{ display: 'block', fontSize: '11.5px', color: dim, marginTop: '2px', lineHeight: 1.5 }}>{n.body}</span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

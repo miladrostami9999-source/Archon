@@ -25,11 +25,18 @@ interface ChatMessage {
  * ceiling) to filling whatever height it's given — which is what the
  * Messages page wants, since there the thread *is* the page.
  */
-export default function ContractChat({ contractId, currentUserId, fill = false }: {
-  contractId: number
+export default function ContractChat({ contractId, conversationId, currentUserId, fill = false }: {
+  /** Address the thread by contract (contract page) or by conversation
+   *  (Messages page, where a thread may be a plain direct message with no
+   *  contract behind it). Exactly one is expected. */
+  contractId?: number
+  conversationId?: number
   currentUserId: number
   fill?: boolean
 }) {
+  const base = conversationId
+    ? `${API}/marketplace/conversations/${conversationId}`
+    : `${API}/marketplace/contracts/${contractId}`
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [attachment, setAttachment] = useState<{ url: string; name: string } | null>(null)
@@ -40,7 +47,7 @@ export default function ContractChat({ contractId, currentUserId, fill = false }
   const firstLoad = useRef(true)
 
   const load = () => {
-    axios.get(`${API}/marketplace/contracts/${contractId}/messages`)
+    axios.get(`${base}/messages`)
       .then(r => {
         setMessages(r.data)
         if (firstLoad.current) {
@@ -56,7 +63,7 @@ export default function ContractChat({ contractId, currentUserId, fill = false }
     const timer = setInterval(load, POLL_MS)
     return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contractId])
+  }, [base])
 
   const uploadAttachment = async (file: File) => {
     setUploading(true); setError('')
@@ -75,7 +82,7 @@ export default function ContractChat({ contractId, currentUserId, fill = false }
     if (!text.trim() && !attachment) return
     setSending(true); setError('')
     try {
-      const r = await axios.post(`${API}/marketplace/contracts/${contractId}/messages`, {
+      const r = await axios.post(`${base}/messages`, {
         body: text.trim() || null,
         attachment_url: attachment?.url || null,
       })

@@ -3,9 +3,10 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, Project, Proposal, Contract, Milestone, User
+from app.models.database import get_db, Project, Proposal, Contract, Conversation, Milestone, User
 from app.routers.auth import require_marketplace_beta
 from app.services.marketplace_access import get_user_rating
+from app.services import notifications as notif
 from .schemas import ProposalCreate, ProposalAccept
 
 router = APIRouter(tags=["marketplace-proposals"])
@@ -103,6 +104,13 @@ def submit_proposal(
         status="pending",
     )
     db.add(proposal)
+    db.flush()
+    notif.notify(
+        db, project.client_id, notif.PROPOSAL_RECEIVED,
+        "New proposal",
+        f"{current_user.name} proposed {data.proposed_amount:,.0f} {project.currency} on “{project.title}”.",
+        f"/projects/{project.id}",
+    )
     db.commit()
     db.refresh(proposal)
     return _proposal_to_dict(proposal, db)
@@ -245,6 +253,26 @@ def accept_proposal(
                 order_index=i,
                 status="pending",
             ))
+
+    # Open the thread with the contract rather than lazily on first message,
+    # so it's already in both inboxes the moment work starts.
+    a, b = sorted((contract.client_id, contract.freelancer_id))
+    if not db.query(Conversation).filter(Conversation.contract_id == contract.id).first():
+        db.add(Conversation(contract_id=contract.id, user_a_id=a, user_b_id=b))
+
+    notif.notify(
+        db, proposal.freelancer_id, notif.PROPOSAL_ACCEPTED,
+        "Your proposal was accepted",
+        f"“{project.title}” is yours — the contract is open.",
+        f"/contracts/{contract.id}",
+    )
+    for other in others:
+        notif.notify(
+            db, other.freelancer_id, notif.PROPOSAL_REJECTED,
+            "Proposal not selected",
+            f"“{project.title}” went to another freelancer.",
+            "/projects",
+        )
 
     db.commit()
     db.refresh(contract)

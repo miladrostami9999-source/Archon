@@ -6,7 +6,7 @@ from typing import Optional
 from app.models.database import get_db, Contract, Review, User
 from app.routers.auth import require_marketplace_beta
 
-router = APIRouter(prefix="/contracts", tags=["marketplace-reviews"])
+router = APIRouter(tags=["marketplace-reviews"])
 
 
 class ReviewCreate(BaseModel):
@@ -28,7 +28,7 @@ def _review_to_dict(r: Review, db: Session) -> dict:
     }
 
 
-@router.get("/{contract_id}/reviews")
+@router.get("/contracts/{contract_id}/reviews")
 def list_reviews(
     contract_id: int,
     current_user: User = Depends(require_marketplace_beta),
@@ -43,7 +43,7 @@ def list_reviews(
     return [_review_to_dict(r, db) for r in rows]
 
 
-@router.post("/{contract_id}/review")
+@router.post("/contracts/{contract_id}/review")
 def submit_review(
     contract_id: int,
     data: ReviewCreate,
@@ -74,6 +74,31 @@ def submit_review(
         rating=data.rating, comment=data.comment,
     )
     db.add(review)
+    db.flush()
+    from app.services import notifications as notif
+    notif.notify(
+        db, reviewee_id, notif.REVIEW_RECEIVED,
+        f"{current_user.name} left you a review",
+        f"{'★' * data.rating}{'☆' * (5 - data.rating)}" + (f" — “{data.comment}”" if data.comment else ""),
+        f"/contracts/{contract_id}",
+    )
     db.commit()
     db.refresh(review)
     return _review_to_dict(review, db)
+
+
+@router.get("/users/{user_id}/reviews")
+def user_reviews(
+    user_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Everything said about one account, for the reputation tab on a profile."""
+    from app.services.marketplace_access import get_user_rating
+    rows = (
+        db.query(Review)
+        .filter(Review.reviewee_id == user_id)
+        .order_by(Review.created_at.desc())
+        .all()
+    )
+    return {**get_user_rating(db, user_id), "items": [_review_to_dict(r, db) for r in rows]}

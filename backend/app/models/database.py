@@ -479,15 +479,95 @@ class MilestonePayout(Base):
     paid_at      = Column(DateTime, default=datetime.utcnow)
 
 
+class Conversation(Base):
+    """A thread between exactly two accounts.
+
+    Chat started as contract-only, but people need to talk *before* there's a
+    contract — a client asking a freelancer whether they're free at all. So a
+    conversation stands on its own and merely *may* be attached to a contract.
+    The pair is stored low-id-first so (a,b) and (b,a) can't both exist.
+    """
+    __tablename__ = "mp_conversations"
+    id          = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("mp_contracts.id"), nullable=True, index=True)
+    user_a_id   = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_b_id   = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_a_id", "user_b_id", "contract_id", name="uq_conversation_pair"),
+    )
+
+
 class ContractMessage(Base):
     __tablename__ = "mp_contract_messages"
     id             = Column(Integer, primary_key=True, index=True)
-    contract_id    = Column(Integer, ForeignKey("mp_contracts.id"), nullable=False, index=True)
+    # Nullable now that a message can belong to a plain direct conversation.
+    # Kept alongside conversation_id because every contract-scoped query in
+    # the app already reads it.
+    contract_id    = Column(Integer, ForeignKey("mp_contracts.id"), nullable=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("mp_conversations.id"), nullable=True, index=True)
     sender_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
     body           = Column(Text)
     attachment_url = Column(String, nullable=True)
     created_at     = Column(DateTime, default=datetime.utcnow, index=True)
     read_at        = Column(DateTime, nullable=True)
+
+
+class Notification(Base):
+    """In-app alerts, so nobody has to poll a page to find out something needs
+    them — an admin especially, since payouts only move when they act.
+
+    Deliberately denormalised: the title/body are rendered at creation time
+    rather than reconstructed later, so an old notification keeps saying what
+    it said even after the underlying row moves on.
+    """
+    __tablename__ = "mp_notifications"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    kind       = Column(String, index=True)   # see services/notifications.py
+    title      = Column(String, nullable=False)
+    body       = Column(Text)
+    link       = Column(String)               # where clicking it should go
+    read_at    = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class UserVerification(Base):
+    """Identity and payout details.
+
+    Money leaves Archon by hand, so a payout needs a real name, a real card
+    and a way to reach the person if a transfer bounces. Kept in its own table
+    rather than on `users` because it's the sensitive half — only the owner
+    and an admin may ever read it.
+    """
+    __tablename__ = "mp_user_verification"
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+
+    # ── identity ──
+    legal_name    = Column(String)
+    national_id   = Column(String)      # کد ملی
+    phone         = Column(String)
+    address       = Column(Text)
+    city          = Column(String)
+    country       = Column(String)
+    postal_code   = Column(String)
+    id_document_url = Column(String)    # scan/photo of the ID
+
+    # ── payout ──
+    bank_name       = Column(String)
+    account_holder  = Column(String)
+    card_number     = Column(String)    # شماره کارت
+    iban            = Column(String)    # شماره شبا
+
+    # unverified | pending | verified | rejected
+    status        = Column(String, default="unverified", index=True)
+    admin_note    = Column(Text)
+    submitted_at  = Column(DateTime)
+    reviewed_at   = Column(DateTime)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Review(Base):
@@ -546,6 +626,39 @@ def _backfill_multitenancy():
     except Exception as e:
         db.rollback()
         print(f"⚠️  Multi-tenancy backfill skipped: {e}")
+    finally:
+        db.close()
+
+
+def _backfill_conversations():
+    """Give every contract a conversation and attach its existing messages.
+
+    Chat predates the Conversation table, so messages already sent point only
+    at a contract. Runs on every startup but does nothing once each contract
+    has its thread.
+    """
+    db = SessionLocal()
+    try:
+        contracts = db.query(Contract).all()
+        made = 0
+        for c in contracts:
+            existing = db.query(Conversation).filter(Conversation.contract_id == c.id).first()
+            if not existing:
+                a, b = sorted((c.client_id, c.freelancer_id))
+                existing = Conversation(contract_id=c.id, user_a_id=a, user_b_id=b)
+                db.add(existing)
+                db.flush()
+                made += 1
+            db.query(ContractMessage).filter(
+                ContractMessage.contract_id == c.id,
+                ContractMessage.conversation_id.is_(None),
+            ).update({ContractMessage.conversation_id: existing.id}, synchronize_session=False)
+        if made:
+            print(f"✅ Marketplace: created {made} contract conversation(s)")
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️  Conversation backfill skipped: {e}")
     finally:
         db.close()
 
@@ -695,6 +808,43 @@ def init_db():
                 if "attachment_url" not in prop_cols:
                     conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN attachment_url VARCHAR"))
                     conn.commit()
+            if _inspector.has_table("mp_contract_messages"):
+                msg_cols = [c["name"] for c in _inspector.get_columns("mp_contract_messages")]
+                if "conversation_id" not in msg_cols:
+                    conn.execute(_text("ALTER TABLE mp_contract_messages ADD COLUMN conversation_id INTEGER"))
+                    conn.commit()
+                # contract_id was NOT NULL before direct messages existed.
+                nullable = next(
+                    (col.get("nullable") for col in _inspector.get_columns("mp_contract_messages")
+                     if col["name"] == "contract_id"),
+                    True,
+                )
+                if not nullable:
+                    if "postgresql" in str(engine.url):
+                        conn.execute(_text("ALTER TABLE mp_contract_messages ALTER COLUMN contract_id DROP NOT NULL"))
+                        conn.commit()
+                    else:
+                        # SQLite can't alter a column in place — rebuild the
+                        # table and copy the rows across.
+                        conn.execute(_text("""
+                            CREATE TABLE mp_contract_messages_new (
+                                id INTEGER NOT NULL PRIMARY KEY,
+                                contract_id INTEGER,
+                                conversation_id INTEGER,
+                                sender_id INTEGER NOT NULL,
+                                body TEXT,
+                                attachment_url VARCHAR,
+                                created_at DATETIME,
+                                read_at DATETIME
+                            )"""))
+                        conn.execute(_text("""
+                            INSERT INTO mp_contract_messages_new
+                                (id, contract_id, conversation_id, sender_id, body, attachment_url, created_at, read_at)
+                            SELECT id, contract_id, conversation_id, sender_id, body, attachment_url, created_at, read_at
+                            FROM mp_contract_messages"""))
+                        conn.execute(_text("DROP TABLE mp_contract_messages"))
+                        conn.execute(_text("ALTER TABLE mp_contract_messages_new RENAME TO mp_contract_messages"))
+                        conn.commit()
             if "skills" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN skills TEXT"))
                 conn.commit()
@@ -705,6 +855,7 @@ def init_db():
         print(f"⚠️  Column migration check: {e}")
 
     _backfill_multitenancy()
+    _backfill_conversations()
     _seed_plan_limits()
 
     # Create admin user if not exists

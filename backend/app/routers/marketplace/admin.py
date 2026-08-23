@@ -9,6 +9,7 @@ from app.models.database import (
 )
 from app.routers.auth import require_admin
 from app.services.marketplace_access import serialize_contract
+from app.services import notifications as notif
 from .schemas import MilestonePaymentReview, MilestonePayoutRequest
 
 router = APIRouter(prefix="/admin", tags=["marketplace-admin"])
@@ -96,6 +97,16 @@ def approve_payment(payment_id: int, admin: User = Depends(require_admin), db: S
     p.status = "approved"
     p.reviewed_at = datetime.utcnow()
     m.status = "funded"
+    c = db.query(Contract).filter(Contract.id == m.contract_id).first()
+    if c:
+        notif.notify(db, c.freelancer_id, notif.MILESTONE_FUNDED,
+                     "Milestone funded",
+                     f"“{m.title}” is funded — you can start and mark it delivered when ready.",
+                     f"/contracts/{c.id}")
+        notif.notify(db, c.client_id, notif.MILESTONE_FUNDED,
+                     "Your payment was confirmed",
+                     f"“{m.title}” is now funded and the freelancer has been told.",
+                     f"/contracts/{c.id}")
     db.commit()
     return {"message": "Payment approved — milestone is now funded"}
 
@@ -115,6 +126,13 @@ def reject_payment(
     p.status = "rejected"
     p.admin_note = data.admin_note
     p.reviewed_at = datetime.utcnow()
+    m = db.query(Milestone).filter(Milestone.id == p.milestone_id).first()
+    c = db.query(Contract).filter(Contract.id == m.contract_id).first() if m else None
+    if c:
+        notif.notify(db, c.client_id, notif.PAYMENT_SUBMITTED,
+                     "Payment couldn't be confirmed",
+                     data.admin_note or "We couldn't match your transfer. Please check and resubmit.",
+                     f"/contracts/{c.id}")
     db.commit()
     return {"message": "Payment rejected"}
 
@@ -137,6 +155,62 @@ def list_all_contracts(admin: User = Depends(require_admin), db: Session = Depen
     return [serialize_contract(c, admin.id, db) for c in rows]
 
 
+@router.get("/contracts/{contract_id}")
+def contract_detail(
+    contract_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Everything an admin needs on one screen to act on a contract: where each
+    milestone stands, what's been claimed and confirmed, and — when a payout is
+    actually due — the freelancer's bank details to transfer to."""
+    from app.models.database import MilestonePayout, UserVerification
+
+    c = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    data = serialize_contract(c, admin.id, db)
+    milestones = db.query(Milestone).filter(Milestone.contract_id == c.id).order_by(Milestone.order_index).all()
+
+    detail = []
+    for m in milestones:
+        pays = db.query(MilestonePayment).filter(MilestonePayment.milestone_id == m.id).order_by(MilestonePayment.created_at.desc()).all()
+        outs = db.query(MilestonePayout).filter(MilestonePayout.milestone_id == m.id).all()
+        detail.append({
+            "id": m.id, "title": m.title, "amount": m.amount, "status": m.status,
+            "deliverable_url": m.deliverable_url,
+            "delivered_at": m.delivered_at.isoformat() if m.delivered_at else None,
+            "approved_at": m.approved_at.isoformat() if m.approved_at else None,
+            # What the admin is being asked to do about this milestone, if anything.
+            "awaiting_admin": m.status == "approved" or any(p.status == "pending" for p in pays),
+            "payments": [_payment_to_dict(p, db) for p in pays],
+            "payouts": [{"id": o.id, "amount": o.amount, "method": o.method,
+                         "reference": o.reference, "admin_note": o.admin_note,
+                         "paid_at": o.paid_at.isoformat() if o.paid_at else None} for o in outs],
+        })
+
+    def payout_info(user_id: int) -> dict:
+        u = db.query(User).filter(User.id == user_id).first()
+        v = db.query(UserVerification).filter(UserVerification.user_id == user_id).first()
+        base = {"id": user_id, "name": u.name if u else None, "email": u.email if u else None,
+                "verification_status": (v.status if v else "unverified")}
+        if v:
+            base.update({
+                "legal_name": v.legal_name or "", "national_id": v.national_id or "",
+                "phone": v.phone or "", "address": v.address or "", "city": v.city or "",
+                "bank_name": v.bank_name or "", "account_holder": v.account_holder or "",
+                "card_number": v.card_number or "", "iban": v.iban or "",
+            })
+        return base
+
+    data["milestone_detail"] = detail
+    data["freelancer"] = payout_info(c.freelancer_id)
+    data["client"] = payout_info(c.client_id)
+    data["payout_due"] = [m["id"] for m in detail if m["status"] == "approved"]
+    return data
+
+
 @router.post("/payouts")
 def create_payout(
     data: MilestonePayoutRequest,
@@ -157,12 +231,20 @@ def create_payout(
     )
     db.add(payout)
     m.status = "released"
-    db.commit()
 
     contract = db.query(Contract).filter(Contract.id == m.contract_id).first()
     if contract:
+        notif.notify(db, contract.freelancer_id, notif.MILESTONE_RELEASED,
+                     "You've been paid",
+                     f"{data.amount:,.0f} {contract.currency} was sent for “{m.title}”.",
+                     f"/contracts/{contract.id}")
         siblings = db.query(Milestone).filter(Milestone.contract_id == contract.id).all()
         if siblings and all(s.status == "released" for s in siblings):
             contract.status = "completed"
-            db.commit()
+            for uid in (contract.client_id, contract.freelancer_id):
+                notif.notify(db, uid, notif.MILESTONE_RELEASED,
+                             "Contract complete",
+                             "Every milestone is paid out. You can leave a review now.",
+                             f"/contracts/{contract.id}")
+    db.commit()
     return {"message": "Payout recorded — milestone released"}

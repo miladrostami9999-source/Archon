@@ -12,6 +12,10 @@ interface PublicProfile {
   location: string; website: string; company: string
   skills: string[]; customSkills: string[]; portfolio: PortfolioItem[]
   marketplace_rating: number | null; marketplace_review_count: number
+  marketplace_satisfaction: number | null
+  marketplace_completed_contracts: number
+  marketplace_reviews: { rating: number; comment: string | null; reviewer_name: string; created_at: string }[]
+  user_id: number
 }
 
 export default function PublicProfilePage() {
@@ -22,6 +26,26 @@ export default function PublicProfilePage() {
   const [notFound, setNotFound] = useState(false)
   const [selectedProject, setSelectedProject] = useState<PortfolioItem | null>(null)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
+  const [messaging, setMessaging] = useState(false)
+  const [msgError, setMsgError] = useState('')
+
+  const messageThem = async () => {
+    if (!profile) return
+    if (!localStorage.getItem('archon-token')) {
+      window.location.href = '/login'
+      return
+    }
+    setMessaging(true); setMsgError('')
+    try {
+      const token = localStorage.getItem('archon-token')
+      await axios.post(`${API}/marketplace/conversations/start`, { user_id: profile.user_id },
+        { headers: { Authorization: `Bearer ${token}` } })
+      window.location.href = '/messages'
+    } catch (e: any) {
+      setMsgError(e.response?.data?.detail || 'Could not open a conversation.')
+      setMessaging(false)
+    }
+  }
 
   useEffect(() => {
     if (!username) return
@@ -122,7 +146,14 @@ export default function PublicProfilePage() {
               {profile.website && <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" style={{ color: '#8FB3FF', textDecoration: 'none' }}>🌐 {profile.website.replace(/^https?:\/\//, '')}</a>}
             </div>
           </div>
+          {/* Anyone signed in can start a conversation from here — the point
+              of a public profile is being reachable. */}
+          <button onClick={messageThem} disabled={messaging}
+            style={{ flexShrink: 0, padding: '10px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
+            {messaging ? 'Opening…' : '💬 Message'}
+          </button>
         </div>
+        {msgError && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '-12px 0 16px' }}>{msgError}</p>}
 
         {profile.bio && (
           <p style={{ fontSize: '15px', color: 'rgba(231,234,240,0.75)', lineHeight: 1.7, marginBottom: '24px', maxWidth: '680px' }}>{profile.bio}</p>
@@ -138,6 +169,50 @@ export default function PublicProfilePage() {
           </div>
         )}
       </div>
+
+      {/* REPUTATION — what people who actually worked with them said. A score
+          on its own tells a prospective client nothing, so the comments are
+          shown in full. */}
+      {profile.marketplace_review_count > 0 && (
+        <div style={{ maxWidth: '860px', margin: '0 auto', padding: '20px 24px 0' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px' }}>
+            Reputation
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
+            {([
+              ['★ ' + profile.marketplace_rating, 'Average rating', '#FBBF24'],
+              [`${profile.marketplace_satisfaction}%`, 'Satisfaction', '#34D399'],
+              [String(profile.marketplace_completed_contracts), 'Contracts completed', '#60A5FA'],
+              [String(profile.marketplace_review_count), 'Reviews', '#A78BFA'],
+            ] as [string, string, string][]).map(([value, name, color]) => (
+              <div key={name} style={{ flex: '1 1 130px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px' }}>
+                <div style={{ fontSize: '20px', fontWeight: 800, color, marginBottom: '2px' }}>{value}</div>
+                <div style={{ fontSize: '11px', color: 'rgba(231,234,240,0.45)' }}>{name}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {profile.marketplace_reviews.map((r, i) => (
+              <div key={i} style={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: r.comment ? '6px' : 0 }}>
+                  <span style={{ fontSize: '13px', color: '#FBBF24', letterSpacing: '1px' }}>
+                    {'★'.repeat(r.rating)}<span style={{ color: 'rgba(255,255,255,0.15)' }}>{'★'.repeat(5 - r.rating)}</span>
+                  </span>
+                  <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'rgba(231,234,240,0.8)' }}>{r.reviewer_name}</span>
+                  <span style={{ fontSize: '11px', color: 'rgba(231,234,240,0.35)', marginLeft: 'auto' }}>
+                    {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                {r.comment && (
+                  <p style={{ fontSize: '13px', color: 'rgba(231,234,240,0.7)', margin: 0, lineHeight: 1.6 }}>{r.comment}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* PORTFOLIO */}
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '20px 24px 80px' }}>
