@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import OnboardingTour from './components/OnboardingTour'
 import AxiosAuth from './components/AxiosAuth'
+import PageTransition from './components/PageTransition'
 
 export const metadata: Metadata = {
   title: 'Archon — by Armila Design',
@@ -13,9 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning style={{ margin: 0, padding: 0 }}>
         <AxiosAuth />
-        <div className="page-enter">
-          {children}
-        </div>
+        <PageTransition>{children}</PageTransition>
         <OnboardingTour />
       </body>
     </html>
