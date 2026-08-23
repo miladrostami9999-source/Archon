@@ -18,6 +18,25 @@ interface Verification {
   is_complete: boolean
 }
 
+// Hoisted out of the page component: a component defined inside a render
+// function is a brand-new function identity every render, so React treats
+// each <Field/> as a different component type and remounts its <input> —
+// which drops focus after every keystroke. Declaring it here once fixes that.
+function Field({ name, field, placeholder, wide, v, set, locked, input, label }: {
+  name: string; field: keyof Verification; placeholder?: string; wide?: boolean
+  v: Verification; set: (field: keyof Verification, value: string) => void
+  locked: boolean; input: React.CSSProperties; label: React.CSSProperties
+}) {
+  return (
+    <div style={wide ? { gridColumn: '1 / -1' } : undefined}>
+      <label style={label}>{name}</label>
+      <input value={(v[field] as string) || ''} disabled={locked}
+        onChange={e => set(field, e.target.value)} placeholder={placeholder}
+        style={{ ...input, opacity: locked ? 0.6 : 1 }} />
+    </div>
+  )
+}
+
 const STATUS_META: Record<string, { color: string; bg: string; label: string; blurb: string }> = {
   unverified: { color: 'var(--text-muted)', bg: 'var(--bg-input)', label: 'Not verified',
                 blurb: 'Fill these in and submit them — we check them once, then payouts can go out without further back-and-forth.' },
@@ -94,17 +113,6 @@ export default function VerificationPage() {
   const label: React.CSSProperties = { display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }
   const locked = v?.status === 'pending'
 
-  const Field = ({ name, field, placeholder, wide = false }: {
-    name: string; field: keyof Verification; placeholder?: string; wide?: boolean
-  }) => (
-    <div style={wide ? { gridColumn: '1 / -1' } : undefined}>
-      <label style={label}>{name}</label>
-      <input value={(v?.[field] as string) || ''} disabled={locked}
-        onChange={e => set(field, e.target.value)} placeholder={placeholder}
-        style={{ ...input, opacity: locked ? 0.6 : 1 }} />
-    </div>
-  )
-
   const sm = v ? STATUS_META[v.status] : null
 
   return (
@@ -145,13 +153,13 @@ export default function VerificationPage() {
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '14px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '14px' }}>Who you are</p>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                  <Field name="Legal name" field="legal_name" placeholder="As written on your ID" />
-                  <Field name="National ID (کد ملی)" field="national_id" placeholder="0012345678" />
-                  <Field name="Phone" field="phone" placeholder="+98…" />
-                  <Field name="City" field="city" />
-                  <Field name="Country" field="country" />
-                  <Field name="Postal code" field="postal_code" />
-                  <Field name="Address" field="address" wide />
+                  <Field name="Legal name" field="legal_name" placeholder="As written on your ID" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="National ID (کد ملی)" field="national_id" placeholder="0012345678" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Phone" field="phone" placeholder="+98…" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="City" field="city" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Country" field="country" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Postal code" field="postal_code" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Address" field="address" wide v={v} set={set} locked={locked} input={input} label={label} />
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={label}>ID document <span style={{ color: 'var(--text-dim)' }}>(optional — speeds up review)</span></label>
                     {v.id_document_url ? (
@@ -176,10 +184,10 @@ export default function VerificationPage() {
                   The account must be in your own name — we can&apos;t send a payout to a third party.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                  <Field name="Bank" field="bank_name" placeholder="e.g. Mellat" />
-                  <Field name="Account holder" field="account_holder" />
-                  <Field name="Card number (شماره کارت)" field="card_number" placeholder="6104…" />
-                  <Field name="IBAN / Sheba (شماره شبا)" field="iban" placeholder="IR…" />
+                  <Field name="Bank" field="bank_name" placeholder="e.g. Mellat" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Account holder" field="account_holder" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="Card number (شماره کارت)" field="card_number" placeholder="6104…" v={v} set={set} locked={locked} input={input} label={label} />
+                  <Field name="IBAN / Sheba (شماره شبا)" field="iban" placeholder="IR…" v={v} set={set} locked={locked} input={input} label={label} />
                 </div>
               </div>
 

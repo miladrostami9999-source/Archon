@@ -72,6 +72,51 @@ const EMPTY: Criteria = {
   search_provider: '',
 }
 
+// Hoisted out of the page component: components defined inside a render
+// function get a brand-new function identity every render, so React treats
+// each <Section/>/<Chip/> as a different component type on every keystroke
+// and remounts whatever's inside — including any focused <input>, which is
+// why typing in the "Where"/"Who"/etc. filters used to drop focus after
+// every character. Declaring them once here fixes that.
+function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+  return (
+    <button type="button" onClick={onClick} title={title}
+      style={{
+        fontSize: '11.5px', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer',
+        border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
+        background: on ? 'rgba(79,123,247,0.14)' : 'var(--bg-input)',
+        color: on ? '#60A5FA' : 'var(--text-muted)', textAlign: 'left',
+      }}>{children}</button>
+  )
+}
+
+/** A collapsed filter group that shows what's set without being opened. */
+function Section({ id, title, hint, summary, children, openSection, setOpenSection }: {
+  id: string; title: string; hint: string; summary: string; children: React.ReactNode
+  openSection: string | null; setOpenSection: (id: string | null) => void
+}) {
+  const open = openSection === id
+  const isSet = summary !== 'Any'
+  return (
+    <div style={{ borderTop: '1px solid var(--border)' }}>
+      <button type="button" onClick={() => setOpenSection(open ? null : id)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 2px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-dim)', width: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+            {title} <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-dim)' }}>· {hint}</span>
+          </p>
+          <p style={{
+            fontSize: '11.5px', margin: '2px 0 0', color: isSet ? '#60A5FA' : 'var(--text-dim)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{summary}</p>
+        </div>
+      </button>
+      {open && <div style={{ padding: '2px 0 16px 20px' }}>{children}</div>}
+    </div>
+  )
+}
+
 const GRADE_COLOR: Record<string, string> = { A: '#34D399', B: '#60A5FA', C: '#FBBF24', D: '#9CA3AF' }
 const CONFIDENCE_COLOR: Record<string, string> = { high: '#34D399', medium: '#FBBF24', low: '#9CA3AF' }
 
@@ -313,42 +358,6 @@ export default function LeadHunter() {
     color: 'var(--text-dim)', margin: '0 0 8px',
   }
 
-  const Chip = ({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) => (
-    <button type="button" onClick={onClick} title={title}
-      style={{
-        fontSize: '11.5px', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer',
-        border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
-        background: on ? 'rgba(79,123,247,0.14)' : 'var(--bg-input)',
-        color: on ? '#60A5FA' : 'var(--text-muted)', textAlign: 'left',
-      }}>{children}</button>
-  )
-
-  /** A collapsed filter group that shows what's set without being opened. */
-  const Section = ({ id, title, hint, summary, children }: {
-    id: string; title: string; hint: string; summary: string; children: React.ReactNode
-  }) => {
-    const open = openSection === id
-    const isSet = summary !== 'Any'
-    return (
-      <div style={{ borderTop: '1px solid var(--border)' }}>
-        <button type="button" onClick={() => setOpenSection(open ? null : id)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '13px 2px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)', width: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
-              {title} <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-dim)' }}>· {hint}</span>
-            </p>
-            <p style={{
-              fontSize: '11.5px', margin: '2px 0 0', color: isSet ? '#60A5FA' : 'var(--text-dim)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{summary}</p>
-          </div>
-        </button>
-        {open && <div style={{ padding: '2px 0 16px 20px' }}>{children}</div>}
-      </div>
-    )
-  }
-
   const listSummary = (items: string[], fallback = 'Any') => items.length ? items.join(', ') : fallback
 
   const summary = useMemo(() => {
@@ -559,7 +568,7 @@ export default function LeadHunter() {
 
                       {refineOpen && (
                         <div style={{ paddingBottom: '6px' }}>
-                          <Section id="where" title="Where" hint="countries, cities, language"
+                          <Section id="where" title="Where" hint="countries, cities, language" openSection={openSection} setOpenSection={setOpenSection}
                             summary={[criteria.countries, criteria.cities, criteria.languages].filter(Boolean).join(' · ') || 'Any'}>
                             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
                               <div>
@@ -577,7 +586,7 @@ export default function LeadHunter() {
                             </div>
                           </Section>
 
-                          <Section id="who" title="Who" hint="business type, projects, size"
+                          <Section id="who" title="Who" hint="business type, projects, size" openSection={openSection} setOpenSection={setOpenSection}
                             summary={listSummary([...criteria.segments, ...criteria.project_types, ...criteria.company_sizes])}>
                             <p style={{ ...sectionLabel, marginTop: '6px' }}>Business type</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
@@ -593,7 +602,7 @@ export default function LeadHunter() {
                             </div>
                           </Section>
 
-                          <Section id="signals" title="Buying signals" hint="weigh heavily in the score"
+                          <Section id="signals" title="Buying signals" hint="weigh heavily in the score" openSection={openSection} setOpenSection={setOpenSection}
                             summary={listSummary(catalog?.signals.filter(s => criteria.signals.includes(s.key)).map(s => s.label) || [])}>
                             <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '6px 0 10px', lineHeight: 1.6 }}>
                               A firm that just won an award, launched a project, or is hiring a
@@ -606,7 +615,7 @@ export default function LeadHunter() {
                             </div>
                           </Section>
 
-                          <Section id="sources" title="Where to hunt" hint={`${catalog?.groups.reduce((n, g) => n + g.sources.length, 0) || 0} sources`}
+                          <Section id="sources" title="Where to hunt" hint={`${catalog?.groups.reduce((n, g) => n + g.sources.length, 0) || 0} sources`} openSection={openSection} setOpenSection={setOpenSection}
                             summary={criteria.sources.length ? `${criteria.sources.length} selected` : 'Any'}>
                             <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '6px 0 10px', lineHeight: 1.6 }}>
                               Naming sources is what gets you past the same twenty famous studios.
@@ -643,7 +652,7 @@ export default function LeadHunter() {
                             </div>
                           </Section>
 
-                          <Section id="rules" title="Rules" hint="what to skip"
+                          <Section id="rules" title="Rules" hint="what to skip" openSection={openSection} setOpenSection={setOpenSection}
                             summary={[
                               criteria.require_website ? 'needs a website' : '',
                               criteria.require_email ? 'needs an email' : '',
