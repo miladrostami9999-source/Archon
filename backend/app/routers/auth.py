@@ -284,6 +284,11 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "marketplace_beta_enabled": bool(current_user.marketplace_beta_enabled) or current_user.role == "admin",
         "account_mode": current_user.account_mode or "freelancer",
         "google_email": current_user.google_email,
+        # The email lookup during connect can come back empty (e.g. a scope
+        # the token didn't cover) even though the refresh token itself saved
+        # fine and sending would work — so "connected" has to be judged by
+        # the token's presence, not by whether we happen to know the address.
+        "google_connected": current_user.google_refresh_token_encrypted is not None,
         "is_verified": db.query(UserVerification).filter(
             UserVerification.user_id == current_user.id, UserVerification.status == "verified",
         ).first() is not None,

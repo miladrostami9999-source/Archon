@@ -51,6 +51,7 @@ interface UserProfile {
   id: number; name: string; email: string
   role: string; plan: string; created_at: string; last_login: string | null
   google_email?: string | null
+  google_connected?: boolean
   is_verified?: boolean
 }
 
@@ -979,9 +980,9 @@ export default function ProfilePage() {
                 <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
                   Connect your own Gmail so outreach sends from your address instead of Archon's shared sender. Send-only access — Archon never reads your inbox.
                 </p>
-                {user?.google_email ? (
+                {user?.google_connected ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '13px', color: '#34D399' }}>✓ Connected as {user.google_email}</span>
+                    <span style={{ fontSize: '13px', color: '#34D399' }}>✓ Connected{user.google_email ? ` as ${user.google_email}` : ''}</span>
                     <button onClick={disconnectGmail} disabled={gmailConnecting}
                       style={{ padding: '8px 16px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
                       {gmailConnecting ? 'Disconnecting…' : 'Disconnect'}

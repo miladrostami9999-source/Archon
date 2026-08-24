@@ -32,6 +32,7 @@ const ICON: Record<string, string> = {
   post_liked: '♥',
   post_commented: '💬',
   broadcast: '📣',
+  gmail_connected: '📧',
 }
 
 const relative = (iso: string) => {

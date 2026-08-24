@@ -31,6 +31,7 @@ VERIFICATION_REVIEWED = "verification_reviewed"
 BROADCAST = "broadcast"                              # admin → segment
 POST_LIKED = "post_liked"
 POST_COMMENTED = "post_commented"
+GMAIL_CONNECTED = "gmail_connected"
 
 # Kinds an admin should also get by email — the ones where money is waiting on
 # them and a missed in-app badge means someone is left hanging.

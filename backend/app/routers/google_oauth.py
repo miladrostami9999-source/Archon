@@ -19,8 +19,17 @@ from app.models.database import get_db, User
 from app.routers.auth import get_current_user, create_token
 from app.services.crypto import encrypt
 from app.services.gmail_service import GMAIL_SCOPES
+from app.services import notifications as notif
 
 router = APIRouter(prefix="/auth/google", tags=["google-oauth"])
+
+# gmail.send is the only scope the app actually uses to send mail, but we
+# also ask for userinfo.email here (consent-flow only — never passed to
+# gmail_service.py) purely so we can show *which* Gmail got connected.
+# Without it, the token exchange still succeeds — sending would have worked
+# — but the userinfo lookup below comes back empty, so "Connected" never
+# had an email to show and looked like the connection silently failed.
+AUTHORIZE_SCOPES = GMAIL_SCOPES + ["https://www.googleapis.com/auth/userinfo.email"]
 
 
 def _redirect_uri() -> str:
@@ -44,7 +53,7 @@ def _flow() -> Flow:
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
-        scopes=GMAIL_SCOPES,
+        scopes=AUTHORIZE_SCOPES,
         redirect_uri=_redirect_uri(),
     )
 
@@ -100,6 +109,14 @@ def callback(code: str, state: str, db: Session = Depends(get_db)):
         user.google_refresh_token_encrypted = encrypt(creds.refresh_token)
         user.google_email = userinfo.get("email")
         user.google_connected_at = datetime.utcnow()
+
+        notif.notify(
+            db, user.id, notif.GMAIL_CONNECTED,
+            "Gmail connected",
+            f"Outreach emails will now send from {user.google_email}." if user.google_email
+            else "Your Gmail account is connected and ready to send.",
+            "/profile",
+        )
         db.commit()
 
         return RedirectResponse(f"{frontend}/profile?gmail=connected" if frontend else "/")
