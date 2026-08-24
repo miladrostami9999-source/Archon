@@ -116,6 +116,16 @@ export default function ProfilePage() {
       .then(res => setReputation(res.data))
       .catch(() => {})
 
+    // The Gmail connect flow redirects back here with ?gmail_error=... when
+    // the callback failed server-side (state expired, Google API error...),
+    // since that route can't render a page of its own to show the message.
+    const params = new URLSearchParams(window.location.search)
+    const gmailError = params.get('gmail_error')
+    if (gmailError) {
+      setGmailMsg(`✗ ${gmailError}`)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
     // Show cached profile immediately, then reconcile with the server, which is
     // the source of truth (and what the public profile page reads from).
     const saved = localStorage.getItem('archon-profile')

@@ -3,6 +3,12 @@ this is a self-contained, optional feature — a user works fine without ever
 touching it, and the whole app works fine without GOOGLE_CLIENT_ID set."""
 import os
 
+# Google's OAuth server routinely grants a couple of scopes we never asked
+# for (most commonly `openid`) alongside the one we requested. Without this,
+# google-auth-oauthlib's strict scope check raises on that mismatch and the
+# whole callback 500s before we even get to store the token.
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -63,36 +69,44 @@ def authorize(current_user: User = Depends(get_current_user)):
 def callback(code: str, state: str, db: Session = Depends(get_db)):
     from app.routers.auth import decode_token
 
-    payload = decode_token(state)
-    if not payload or payload.get("purpose") != "google_oauth_state":
-        raise HTTPException(status_code=400, detail="This connect link expired — try again from your profile.")
-
-    user = db.query(User).filter(User.id == payload.get("user_id")).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    flow = _flow()
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    if not creds.refresh_token:
-        raise HTTPException(
-            status_code=400,
-            detail="Google didn't return a refresh token — disconnect any prior grant in your Google account and try again.",
-        )
-
-    import httpx
-    userinfo = httpx.get(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        headers={"Authorization": f"Bearer {creds.token}"},
-    ).json()
-
-    user.google_refresh_token_encrypted = encrypt(creds.refresh_token)
-    user.google_email = userinfo.get("email")
-    user.google_connected_at = datetime.utcnow()
-    db.commit()
-
     frontend = os.getenv("FRONTEND_URL", "").rstrip("/")
-    return RedirectResponse(f"{frontend}/profile?gmail=connected" if frontend else "/")
+
+    def _fail(message: str) -> RedirectResponse:
+        import urllib.parse
+        target = f"{frontend}/profile?gmail_error={urllib.parse.quote(message)}" if frontend else "/"
+        return RedirectResponse(target)
+
+    try:
+        payload = decode_token(state)
+        if not payload or payload.get("purpose") != "google_oauth_state":
+            return _fail("This connect link expired — try again from your profile.")
+
+        user = db.query(User).filter(User.id == payload.get("user_id")).first()
+        if not user:
+            return _fail("User not found")
+
+        flow = _flow()
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+        if not creds.refresh_token:
+            return _fail("Google didn't return a refresh token — disconnect any prior grant in your Google account and try again.")
+
+        import httpx
+        userinfo = httpx.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {creds.token}"},
+        ).json()
+
+        user.google_refresh_token_encrypted = encrypt(creds.refresh_token)
+        user.google_email = userinfo.get("email")
+        user.google_connected_at = datetime.utcnow()
+        db.commit()
+
+        return RedirectResponse(f"{frontend}/profile?gmail=connected" if frontend else "/")
+    except Exception as e:
+        import traceback
+        print("GOOGLE OAUTH CALLBACK ERROR:", traceback.format_exc())
+        return _fail(f"Gmail connect failed: {e}")
 
 
 @router.post("/disconnect")
