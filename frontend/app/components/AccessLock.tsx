@@ -1,5 +1,6 @@
 'use client'
 import { ReactNode } from 'react'
+import { Lock, Clock, Globe2, Unlock } from 'lucide-react'
 import type { AccessState, LockReason } from '../hooks/useAccess'
 
 /**
@@ -45,7 +46,7 @@ export function LockedField({ label, placeholder, width }: { label?: string; pla
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
       <Blurred width={width}>{placeholder}</Blurred>
-      <span style={{ fontSize: '11px', color: 'var(--text-dim)' }} title={label ? `${label} is locked` : 'Locked'}>🔒</span>
+      <span style={{ display: 'flex' }} title={label ? `${label} is locked` : 'Locked'}><Lock size={11} strokeWidth={2} color="var(--text-dim)" /></span>
     </span>
   )
 }
@@ -54,8 +55,8 @@ export function LockedField({ label, placeholder, width }: { label?: string; pla
 export function LockBanner({ access, compact = false }: { access: AccessState; compact?: boolean }) {
   if (!access?.locked) return null
   const isExpired = access.reason === 'expired'
-  const accent = isExpired ? '#F87171' : access.reason === 'quota_exhausted' ? '#FB923C' : '#FBBF24'
-  const tint = isExpired ? 'rgba(248,113,113,0.08)' : access.reason === 'quota_exhausted' ? 'rgba(251,146,60,0.08)' : 'rgba(251,191,36,0.08)'
+  const accent = isExpired ? 'var(--error)' : access.reason === 'quota_exhausted' ? '#FB923C' : 'var(--warning)'
+  const tint = isExpired ? 'rgba(228,114,111,0.1)' : access.reason === 'quota_exhausted' ? 'rgba(251,146,60,0.08)' : 'rgba(221,162,63,0.1)'
 
   return (
     <div style={{
@@ -63,7 +64,9 @@ export function LockBanner({ access, compact = false }: { access: AccessState; c
       padding: compact ? '10px 16px' : '14px 24px',
       background: tint, borderBottom: '1px solid var(--border)',
     }}>
-      <span style={{ fontSize: '18px' }}>{isExpired ? '⏳' : '🔒'}</span>
+      <span style={{ display: 'flex' }}>
+        {isExpired ? <Clock size={18} strokeWidth={1.75} color={accent} /> : <Lock size={18} strokeWidth={1.75} color={accent} />}
+      </span>
       <div style={{ flex: 1, minWidth: '220px' }}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: accent, margin: 0 }}>
           {REASON_TITLE[access.reason || ''] || 'Locked'}
@@ -89,15 +92,15 @@ export function CountryScopeNotice({ access }: { access: AccessState }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-      padding: '9px 24px', background: 'rgba(61,79,224,0.06)',
+      padding: '9px 24px', background: 'var(--accent-dim)',
       borderBottom: '1px solid var(--border)',
     }}>
-      <span style={{ fontSize: '13px' }}>🌍</span>
+      <span style={{ display: 'flex' }}><Globe2 size={14} strokeWidth={1.75} color="var(--accent)" /></span>
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, flex: 1, minWidth: '200px' }}>
         Your plan covers <strong style={{ color: 'var(--text)' }}>{access.countries.join(', ')}</strong>.
         Other countries are hidden until you upgrade.
       </p>
-      <a href="/upgrade" style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+      <a href="/upgrade" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
         See all countries →
       </a>
     </div>
@@ -115,12 +118,13 @@ export function UnlockButton({ onUnlock, busy, reason, size = 'md' }: {
   if (reason && reason !== 'not_unlocked') {
     return (
       <a href="/upgrade" onClick={e => e.stopPropagation()} style={{
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
         padding: size === 'sm' ? '5px 11px' : '8px 16px',
-        borderRadius: '8px', fontSize: size === 'sm' ? '11.5px' : '12.5px', fontWeight: 600,
-        color: '#FBBF24', background: 'rgba(251,191,36,0.12)',
-        border: '1px solid rgba(251,191,36,0.25)', textDecoration: 'none', whiteSpace: 'nowrap',
+        borderRadius: 'var(--radius-md)', fontSize: size === 'sm' ? '11.5px' : '12.5px', fontWeight: 600,
+        color: 'var(--warning)', background: 'rgba(221,162,63,0.12)',
+        border: '1px solid rgba(221,162,63,0.3)', textDecoration: 'none', whiteSpace: 'nowrap',
       }}>
-        🔒 Upgrade
+        <Lock size={size === 'sm' ? 11 : 13} strokeWidth={2} /> Upgrade
       </a>
     )
   }
@@ -129,14 +133,15 @@ export function UnlockButton({ onUnlock, busy, reason, size = 'md' }: {
       onClick={e => { e.stopPropagation(); onUnlock() }}
       disabled={busy}
       style={{
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
         padding: size === 'sm' ? '5px 11px' : '8px 16px',
-        borderRadius: '8px', fontSize: size === 'sm' ? '11.5px' : '12.5px', fontWeight: 600,
+        borderRadius: 'var(--radius-md)', fontSize: size === 'sm' ? '11.5px' : '12.5px', fontWeight: 600,
         color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)',
         border: 'none', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
         whiteSpace: 'nowrap',
       }}
     >
-      {busy ? 'Unlocking…' : '🔓 Unlock'}
+      {!busy && <Unlock size={size === 'sm' ? 11 : 13} strokeWidth={2} />} {busy ? 'Unlocking…' : 'Unlock'}
     </button>
   )
 }
@@ -146,7 +151,7 @@ export function FeatureLocked({ title, blurb }: { title: string; blurb: string }
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '48px 24px' }}>
       <div style={{ textAlign: 'center', maxWidth: '420px' }}>
-        <p style={{ fontSize: '34px', margin: '0 0 14px', opacity: 0.5 }}>🔒</p>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '0 0 14px', opacity: 0.5 }}><Lock size={34} strokeWidth={1.5} /></div>
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>{title}</h2>
         <p style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: 1.7, margin: '0 0 20px' }}>{blurb}</p>
         <a href="/upgrade" style={{

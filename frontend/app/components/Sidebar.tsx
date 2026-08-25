@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactElement } from 'react'
 import {
   Home, CheckSquare, BarChart3, Map, FileText, Briefcase, FileCheck2,
   MessageCircle, Rss, Search, ShieldCheck, Users, ArrowUpCircle, CreditCard, UserPlus,
+  Clock, IdCard,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 
@@ -320,7 +321,11 @@ export default function Sidebar() {
               border: `1px solid ${verifyStatus === 'pending' ? 'rgba(251,191,36,0.3)' : 'rgba(61,79,224,0.3)'}`,
               background: verifyStatus === 'pending' ? 'rgba(251,191,36,0.08)' : 'rgba(61,79,224,0.08)',
             }}>
-            <span style={{ fontSize: '13px', flexShrink: 0 }}>{verifyStatus === 'pending' ? '⏳' : '🪪'}</span>
+            <span style={{ flexShrink: 0, display: 'flex' }}>
+              {verifyStatus === 'pending'
+                ? <Clock size={14} strokeWidth={1.75} color="#FBBF24" />
+                : <IdCard size={14} strokeWidth={1.75} color="#60A5FA" />}
+            </span>
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: verifyStatus === 'pending' ? '#FBBF24' : '#60A5FA' }}>
                 {verifyStatus === 'pending' ? 'Verification in review' : 'Verify your identity'}

@@ -1,6 +1,10 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import {
+  Bell, Mail, PartyPopper, MessageCircle, CreditCard, CheckCircle2,
+  Package, Wallet, Landmark, Star, IdCard, Heart, Megaphone,
+} from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 20000
@@ -15,24 +19,24 @@ interface Item {
   created_at: string
 }
 
-// One glyph per event so a full list is scannable without reading every line.
-const ICON: Record<string, string> = {
-  proposal_received: '📩',
-  proposal_accepted: '🎉',
-  proposal_rejected: '—',
-  message_received: '💬',
-  payment_submitted: '💳',
-  milestone_funded: '✅',
-  milestone_delivered: '📦',
-  milestone_approved: '💰',
-  milestone_released: '🏦',
-  review_received: '⭐',
-  verification_submitted: '🪪',
-  verification_reviewed: '🪪',
-  post_liked: '♥',
-  post_commented: '💬',
-  broadcast: '📣',
-  gmail_connected: '📧',
+// One icon per event so a full list is scannable without reading every line.
+const ICON: Record<string, any> = {
+  proposal_received: Mail,
+  proposal_accepted: PartyPopper,
+  proposal_rejected: MessageCircle,
+  message_received: MessageCircle,
+  payment_submitted: CreditCard,
+  milestone_funded: CheckCircle2,
+  milestone_delivered: Package,
+  milestone_approved: Wallet,
+  milestone_released: Landmark,
+  review_received: Star,
+  verification_submitted: IdCard,
+  verification_reviewed: IdCard,
+  post_liked: Heart,
+  post_commented: MessageCircle,
+  broadcast: Megaphone,
+  gmail_connected: Mail,
 }
 
 const relative = (iso: string) => {
@@ -123,15 +127,12 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button ref={btnRef} onClick={openList} aria-label="Notifications"
-        style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: dim, padding: '5px', display: 'flex', alignItems: 'center', borderRadius: '8px' }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 01-3.46 0" />
-        </svg>
+        style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: dim, padding: '5px', display: 'flex', alignItems: 'center', borderRadius: 'var(--radius-md)' }}>
+        <Bell size={17} strokeWidth={1.75} />
         {unread > 0 && (
           <span style={{
             position: 'absolute', top: '-1px', right: '-2px', minWidth: '15px', height: '15px',
-            padding: '0 4px', borderRadius: '999px', background: '#EF4444', color: 'white',
+            padding: '0 4px', borderRadius: '999px', background: 'var(--error)', color: 'white',
             fontSize: '9.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>{unread > 99 ? '99+' : unread}</span>
         )}
@@ -141,14 +142,14 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
         <div style={{
           position: 'fixed', top: pos.top, left: pos.left, zIndex: 60, width: `${PANEL_WIDTH}px`,
           maxHeight: '420px', display: 'flex', flexDirection: 'column',
-          background: surface, border: `1px solid ${border}`, borderRadius: '12px',
-          boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden',
+          background: surface, border: `1px solid ${border}`, borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-pop)', overflow: 'hidden',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderBottom: `1px solid ${border}`, flexShrink: 0 }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: text }}>Notifications</span>
             {unread > 0 && (
               <button onClick={readAll}
-                style={{ fontSize: '11px', fontWeight: 600, color: '#60A5FA', background: 'none', border: 'none', cursor: 'pointer' }}>
+                style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Mark all read
               </button>
             )}
@@ -166,7 +167,9 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
                   padding: '11px 14px', border: 'none', borderBottom: `1px solid ${border}`,
                   background: n.read ? 'transparent' : 'var(--accent-dim)',
                 }}>
-                <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1.3 }}>{ICON[n.kind] || '🔔'}</span>
+                <span style={{ flexShrink: 0, paddingTop: '1px' }}>
+                  {(() => { const Icon = ICON[n.kind] || Bell; return <Icon size={15} strokeWidth={1.5} color="var(--text-muted)" /> })()}
+                </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                     <span style={{ fontSize: '12.5px', fontWeight: n.read ? 500 : 700, color: text, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>{n.title}</span>

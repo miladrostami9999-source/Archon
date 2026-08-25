@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { PartyPopper, Building2, LayoutList, CheckSquare, BarChart3, Globe, Rocket } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════
 // OnboardingTour — real spotlight tour
@@ -25,14 +26,14 @@ import { usePathname, useRouter } from 'next/navigation'
 type Step = {
   path: string | null              // route required for this step, or null = works on any page
   selector: string | null          // CSS selector to spotlight, or null = centered modal step
-  icon: string
+  Icon: any
   title: { en: string; fa: string }
   desc: { en: string; fa: string }
 }
 
 const STEPS: Step[] = [
   {
-    path: '/', selector: null, icon: '👋',
+    path: '/', selector: null, Icon: PartyPopper,
     title: { en: 'Welcome to Archon', fa: 'به آرکون خوش اومدی' },
     desc: {
       en: "This quick tour will show you exactly where things are. Let's start on your dashboard.",
@@ -40,7 +41,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="add-company"]', icon: '🏢',
+    path: '/', selector: '[data-tour="add-company"]', Icon: Building2,
     title: { en: 'Add your first company', fa: 'اولین شرکتت رو اضافه کن' },
     desc: {
       en: 'Click here to add a company by name or website. Archon researches it and scores the fit automatically.',
@@ -48,7 +49,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="view-toggle"]', icon: '📋',
+    path: '/', selector: '[data-tour="view-toggle"]', Icon: LayoutList,
     title: { en: 'List or Board view', fa: 'نمای لیست یا برد' },
     desc: {
       en: 'Switch to Board to drag companies through your pipeline — New, Sent, Replied, Client.',
@@ -56,7 +57,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="nav-tasks"]', icon: '✅',
+    path: '/', selector: '[data-tour="nav-tasks"]', Icon: CheckSquare,
     title: { en: 'Daily AI tasks', fa: 'وظایف روزانه با AI' },
     desc: {
       en: 'Archon generates a daily task list for you — who to follow up with, what to review.',
@@ -64,7 +65,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="nav-analytics"]', icon: '📊',
+    path: '/', selector: '[data-tour="nav-analytics"]', Icon: BarChart3,
     title: { en: 'Track performance', fa: 'پیگیری عملکرد' },
     desc: {
       en: 'See your pipeline health, reply rates, and top industries — all in one view.',
@@ -72,7 +73,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="profile-link"]', icon: '🌐',
+    path: '/', selector: '[data-tour="profile-link"]', Icon: Globe,
     title: { en: 'Your profile', fa: 'پروفایل شخصی‌ات' },
     desc: {
       en: 'Add your skills and portfolio here, then publish a public link — no login required for visitors.',
@@ -80,7 +81,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: null, selector: null, icon: '🚀',
+    path: null, selector: null, Icon: Rocket,
     title: { en: "You're all set", fa: 'همه چی آماده‌ست' },
     desc: {
       en: 'Reopen this tour anytime from the Help button in the sidebar. Now go find your first client.',
@@ -266,8 +267,8 @@ export default function OnboardingTour() {
           position: 'fixed',
           top: Math.max(rect.top - PAD, 0), left: Math.max(rect.left - PAD, 0),
           width: rect.width + PAD * 2, height: rect.height + PAD * 2,
-          borderRadius: '12px', border: '2px solid #3D4FE0',
-          boxShadow: '0 0 0 4px rgba(61,79,224,0.2), 0 0 24px rgba(61,79,224,0.35)',
+          borderRadius: 'var(--radius-lg)', border: '2px solid var(--accent)',
+          boxShadow: '0 0 0 4px var(--accent-dim), 0 0 24px var(--accent-dim)',
           pointerEvents: 'none', transition: 'all 0.3s ease', zIndex: 1,
         }} />
       )}
@@ -275,7 +276,7 @@ export default function OnboardingTour() {
       {/* LOCATING SPINNER (element not found yet / navigating) */}
       {locating && (
         <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 2 }}>
-          <div style={{ width: '26px', height: '26px', border: '2px solid rgba(61,79,224,0.25)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'tourspin 0.7s linear infinite' }} />
+          <div style={{ width: '26px', height: '26px', border: '2px solid var(--accent-dim)', borderTop: '2px solid var(--accent)', borderRadius: '50%', animation: 'tourspin 0.7s linear infinite' }} />
         </div>
       )}
 
@@ -294,8 +295,8 @@ export default function OnboardingTour() {
               </div>
             </div>
 
-            <div style={{ width: '40px', height: '40px', borderRadius: '11px', background: 'linear-gradient(135deg, rgba(61,79,224,0.18), rgba(46,59,176,0.18))', border: '1px solid rgba(61,79,224,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', marginBottom: '12px' }}>
-              {step.icon}
+            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'var(--accent-dim)', border: '1px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+              <step.Icon size={19} strokeWidth={1.75} color="var(--accent)" />
             </div>
 
             <h3 style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text)', margin: '0 0 7px', direction: isFa ? 'rtl' : 'ltr', textAlign: isFa ? 'right' : 'left' }}>{isFa ? step.title.fa : step.title.en}</h3>

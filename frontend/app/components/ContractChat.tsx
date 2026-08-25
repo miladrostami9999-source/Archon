@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import { Paperclip } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 5000
@@ -128,8 +129,8 @@ export default function ContractChat({ contractId, conversationId, currentUserId
                 {m.body && <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>}
                 {m.attachment_url && (
                   <a href={m.attachment_url} target="_blank" rel="noreferrer"
-                    style={{ display: 'inline-block', marginTop: m.body ? '6px' : 0, fontSize: '12px', color: mine ? 'white' : '#60A5FA', textDecoration: 'underline' }}>
-                    📎 Attachment
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: m.body ? '6px' : 0, fontSize: '12px', color: mine ? 'white' : 'var(--accent)', textDecoration: 'underline' }}>
+                    <Paperclip size={12} strokeWidth={1.75} /> Attachment
                   </a>
                 )}
               </div>
@@ -143,16 +144,16 @@ export default function ContractChat({ contractId, conversationId, currentUserId
       </div>
 
       <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-        {error && <p style={{ fontSize: '11.5px', color: '#F87171', margin: '0 0 6px' }}>{error}</p>}
+        {error && <p style={{ fontSize: '11.5px', color: 'var(--error)', margin: '0 0 6px' }}>{error}</p>}
         {attachment && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', color: '#34D399' }}>📎 {attachment.name}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--success)' }}><Paperclip size={12} strokeWidth={1.75} /> {attachment.name}</span>
             <button onClick={() => setAttachment(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
           </div>
         )}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-          <label style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text-muted)' }}>
-            📎
+          <label style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <Paperclip size={16} strokeWidth={1.75} />
             <input type="file" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f); e.target.value = '' }} />
           </label>

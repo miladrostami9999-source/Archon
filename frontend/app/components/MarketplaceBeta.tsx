@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { FlaskConical, X } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -55,7 +56,7 @@ export default function MarketplaceBeta({ compact = false }: { compact?: boolean
       background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(61,79,224,0.06))',
       padding: compact ? '10px 12px' : '13px 15px', marginBottom: '16px',
     }}>
-      <span style={{ fontSize: '15px', lineHeight: 1.2, flexShrink: 0 }}>🧪</span>
+      <span style={{ display: 'flex', flexShrink: 0, marginTop: '1px' }}><FlaskConical size={15} strokeWidth={1.75} color="#A78BFA" /></span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#A78BFA', margin: '0 0 3px' }}>
           Marketplace is in beta
@@ -66,8 +67,8 @@ export default function MarketplaceBeta({ compact = false }: { compact?: boolean
         </p>
       </div>
       <button onClick={dismiss} aria-label="Dismiss"
-        style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}>
-        ✕
+        style={{ flexShrink: 0, display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '0 2px' }}>
+        <X size={14} strokeWidth={1.75} />
       </button>
     </div>
   )

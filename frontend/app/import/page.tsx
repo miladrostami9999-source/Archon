@@ -1,10 +1,14 @@
 'use client'
 import { useState } from 'react'
 import axios from 'axios'
+import Sidebar from '../components/Sidebar'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { ArrowLeft, Download, FileText, CheckCircle2, SkipForward, XCircle, Upload, Loader2, Lightbulb } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export default function ImportPage() {
+  const isMobile = useIsMobile()
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -42,96 +46,102 @@ MIR Visualization,mir.no,https://mir.no,post@mir.no,Norway,Bergen,CGI,small,,,`
     a.click()
   }
 
+  const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => window.location.href = '/dashboard'} className="text-gray-400 hover:text-gray-600 transition">
-          ← Back
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Import Companies</h1>
-          <p className="text-xs text-gray-400">Archon · by Armila Design</p>
-        </div>
-      </div>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)' }}>
+      <Sidebar />
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', paddingTop: isMobile ? '52px' : 0 }}>
 
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-4">
-
-        {/* Template Download */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: isMobile ? '14px 16px' : '16px 24px', borderBottom: '1px solid var(--border)' }}>
+          <button onClick={() => window.location.href = '/dashboard'}
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '13px' }}>
+            <ArrowLeft size={15} strokeWidth={1.75} /> Back
+          </button>
           <div>
-            <p className="text-sm font-medium text-blue-800">CSV Template</p>
-            <p className="text-xs text-blue-600 mt-0.5">دانلود فایل نمونه برای پر کردن</p>
+            <h1 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Import Companies</h1>
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Archon · by Armila Design</p>
           </div>
-          <button
-            onClick={downloadTemplate}
-            className="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            📥 Download Template
-          </button>
         </div>
 
-        {/* Upload */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-700 mb-4">فایل CSV را انتخاب کن</p>
+        <div style={{ maxWidth: '640px', margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          <div
-            className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-blue-300 transition cursor-pointer"
-            onClick={() => document.getElementById('csv-input')?.click()}
-          >
-            <p className="text-3xl mb-2">📄</p>
-            <p className="text-sm text-gray-500">
-              {file ? file.name : 'Click to select CSV file'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">فقط فایل .csv</p>
-            <input
-              id="csv-input"
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={e => setFile(e.target.files?.[0] || null)}
-            />
+          {/* TEMPLATE DOWNLOAD */}
+          <div style={{ ...card, background: 'var(--accent-dim)', border: '1px solid var(--accent)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', margin: 0 }}>CSV Template</p>
+              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0' }}>دانلود فایل نمونه برای پر کردن</p>
+            </div>
+            <button onClick={downloadTemplate}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+              <Download size={13} strokeWidth={1.75} /> Download Template
+            </button>
           </div>
 
-          {error && (
-            <div className="mt-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
+          {/* UPLOAD */}
+          <div style={{ ...card, padding: '20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px' }}>فایل CSV را انتخاب کن</p>
 
-          {result && (
-            <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-4">
-              <p className="text-sm font-medium text-green-800 mb-2">{result.message}</p>
-              <div className="flex gap-4 text-xs text-green-700">
-                <span>✅ Added: {result.added}</span>
-                <span>⏭ Skipped: {result.skipped}</span>
-                {result.errors?.length > 0 && <span>❌ Errors: {result.errors.length}</span>}
+            <div
+              onClick={() => document.getElementById('csv-input')?.click()}
+              style={{ border: '2px dashed var(--border)', borderRadius: 'var(--radius-lg)', padding: '32px', textAlign: 'center', cursor: 'pointer' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color: 'var(--text-dim)' }}><FileText size={30} strokeWidth={1.5} /></div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                {file ? file.name : 'Click to select CSV file'}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '4px 0 0' }}>فقط فایل .csv</p>
+              <input
+                id="csv-input"
+                type="file"
+                accept=".csv"
+                style={{ display: 'none' }}
+                onChange={e => setFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            {error && (
+              <div style={{ marginTop: '12px', background: 'rgba(228,114,111,0.1)', border: '1px solid rgba(228,114,111,0.25)', color: 'var(--error)', fontSize: '13px', padding: '10px 14px', borderRadius: 'var(--radius-md)' }}>
+                {error}
               </div>
-            </div>
-          )}
+            )}
 
-          <button
-            onClick={handleUpload}
-            disabled={!file || loading}
-            className="w-full mt-4 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? '⏳ Importing...' : '📤 Import'}
-          </button>
-        </div>
+            {result && (
+              <div style={{ marginTop: '12px', background: 'rgba(63,185,131,0.1)', border: '1px solid rgba(63,185,131,0.25)', borderRadius: 'var(--radius-lg)', padding: '14px' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--success)', margin: '0 0 8px' }}>{result.message}</p>
+                <div style={{ display: 'flex', gap: '14px', fontSize: '11.5px', color: 'var(--success)', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={12} strokeWidth={1.75} /> Added: {result.added}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><SkipForward size={12} strokeWidth={1.75} /> Skipped: {result.skipped}</span>
+                  {result.errors?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--error)' }}><XCircle size={12} strokeWidth={1.75} /> Errors: {result.errors.length}</span>}
+                </div>
+              </div>
+            )}
 
-        {/* Instructions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm font-medium text-gray-700 mb-3">راهنما</p>
-          <div className="space-y-2 text-xs text-gray-500">
-            <p>۱. فایل template را دانلود کن</p>
-            <p>۲. اطلاعات شرکت‌ها را در Excel یا Google Sheets پر کن</p>
-            <p>۳. به فرمت CSV ذخیره کن</p>
-            <p>۴. فایل را اینجا upload کن</p>
-            <p className="text-blue-500">💡 ستون <strong>name</strong> اجباری است — بقیه اختیاری</p>
-            <p className="text-blue-500">💡 شرکت‌های تکراری (بر اساس domain) skip می‌شوند</p>
+            <button
+              onClick={handleUpload}
+              disabled={!file || loading}
+              style={{ width: '100%', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', color: 'white', padding: '11px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, border: 'none', cursor: (!file || loading) ? 'not-allowed' : 'pointer', opacity: (!file || loading) ? 0.5 : 1 }}
+            >
+              {loading ? <><Loader2 size={14} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> Importing...</> : <><Upload size={14} strokeWidth={1.75} /> Import</>}
+            </button>
           </div>
-        </div>
 
+          {/* INSTRUCTIONS */}
+          <div style={{ ...card, padding: '18px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: '0 0 10px' }}>راهنما</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              <p style={{ margin: 0 }}>۱. فایل template را دانلود کن</p>
+              <p style={{ margin: 0 }}>۲. اطلاعات شرکت‌ها را در Excel یا Google Sheets پر کن</p>
+              <p style={{ margin: 0 }}>۳. به فرمت CSV ذخیره کن</p>
+              <p style={{ margin: 0 }}>۴. فایل را اینجا upload کن</p>
+              <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--accent)' }}><Lightbulb size={12} strokeWidth={1.75} /> ستون <strong>name</strong> اجباری است — بقیه اختیاری</p>
+              <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--accent)' }}><Lightbulb size={12} strokeWidth={1.75} /> شرکت‌های تکراری (بر اساس domain) skip می‌شوند</p>
+            </div>
+          </div>
+
+        </div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
