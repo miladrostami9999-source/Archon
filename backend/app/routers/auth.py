@@ -28,6 +28,12 @@ if not SECRET_KEY:
         "Add a line like: JWT_SECRET_KEY=your-random-secret-here"
     )
 ALGORITHM = "HS256"
+# The one account nobody — including other admins — may edit, demote, disable
+# or delete. Kept as an email check rather than a new role value so every
+# existing `role == "admin"` permission check keeps working unchanged; the
+# founder's `role` column stays "admin", "is_founder" is a display-only
+# derived flag computed from this constant.
+FOUNDER_EMAIL = "milad.rostami9999@gmail.com"
 ACCESS_TOKEN_EXPIRE_HOURS = 24 * 60  # 60 days — extended for long gaps between sessions
 bearer = HTTPBearer(auto_error=False)
 
@@ -115,11 +121,48 @@ def _purge_user_data(db: Session, user: User):
     """
     from app.models.database import (
         UserCompanyState, Note, Campaign, History, DailyTask,
-        WeeklyReport, PaymentRequest,
+        WeeklyReport, WeeklyDigestLog, PaymentRequest, Notification,
+        EmailReputationEvent, UserVerification, DiscoveryHunt, DiscoveryRun,
+        Post, PostLike, PostComment, PostReport, Conversation, ContractMessage,
+        AdminActivityLog,
     )
     for model in (UserCompanyState, Note, Campaign, History, DailyTask,
-                  WeeklyReport, PaymentRequest, PasswordResetToken):
+                  WeeklyReport, WeeklyDigestLog, PaymentRequest, PasswordResetToken,
+                  Notification, EmailReputationEvent, UserVerification,
+                  DiscoveryHunt, DiscoveryRun, PostLike, PostComment):
         db.query(model).filter(model.user_id == user.id).delete(synchronize_session=False)
+    # PostReport's user FK is named reporter_id, not user_id.
+    db.query(PostReport).filter(PostReport.reporter_id == user.id).delete(synchronize_session=False)
+
+    # Posts: delete the user's own likes/comments/reports on them too, since
+    # those aren't reachable by user_id alone once the post row is gone.
+    post_ids = [p[0] for p in db.query(Post.id).filter(Post.user_id == user.id).all()]
+    if post_ids:
+        db.query(PostLike).filter(PostLike.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostComment).filter(PostComment.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(PostReport).filter(PostReport.post_id.in_(post_ids)).delete(synchronize_session=False)
+    db.query(Post).filter(Post.user_id == user.id).delete(synchronize_session=False)
+
+    # Direct-message conversations (not tied to a contract — those are already
+    # blocked by _has_marketplace_activity) and their messages.
+    convo_ids = [c[0] for c in db.query(Conversation.id).filter(
+        (Conversation.user_a_id == user.id) | (Conversation.user_b_id == user.id)
+    ).all()]
+    if convo_ids:
+        db.query(ContractMessage).filter(ContractMessage.conversation_id.in_(convo_ids)).delete(synchronize_session=False)
+    db.query(ContractMessage).filter(ContractMessage.sender_id == user.id).delete(synchronize_session=False)
+    db.query(Conversation).filter(
+        (Conversation.user_a_id == user.id) | (Conversation.user_b_id == user.id)
+    ).delete(synchronize_session=False)
+
+    # Reviews the user wrote or received.
+    from app.models.database import Review
+    db.query(Review).filter((Review.reviewer_id == user.id) | (Review.reviewee_id == user.id)).delete(synchronize_session=False)
+
+    # Audit log rows this admin authored — denormalized admin_name means the
+    # log stays readable, but the FK would still block the delete otherwise.
+    db.query(AdminActivityLog).filter(AdminActivityLog.admin_id == user.id).update({AdminActivityLog.admin_id: None}, synchronize_session=False)
+
     db.flush()
 
 
@@ -318,6 +361,7 @@ def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_d
         "marketplace_beta_enabled": bool(u.marketplace_beta_enabled),
         "account_mode": u.account_mode or "freelancer",
         "is_verified": u.id in verified_ids,
+        "is_founder": u.email == FOUNDER_EMAIL,
     } for u in users]
 
 @router.post("/users")
@@ -349,6 +393,8 @@ def update_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if user.email == FOUNDER_EMAIL:
+        raise HTTPException(status_code=403, detail="The founder account cannot be modified.")
     if data.name is not None: user.name = data.name
     if data.role is not None: user.role = data.role
     if data.plan is not None:
@@ -721,28 +767,68 @@ def admin_revenue_timeseries(period: str = "week", limit: int = 12, admin: User 
 
 
 @router.get("/admin/growth")
-def admin_growth(days: int = 30, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Daily new-user / new-company counts for the last N days."""
+def admin_growth(interval: str = "day", admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """New-user / new-company counts bucketed by day, week or month.
+
+    Buckets are computed in Python (not a DB-side date-trunc) so this works
+    identically on SQLite and Postgres — a DB-side cast(DateTime, Date) already
+    caused one crash on SQLite (see the growth chart's original implementation).
+    """
     from app.models.database import Company
 
-    since = datetime.utcnow() - timedelta(days=days)
-    user_rows = (
-        db.query(func.date(User.created_at), func.count(User.id))
-        .filter(User.created_at >= since).group_by(func.date(User.created_at)).all()
-    )
-    company_rows = (
-        db.query(func.date(Company.created_at), func.count(Company.id))
-        .filter(Company.created_at >= since).group_by(func.date(Company.created_at)).all()
-    )
-    users_by_day = {str(d): c for d, c in user_rows}
-    companies_by_day = {str(d): c for d, c in company_rows}
+    if interval not in ("day", "week", "month"):
+        raise HTTPException(status_code=400, detail="interval must be 'day', 'week', or 'month'")
+
+    now = datetime.utcnow()
+    if interval == "day":
+        since = now - timedelta(days=31)
+    elif interval == "week":
+        since = now - timedelta(weeks=12)
+    else:
+        since = now - timedelta(days=366)
+
+    def bucket_key(dt: datetime) -> str:
+        if interval == "day":
+            return dt.strftime("%Y-%m-%d")
+        if interval == "week":
+            monday = dt - timedelta(days=dt.weekday())
+            return monday.strftime("%Y-%m-%d")
+        return dt.strftime("%Y-%m")
+
+    users_by_bucket: dict = {}
+    for (dt,) in db.query(User.created_at).filter(User.created_at >= since).all():
+        if dt:
+            k = bucket_key(dt); users_by_bucket[k] = users_by_bucket.get(k, 0) + 1
+    companies_by_bucket: dict = {}
+    for (dt,) in db.query(Company.created_at).filter(Company.created_at >= since).all():
+        if dt:
+            k = bucket_key(dt); companies_by_bucket[k] = companies_by_bucket.get(k, 0) + 1
 
     points = []
-    for i in range(days, -1, -1):
-        day = (datetime.utcnow() - timedelta(days=i)).date()
-        key = str(day)
-        points.append({"date": key, "users": users_by_day.get(key, 0), "companies": companies_by_day.get(key, 0)})
-    return {"days": days, "points": points}
+    if interval == "day":
+        cursor = since.date()
+        end = now.date()
+        while cursor <= end:
+            k = cursor.strftime("%Y-%m-%d")
+            points.append({"date": k, "label": cursor.strftime("%b %d"), "users": users_by_bucket.get(k, 0), "companies": companies_by_bucket.get(k, 0)})
+            cursor += timedelta(days=1)
+    elif interval == "week":
+        cursor = (since - timedelta(days=since.weekday())).date()
+        end_monday = (now - timedelta(days=now.weekday())).date()
+        while cursor <= end_monday:
+            k = cursor.strftime("%Y-%m-%d")
+            points.append({"date": k, "label": f"Week of {cursor.strftime('%b %d')}", "users": users_by_bucket.get(k, 0), "companies": companies_by_bucket.get(k, 0)})
+            cursor += timedelta(weeks=1)
+    else:
+        y, m = since.year, since.month
+        while (y, m) <= (now.year, now.month):
+            k = f"{y:04d}-{m:02d}"
+            points.append({"date": k, "label": datetime(y, m, 1).strftime("%b %Y"), "users": users_by_bucket.get(k, 0), "companies": companies_by_bucket.get(k, 0)})
+            m += 1
+            if m > 12:
+                m = 1; y += 1
+
+    return {"interval": interval, "points": points}
 
 
 @router.get("/admin/at-risk-users")
@@ -793,7 +879,7 @@ def admin_at_risk_users(admin: User = Depends(require_admin), db: Session = Depe
     ]}
 
 
-KNOWN_CRON_JOBS = ["weekly_digest", "daily_tasks_reset", "weekly_report_reset", "revenue_weekly_snapshot", "revenue_monthly_snapshot"]
+KNOWN_CRON_JOBS = ["weekly_digest", "daily_tasks_reset", "weekly_report_reset", "revenue_weekly_snapshot", "revenue_monthly_snapshot", "platform_log_cleanup"]
 
 
 @router.get("/admin/system-health")
@@ -826,11 +912,49 @@ def admin_system_health(admin: User = Depends(require_admin), db: Session = Depe
         latest_backup = None
 
     try:
-        rate = get_usd_to_toman(db)
+        # Admins should always see the freshest number — bypass the cache
+        # that other pages (billing, upgrade) rely on to avoid hammering tgju.
+        rate = get_usd_to_toman(db, force=True)
     except Exception:
         rate = None
 
     return {"jobs": job_status, "latest_backup": latest_backup, "exchange_rate": rate}
+
+
+class ExchangeRateSettingsUpdate(BaseModel):
+    mode: str
+    manual_rate: Optional[str] = None
+
+
+@router.put("/admin/exchange-rate/settings")
+def update_exchange_rate_settings(
+    data: ExchangeRateSettingsUpdate,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Switch between auto (live tgju/er-api, cached) and manual (a fixed
+    number the admin sets by hand) modes for USD→Toman conversion."""
+    from app.models.database import AppSetting
+    from app.services.exchange import MODE_KEY, MANUAL_KEY, get_usd_to_toman
+
+    if data.mode not in ("auto", "manual"):
+        raise HTTPException(status_code=400, detail="mode must be 'auto' or 'manual'")
+    if data.mode == "manual" and not data.manual_rate:
+        raise HTTPException(status_code=400, detail="manual_rate is required when switching to manual mode")
+
+    for key, value in ((MODE_KEY, data.mode), (MANUAL_KEY, data.manual_rate)):
+        if value is None:
+            continue
+        row = db.query(AppSetting).filter(AppSetting.key == key).first()
+        if not row:
+            row = AppSetting(key=key)
+            db.add(row)
+        row.value = str(value)
+
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "exchange_rate.update_mode", target=data.mode, detail=data.manual_rate or "")
+    db.commit()
+    return get_usd_to_toman(db, force=True)
 
 
 @router.get("/admin/activity-log")
@@ -841,6 +965,35 @@ def admin_activity_log(limit: int = 50, admin: User = Depends(require_admin), db
         "id": r.id, "admin_name": r.admin_name, "action": r.action,
         "target": r.target, "detail": r.detail, "created_at": r.created_at.isoformat(),
     } for r in rows]
+
+
+@router.get("/admin/platform-log")
+def get_platform_log(level: Optional[str] = None, limit: int = 100, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """General platform diagnostics — errors/warnings raised anywhere in the
+    app, not per-user activity. See services/platform_log.py."""
+    from app.models.database import PlatformLog
+    from app.services.platform_log import RETENTION_DAYS
+    q = db.query(PlatformLog)
+    if level:
+        q = q.filter(PlatformLog.level == level)
+    rows = q.order_by(PlatformLog.created_at.desc()).limit(min(limit, 500)).all()
+    return {
+        "retention_days": RETENTION_DAYS,
+        "entries": [{
+            "id": r.id, "level": r.level, "source": r.source,
+            "message": r.message, "detail": r.detail, "created_at": r.created_at.isoformat(),
+        } for r in rows],
+    }
+
+
+@router.delete("/admin/platform-log")
+def clear_platform_log(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import PlatformLog
+    deleted = db.query(PlatformLog).delete(synchronize_session=False)
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "platform_log.clear", detail=f"deleted={deleted}")
+    db.commit()
+    return {"deleted": deleted}
 
 
 FEATURE_FLAG_REGISTRY = {

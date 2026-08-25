@@ -23,7 +23,13 @@ interface User {
   marketplace_beta_enabled?: boolean
   account_mode?: string
   is_verified?: boolean
+  is_founder?: boolean
 }
+
+const PLAN_RANK: Record<string, number> = { agency: 0, pro: 1, basic: 2, trial: 3 }
+// Founder first, then admins, then everyone else by plan tier — this pin
+// always wins regardless of the chosen sort mode.
+const roleRank = (u: User) => u.is_founder ? 0 : u.role === 'admin' ? 1 : 2
 
 export default function AdminUsersPanel() {
   const isMobile = useIsMobile()
@@ -41,6 +47,8 @@ export default function AdminUsersPanel() {
   const [search, setSearch] = useState('')
   const [filterPlan, setFilterPlan] = useState('')
   const [copiedEmail, setCopiedEmail] = useState(false)
+  const [sortBy, setSortBy] = useState<'recent' | 'plan'>('recent')
+  const [deleteError, setDeleteError] = useState('')
 
   const messageUser = async (userId: number) => {
     setMessagingId(userId)
@@ -84,23 +92,35 @@ export default function AdminUsersPanel() {
 
   const updateUser = async (id: number, data: Partial<User>) => {
     try { await axios.patch(`${API}/auth/users/${id}`, data, { headers: headers() }); fetchUsers(); setEditUser(null) }
-    catch {}
+    catch (e: any) { alert(e.response?.data?.detail || 'Could not update this user') }
   }
 
   const deleteUser = async (id: number) => {
+    setDeleteError('')
     try { await axios.delete(`${API}/auth/users/${id}`, { headers: headers() }); fetchUsers(); setDeleteConfirm(null) }
-    catch (e: any) { alert(e.response?.data?.detail || 'Error') }
+    catch (e: any) { setDeleteError(e.response?.data?.detail || 'Could not delete this user.') }
   }
 
   const planCounts = { basic: 0, pro: 0, agency: 0 }
   users.forEach(u => { if (u.is_active && u.plan in planCounts) (planCounts as any)[u.plan]++ })
   const activeCount = users.filter(u => u.is_active).length
 
-  const filtered = users.filter(u => {
-    if (filterPlan && u.plan !== filterPlan) return false
-    if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
+  const filtered = users
+    .filter(u => {
+      if (filterPlan && u.plan !== filterPlan) return false
+      if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    .sort((a, b) => {
+      // Founder/admins are always pinned to the top, whatever the sort mode.
+      const pin = roleRank(a) - roleRank(b)
+      if (pin !== 0) return pin
+      if (sortBy === 'plan') {
+        const rank = (PLAN_RANK[a.plan] ?? 9) - (PLAN_RANK[b.plan] ?? 9)
+        if (rank !== 0) return rank
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
 
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Never'
 
@@ -198,9 +218,10 @@ export default function AdminUsersPanel() {
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '32px 28px', maxWidth: '320px', width: 'calc(100% - 32px)', textAlign: 'center' }}>
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🗑</div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>Delete User?</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 24px', lineHeight: 1.6 }}>This action is permanent and cannot be undone.</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>This action is permanent and cannot be undone.</p>
+            {deleteError && <p style={{ fontSize: '12px', color: '#F87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '8px 10px', margin: '0 0 16px', lineHeight: 1.5 }}>{deleteError}</p>}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setDeleteConfirm(null); setDeleteError('') }} style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => deleteUser(deleteConfirm)} style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#EF4444,#DC2626)', border: 'none', cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
@@ -269,9 +290,14 @@ export default function AdminUsersPanel() {
         </div>
       )}
 
-      {/* SEARCH */}
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '14px' }}>
+      {/* SEARCH + SORT */}
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
         <input placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} style={{ ...inp, flex: 1, maxWidth: '320px' }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as 'recent' | 'plan')}
+          style={{ ...inp, width: 'auto', flex: 'none' }}>
+          <option value="recent">Sort: Most recent</option>
+          <option value="plan">Sort: By plan (Agency → Basic)</option>
+        </select>
         {(search || filterPlan) && (
           <button onClick={() => { setSearch(''); setFilterPlan('') }}
             style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -280,6 +306,7 @@ export default function AdminUsersPanel() {
         )}
         <span style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{filtered.length} / {users.length}</span>
       </div>
+      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 14px' }}>Founder and admins are always pinned to the top.</p>
 
       {/* USER LIST */}
       {loading ? (
@@ -321,7 +348,9 @@ export default function AdminUsersPanel() {
                         </span>
                       )}
 
-                      {isEditing ? (
+                      {u.is_founder ? (
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', padding: '2px 8px', borderRadius: '999px' }}>🛡 Founder</span>
+                      ) : isEditing ? (
                         <select value={editUser.role} onChange={e => setEditUser({ ...editUser, role: e.target.value })}
                           style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
                           <option value="member">Member</option><option value="admin">Admin</option>
@@ -343,7 +372,13 @@ export default function AdminUsersPanel() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }}>
-                    {isEditing ? (
+                    {u.is_founder ? (
+                      <>
+                        <button onClick={() => openDetail(u.id)}
+                          style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#A78BFA', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', fontWeight: 600 }}>View</button>
+                        <span title="The founder account cannot be edited, disabled or deleted by anyone." style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-dim)', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>🔒 Locked</span>
+                      </>
+                    ) : isEditing ? (
                       <>
                         <button onClick={() => updateUser(u.id, { plan: editUser.plan, role: editUser.role })}
                           style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer', fontWeight: 700 }}>Save</button>

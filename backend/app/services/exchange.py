@@ -15,7 +15,8 @@ from app.models.database import AppSetting
 
 CACHE_KEY = "usd_toman_rate_cache"      # {"rate":…, "source":…, "fetched_at":…}
 MANUAL_KEY = "usd_toman_rate_manual"    # admin-set fallback / override
-CACHE_TTL = timedelta(hours=6)
+MODE_KEY = "exchange_rate_mode"         # "auto" (default) | "manual"
+CACHE_TTL = timedelta(hours=1)
 
 
 def _from_tgju() -> float | None:
@@ -56,9 +57,21 @@ def _set_setting(db: Session, key: str, value: str):
 
 
 def get_usd_to_toman(db: Session, force: bool = False) -> dict:
-    """Returns {rate, source, fetched_at}. Never raises — falls back to the
-    cached value, then to the admin's manual rate."""
+    """Returns {rate, source, fetched_at, mode}. Never raises — falls back to
+    the cached value, then to the admin's manual rate.
+
+    In "manual" mode the admin-entered number is authoritative and no network
+    call is made at all — set via PUT /auth/admin/exchange-rate/settings.
+    """
     manual = _get_setting(db, MANUAL_KEY)
+    mode = _get_setting(db, MODE_KEY) or "auto"
+
+    if mode == "manual" and manual:
+        try:
+            return {"rate": round(float(manual)), "source": "manual",
+                    "fetched_at": datetime.utcnow().isoformat(), "mode": "manual"}
+        except ValueError:
+            pass
 
     if not force:
         cached_raw = _get_setting(db, CACHE_KEY)
@@ -67,6 +80,7 @@ def get_usd_to_toman(db: Session, force: bool = False) -> dict:
                 cached = json.loads(cached_raw)
                 fetched = datetime.fromisoformat(cached["fetched_at"])
                 if datetime.utcnow() - fetched < CACHE_TTL:
+                    cached.setdefault("mode", "auto")
                     return cached
             except Exception:
                 pass
@@ -76,7 +90,7 @@ def get_usd_to_toman(db: Session, force: bool = False) -> dict:
             rate = fn()
             if rate and rate > 0:
                 result = {"rate": round(rate), "source": name,
-                          "fetched_at": datetime.utcnow().isoformat()}
+                          "fetched_at": datetime.utcnow().isoformat(), "mode": "auto"}
                 _set_setting(db, CACHE_KEY, json.dumps(result))
                 db.commit()
                 return result
@@ -89,13 +103,14 @@ def get_usd_to_toman(db: Session, force: bool = False) -> dict:
         try:
             out = json.loads(stale)
             out["source"] = f"{out.get('source', 'cache')} (stale)"
+            out.setdefault("mode", "auto")
             return out
         except Exception:
             pass
     if manual:
         try:
-            return {"rate": round(float(manual)), "source": "manual",
-                    "fetched_at": datetime.utcnow().isoformat()}
+            return {"rate": round(float(manual)), "source": "manual (fallback)",
+                    "fetched_at": datetime.utcnow().isoformat(), "mode": "auto"}
         except ValueError:
             pass
-    return {"rate": None, "source": "unavailable", "fetched_at": None}
+    return {"rate": None, "source": "unavailable", "fetched_at": None, "mode": mode}

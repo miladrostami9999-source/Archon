@@ -368,6 +368,21 @@ class CronRunLog(Base):
     ran_at  = Column(DateTime, default=datetime.utcnow, index=True)
 
 
+class PlatformLog(Base):
+    """General platform-wide diagnostics log — errors, warnings and notable
+    system events, deliberately NOT per-user personal activity (that's what
+    History/AdminActivityLog already cover). Auto-trimmed by a daily cron job
+    per RETENTION_DAYS in services/platform_log.py, so this table never grows
+    unbounded."""
+    __tablename__ = "platform_log"
+    id         = Column(Integer, primary_key=True, index=True)
+    level      = Column(String, index=True)   # info | warning | error
+    source     = Column(String, index=True)   # e.g. "POST /companies/bulk-delete", "cron:daily_tasks_reset"
+    message    = Column(Text)
+    detail     = Column(Text, default="")     # traceback / extra context
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 # Shown to users on the upgrade page; the admin edits these in the Admin Panel.
 # Payment details live here rather than in code so they never end up in git.
 DEFAULT_SETTINGS = {

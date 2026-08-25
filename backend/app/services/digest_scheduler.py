@@ -60,6 +60,11 @@ def _revenue_monthly_job():
     _run("revenue monthly snapshot", lambda db: snapshot_period(db, "month"), job_id="revenue_monthly_snapshot")
 
 
+def _platform_log_cleanup_job():
+    from app.services.platform_log import cleanup_old_logs
+    _run("platform log cleanup", cleanup_old_logs, job_id="platform_log_cleanup")
+
+
 def start():
     global _scheduler
     if _scheduler is not None:
@@ -75,6 +80,8 @@ def start():
     _scheduler.add_job(_revenue_weekly_job, CronTrigger(day_of_week="sat", hour=1, minute=0, timezone="Asia/Tehran"), id="revenue_weekly_snapshot")
     # 1st of each (Gregorian) month, 01:30 UTC.
     _scheduler.add_job(_revenue_monthly_job, CronTrigger(day="1", hour=1, minute=30), id="revenue_monthly_snapshot")
+    # Every day at 02:00 UTC — trims platform_log rows past their retention window.
+    _scheduler.add_job(_platform_log_cleanup_job, CronTrigger(hour=2, minute=0), id="platform_log_cleanup")
     _scheduler.start()
 
 

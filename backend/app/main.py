@@ -1,6 +1,8 @@
 import os
-from fastapi import FastAPI
+import traceback
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from app.models.database import init_db
 from app.routers import companies
@@ -52,6 +54,27 @@ app.include_router(companies.router)
 app.include_router(auth.router)
 app.include_router(marketplace.router)
 app.include_router(google_oauth.router)
+
+
+@app.exception_handler(Exception)
+async def log_unhandled_exceptions(request: Request, exc: Exception):
+    """Every unhandled 500 lands in the platform diagnostics log, so the admin
+    can see what broke, where, and when — without needing server console access."""
+    from app.models.database import SessionLocal
+    from app.services.platform_log import log_event
+
+    db = SessionLocal()
+    try:
+        log_event(
+            db, "error", f"{request.method} {request.url.path}",
+            str(exc), traceback.format_exc(),
+        )
+        db.commit()
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 @app.get("/")
 def root():
