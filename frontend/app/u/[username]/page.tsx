@@ -182,10 +182,6 @@ export default function PublicProfilePage() {
                 </div>
               )}
 
-              {profile.bio && (
-                <p style={{ fontSize: '12.5px', color: 'rgba(231,234,240,0.7)', lineHeight: 1.6, margin: '0 0 10px', textAlign: 'left' }}>{profile.bio}</p>
-              )}
-
               {allSkills.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
                   {allSkills.map(skill => (
@@ -238,6 +234,13 @@ export default function PublicProfilePage() {
 
           {/* ── RIGHT COLUMN ── */}
           <div style={{ flex: 1, minWidth: '300px' }}>
+            {profile.bio && (
+              <div style={{ borderRadius: '20px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.02)', padding: '20px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Description</p>
+                <p style={{ fontSize: '13.5px', color: 'rgba(231,234,240,0.75)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px', marginBottom: '16px', width: 'fit-content' }}>
               {([['portfolio', 'Portfolio'], ['posts', 'Posts']] as const).map(([id, label]) => (
                 <button key={id} onClick={() => setTab(id)}

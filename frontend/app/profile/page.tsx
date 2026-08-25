@@ -738,9 +738,9 @@ export default function ProfilePage() {
                     placeholder="e.g. Senior Architectural Visualization Artist" style={inputStyle} />
                   <p style={counterStyle}>{profile.headline.length}/80</p>
                   <label style={{ ...labelStyle, marginTop: '14px' }}>Description</label>
-                  <textarea value={profile.bio} maxLength={600} rows={5} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
+                  <textarea value={profile.bio} maxLength={800} rows={5} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
                     placeholder="Tell clients about your studio and expertise..." style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }} />
-                  <p style={counterStyle}>{profile.bio.length}/600</p>
+                  <p style={counterStyle}>{profile.bio.length}/800</p>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
                     <button onClick={() => { saveProfile(); setEditingBio(false) }} style={saveBtnStyle}>{saving ? 'Saving...' : 'Save'}</button>
                   </div>
