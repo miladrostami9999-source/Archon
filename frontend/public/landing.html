@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Archon — Business Development OS for Architecture Studios</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --line:#4F7BF7; --line-soft:rgba(79,123,247,0.35); --line-dim:rgba(79,123,247,0.12);
-  --violet:#7C3AED; --ok:#34D399; --amber:#FBBF24;
-  --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',-apple-system,sans-serif;
+  --line:#3D4FE0; --line-soft:rgba(61,79,224,0.35); --line-dim:rgba(61,79,224,0.12);
+  --violet:#2E3BB0; --ok:#3FB983; --amber:#DDA23F; --err:#E4726F;
+  --font-display:'Vazirmatn',-apple-system,sans-serif; --font-body:'Vazirmatn',-apple-system,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
 }
-html{--ink:#0B0E15;--ink-2:#11151F;--ink-3:#161B27;--text:#E7EAF0;--muted:rgba(231,234,240,0.62);--dim:rgba(231,234,240,0.36);--border:rgba(255,255,255,0.09);--border-soft:rgba(255,255,255,0.05);--accent-a:#8FB3FF;--accent-b:#C4A6FF;}
-html.light-theme{--ink:#F5F6FA;--ink-2:#FFFFFF;--ink-3:#F0F2F7;--text:#181B23;--muted:rgba(24,27,35,0.62);--dim:rgba(24,27,35,0.4);--border:rgba(0,0,0,0.09);--border-soft:rgba(0,0,0,0.055);--accent-a:#2E5CE0;--accent-b:#7C3AED;}
+/* Same palette as the app's design-token system (frontend/app/globals.css) — dark is the
+   default here (:root, no class needed), light mirrors html.light-theme there. */
+html{--ink:#0E0F10;--ink-2:#16171A;--ink-3:#1D1E21;--text:#F1F1EE;--muted:#A7A79E;--dim:#6E6E66;--border:#2B2C2F;--border-soft:rgba(255,255,255,0.05);--accent-a:#7A88FF;--accent-b:#7A88FF;}
+html.light-theme{--ink:#FAFAF7;--ink-2:#FFFFFF;--ink-3:#F3F2ED;--text:#18191A;--muted:#5C5C54;--dim:#93938A;--border:#E5E3DC;--border-soft:rgba(0,0,0,0.055);--accent-a:#3D4FE0;--accent-b:#3D4FE0;}
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
 body{background:var(--ink);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s;position:relative;}
@@ -40,7 +42,7 @@ button{font-family:inherit;cursor:pointer;}
 .gate-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(79,123,247,0.12),rgba(124,58,237,0.08));opacity:0;transition:opacity .3s;}
 .gate-card:hover{transform:translateY(-8px);border-color:var(--line-soft);box-shadow:0 20px 50px rgba(79,123,247,0.2);}
 .gate-card:hover::before{opacity:1;}
-.gate-flag{font-size:36px;margin-bottom:16px;position:relative;}
+.gate-flag{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:.08em;color:var(--line);background:var(--line-dim);border:1px solid var(--line-soft);border-radius:999px;padding:6px 16px;display:inline-block;margin-bottom:16px;position:relative;}
 .gate-card h3{font-size:19px;font-weight:700;margin-bottom:6px;position:relative;}
 .gate-card p{font-size:12.5px;color:var(--dim);position:relative;}
 .gate-hint{font-size:12px;color:var(--dim);position:relative;z-index:2;letter-spacing:.02em;}
@@ -316,7 +318,7 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
   #langGate{gap:26px;padding:22px;}
   .gate-cards{flex-direction:column;gap:12px;width:100%;max-width:270px;}
   .gate-card{width:100%;padding:18px 20px;}
-  .gate-flag{font-size:26px;margin-bottom:8px;}
+  .gate-flag{font-size:12px;padding:5px 13px;margin-bottom:8px;}
   .gate-card h3{font-size:16px;}
   .gate-card p{font-size:11.5px;}
   .gate-brand{font-size:17px;}
@@ -375,12 +377,12 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
   <div class="gate-brand"><span class="gate-mark">A</span>Archon</div>
   <div class="gate-cards">
     <div class="gate-card" data-lang="en">
-      <div class="gate-flag">🇬🇧</div>
+      <div class="gate-flag">EN</div>
       <h3>English</h3>
       <p>Continue in English</p>
     </div>
     <div class="gate-card" data-lang="fa">
-      <div class="gate-flag">🇮🇷</div>
+      <div class="gate-flag">FA</div>
       <h3>فارسی</h3>
       <p>ادامه به فارسی</p>
     </div>
@@ -394,8 +396,13 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
   <header class="top-nav">
     <a href="#" class="brand"><span class="brand-mark-sm">A</span>Archon</a>
     <div class="nav-right">
-      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">🌙</button>
-      <button class="icon-btn" id="langSwitch" aria-label="Switch language">🌐</button>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+        <svg id="themeIconMoon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+        <svg id="themeIconSun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="icon-btn" id="langSwitch" aria-label="Switch language">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg>
+      </button>
       <a href="/login" class="btn btn-ghost" data-i18n="nav.login">Log in</a>
       <button class="btn btn-primary" onclick="goFloor(6)" data-i18n="nav.start">Get Started →</button>
     </div>
@@ -421,12 +428,12 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
             <path class="bp-line d3" d="M70 240 L330 240 M70 300 L330 300 M120 170 L120 360 M280 170 L280 360" stroke-width="0.8" />
             <path class="bp-line d3" d="M70 140 L200 90 L330 140" />
             <g class="bp-fill">
-              <defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4F7BF7" stop-opacity="0.35"/><stop offset="100%" stop-color="#7C3AED" stop-opacity="0.12"/></linearGradient></defs>
+              <defs><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--line)" stop-opacity="0.35"/><stop offset="100%" stop-color="var(--violet)" stop-opacity="0.12"/></linearGradient></defs>
               <path d="M70 360 L70 140 L200 90 L330 140 L330 360 Z" fill="url(#wall)" />
-              <rect x="120" y="200" width="60" height="40" fill="#8FB3FF" opacity="0.55" rx="2"/>
-              <rect x="220" y="200" width="60" height="40" fill="#8FB3FF" opacity="0.4" rx="2"/>
-              <rect x="120" y="270" width="60" height="40" fill="#8FB3FF" opacity="0.3" rx="2"/>
-              <rect x="220" y="270" width="60" height="40" fill="#8FB3FF" opacity="0.45" rx="2"/>
+              <rect x="120" y="200" width="60" height="40" fill="var(--accent-a)" opacity="0.55" rx="2"/>
+              <rect x="220" y="200" width="60" height="40" fill="var(--accent-a)" opacity="0.4" rx="2"/>
+              <rect x="120" y="270" width="60" height="40" fill="var(--accent-a)" opacity="0.3" rx="2"/>
+              <rect x="220" y="270" width="60" height="40" fill="var(--accent-a)" opacity="0.45" rx="2"/>
             </g>
           </svg>
         </div>
@@ -437,7 +444,7 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
   <!-- FLOOR 2 — PROBLEM -->
   <section class="floor" id="floor-2" data-floor="2">
     <div class="floor-inner">
-      <div class="f-eyebrow"><span class="dot" style="background:#F87171;box-shadow:0 0 8px #F87171"></span><span data-i18n="problem.tag">Where most studios get stuck</span></div>
+      <div class="f-eyebrow"><span class="dot" style="background:var(--err);box-shadow:0 0 8px var(--err)"></span><span data-i18n="problem.tag">Where most studios get stuck</span></div>
       <h2 class="f-title" data-i18n="problem.title">Running the business shouldn't cost you the craft.</h2>
       <div class="problem-grid">
         <div class="problem-cell"><div class="num">01</div><strong data-i18n="problem.c1t">Manual research</strong><p data-i18n="problem.c1p">Hours lost finding firms and clients worth reaching, by hand.</p></div>
@@ -455,12 +462,12 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
       <h2 class="f-title" data-i18n="feat.title">Everything between "found a lead" and "signed a client."</h2>
       <p class="f-sub" data-i18n="feat.sub">One pipeline, replacing the spreadsheet, the notes app, and the sent-mail folder.</p>
       <div class="feat-grid">
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg></div><h3 data-i18n="feat.f1t">AI Company Research</h3><p data-i18n="feat.f1p">Paste a name — get a profile, a fit score, and an angle.</p></div>
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="13" y="3" width="4" height="10" rx="1"/><rect x="19" y="3" width="2" height="14" rx="1"/></svg></div><h3 data-i18n="feat.f2t">Kanban Pipeline</h3><p data-i18n="feat.f2p">Every lead's stage at a glance — drag from New to Client.</p></div>
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg></div><h3 data-i18n="feat.f3t">AI Email Drafts</h3><p data-i18n="feat.f3p">Personalized outreach that reads like you wrote it.</p></div>
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><h3 data-i18n="feat.f4t">Send From Your Inbox</h3><p data-i18n="feat.f4p">One click, from your own address — no copy-paste.</p></div>
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div><h3 data-i18n="feat.f5t">Weekly AI Briefing</h3><p data-i18n="feat.f5p">A Monday summary of exactly who to follow up with.</p></div>
-        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FB3FF" stroke-width="2"><path d="M1 6v16l7-3 8 3 7-3V3l-7 3-8-3z"/><line x1="8" y1="3" x2="8" y2="19"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><h3 data-i18n="feat.f6t">Market Map</h3><p data-i18n="feat.f6p">See where your pipeline lives, geographically.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg></div><h3 data-i18n="feat.f1t">AI Company Research</h3><p data-i18n="feat.f1p">Paste a name — get a profile, a fit score, and an angle.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="13" y="3" width="4" height="10" rx="1"/><rect x="19" y="3" width="2" height="14" rx="1"/></svg></div><h3 data-i18n="feat.f2t">Kanban Pipeline</h3><p data-i18n="feat.f2p">Every lead's stage at a glance — drag from New to Client.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg></div><h3 data-i18n="feat.f3t">AI Email Drafts</h3><p data-i18n="feat.f3p">Personalized outreach that reads like you wrote it.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><h3 data-i18n="feat.f4t">Send From Your Inbox</h3><p data-i18n="feat.f4p">One click, from your own address — no copy-paste.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div><h3 data-i18n="feat.f5t">Weekly AI Briefing</h3><p data-i18n="feat.f5p">A Monday summary of exactly who to follow up with.</p></div>
+        <div class="feat-card"><div class="feat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="2"><path d="M1 6v16l7-3 8 3 7-3V3l-7 3-8-3z"/><line x1="8" y1="3" x2="8" y2="19"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><h3 data-i18n="feat.f6t">Market Map</h3><p data-i18n="feat.f6p">See where your pipeline lives, geographically.</p></div>
       </div>
     </div>
   </section>
@@ -483,17 +490,17 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
   <!-- FLOOR 5 — MARKETPLACE -->
   <section class="floor" id="floor-5" data-floor="5">
     <div class="floor-inner">
-      <div class="f-eyebrow"><span class="dot" style="background:#FBBF24;box-shadow:0 0 8px #FBBF24"></span><span data-i18n="mp.tag">Coming to Archon</span></div>
+      <div class="f-eyebrow"><span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span><span data-i18n="mp.tag">Coming to Archon</span></div>
       <h2 class="f-title" data-i18n="mp.title">A marketplace built for the whole industry.</h2>
       <p class="f-sub" data-i18n="mp.sub">Sign up as a freelancer looking for work, or a studio looking for talent — both on the same platform.</p>
       <div class="mp-grid">
         <div class="mp-card">
-          <div class="mp-role"><div class="mp-role-icon">🎨</div><h3 data-i18n="mp.freelancer">Freelancer / Designer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
+          <div class="mp-role"><div class="mp-role-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1.1a1.6 1.6 0 0 1 1.6-1.6h2c3 0 5.5-2.5 5.5-5.5C21.9 6 17.4 2 12 2z"/><circle cx="6.5" cy="12.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/></svg></div><h3 data-i18n="mp.freelancer">Freelancer / Designer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
           <p data-i18n="mp.freelancerP">Build a public portfolio and apply directly to open projects.</p>
           <ul class="mp-list"><li data-i18n="mp.fl1">Public portfolio &amp; skills</li><li data-i18n="mp.fl2">Browse and apply to projects</li><li data-i18n="mp.fl3">AI-matched to the right fit</li></ul>
         </div>
         <div class="mp-card">
-          <div class="mp-role"><div class="mp-role-icon">🏢</div><h3 data-i18n="mp.employer">Studio / Employer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
+          <div class="mp-role"><div class="mp-role-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-a)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg></div><h3 data-i18n="mp.employer">Studio / Employer <span class="badge-soon" data-i18n="mp.soon">Coming Soon</span></h3></div>
           <p data-i18n="mp.employerP">Post a project or role, browse portfolios, and hire directly.</p>
           <ul class="mp-list"><li data-i18n="mp.em1">Post with budget &amp; deadline</li><li data-i18n="mp.em2">Review proposals &amp; portfolios</li><li data-i18n="mp.em3">Hire freelance or remote roles</li></ul>
         </div>
@@ -512,9 +519,9 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
           <div class="plan-name" data-i18n="price.basic">Basic</div>
           <div class="plan-price">$19<span data-i18n="price.mo">/mo</span></div>
           <ul class="plan-features">
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b1">Up to 50 companies</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b2">30 emails / month</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b4">AI email drafts</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b1">Up to 50 companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b2">30 emails / month</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.b4">AI email drafts</span></li>
           </ul>
           <a href="/signup?plan=basic" class="btn btn-ghost" style="width:100%" data-i18n="price.basicCta">Start with Basic</a>
         </div>
@@ -523,9 +530,9 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
           <div class="plan-name" data-i18n="price.pro">Pro</div>
           <div class="plan-price">$49<span data-i18n="price.mo">/mo</span></div>
           <ul class="plan-features">
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p1">Up to 500 companies</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p3">AI smart search</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p4">Weekly AI briefing</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p1">Up to 500 companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p3">AI smart search</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.p4">Weekly AI briefing</span></li>
           </ul>
           <a href="/signup?plan=pro" class="btn btn-primary" style="width:100%" data-i18n="price.proCta">Start with Pro</a>
         </div>
@@ -533,9 +540,9 @@ html[dir="rtl"] .wf-arrow.next svg{transform:scaleX(-1);}
           <div class="plan-name" data-i18n="price.agency">Agency</div>
           <div class="plan-price">$99<span data-i18n="price.mo">/mo</span></div>
           <ul class="plan-features">
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a1">Unlimited companies</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a3">All Pro features</span></li>
-            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a4">Team member seats</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a1">Unlimited companies</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a3">All Pro features</span></li>
+            <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span data-i18n="price.a4">Team member seats</span></li>
           </ul>
           <a href="/signup?plan=agency" class="btn btn-ghost" style="width:100%" data-i18n="price.agencyCta">Start with Agency</a>
         </div>
@@ -710,7 +717,8 @@ function applyLang(lang){
 
 function applyTheme(theme){
   document.documentElement.classList.toggle('light-theme', theme === 'light');
-  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️' : '🌙';
+  document.getElementById('themeIconMoon').style.display = theme === 'light' ? 'none' : '';
+  document.getElementById('themeIconSun').style.display = theme === 'light' ? '' : 'none';
   localStorage.setItem('archon-theme', theme);
 }
 
