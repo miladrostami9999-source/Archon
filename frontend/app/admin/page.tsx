@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import AdminSettingsDrawer from '../components/AdminSettingsDrawer'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -51,6 +52,10 @@ export default function AdminPanel() {
   const [savingInstr, setSavingInstr] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
+  const [revenue, setRevenue] = useState<{ all_time_usd: number; this_week_usd: number; this_month_usd: number; mrr_usd: number } | null>(null)
+  const [waitlistPending, setWaitlistPending] = useState(0)
+  const [paymentsPending, setPaymentsPending] = useState(0)
+  const [openDrawer, setOpenDrawer] = useState<'planLimits' | 'countries' | 'bulkDelete' | 'broadcast' | 'payment' | null>(null)
 
   // ── BULK DELETE ──
   const [bulkFilters, setBulkFilters] = useState({ country: '', industry: '', company_size: '', discovery_source: '', search: '' })
@@ -107,6 +112,9 @@ export default function AdminPanel() {
       setPlanLimits(res.data.sort((a: PlanLimit, b: PlanLimit) =>
         ['trial', 'basic', 'pro', 'agency'].indexOf(a.plan) - ['trial', 'basic', 'pro', 'agency'].indexOf(b.plan)))
     }).catch(() => {})
+    axios.get(`${API}/auth/admin/revenue/summary`, { headers: headers() }).then(res => setRevenue(res.data)).catch(() => {})
+    axios.get(`${API}/auth/waitlist/pending-count`, { headers: headers() }).then(res => setWaitlistPending(res.data.count)).catch(() => {})
+    axios.get(`${API}/auth/billing/requests/pending-count`, { headers: headers() }).then(res => setPaymentsPending(res.data.count)).catch(() => {})
   }, [])
 
   const saveInstructions = async () => {
@@ -394,6 +402,30 @@ export default function AdminPanel() {
       label: 'View Analytics',
     },
     {
+      icon: '📋', title: 'Waitlist', desc: waitlistPending > 0 ? `${waitlistPending} pending signup${waitlistPending === 1 ? '' : 's'}` : 'No pending signups',
+      color: '#FBBF24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.15)',
+      action: () => window.location.href = '/waitlist',
+      label: 'Review Waitlist',
+    },
+    {
+      icon: '💳', title: 'Payments', desc: paymentsPending > 0 ? `${paymentsPending} awaiting review` : 'No pending payments',
+      color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)',
+      action: () => window.location.href = '/payments',
+      label: 'Review Payments',
+    },
+    {
+      icon: '🛒', title: 'Marketplace Admin', desc: 'Contracts, milestone payments and disputes',
+      color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.15)',
+      action: () => window.location.href = '/marketplace-admin',
+      label: 'Open Marketplace Admin',
+    },
+    {
+      icon: '🎯', title: 'Lead Hunter', desc: 'Hunt new companies from award shortlists, registries and more',
+      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
+      action: () => window.location.href = '/discovery',
+      label: 'Open Lead Hunter',
+    },
+    {
       icon: '📖', title: 'API Documentation', desc: 'FastAPI Swagger UI for developers',
       color: 'var(--text-muted)', bg: 'var(--bg-input)', border: 'var(--border)',
       action: () => window.open(`${API}/docs`, '_blank'),
@@ -439,6 +471,33 @@ export default function AdminPanel() {
                 <p style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>{k.label}</p>
               </div>
             ))}
+          </div>
+
+          {/* REVENUE SUMMARY */}
+          <div style={{
+            borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)',
+            padding: isMobile ? '16px' : '20px 24px', marginBottom: '24px',
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? '14px' : '24px', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? '16px' : '32px' }}>
+              {([
+                ['All-time revenue', revenue?.all_time_usd],
+                ['This month', revenue?.this_month_usd],
+                ['This week', revenue?.this_week_usd],
+                ['Est. MRR', revenue?.mrr_usd],
+              ] as [string, number | undefined][]).map(([label, value]) => (
+                <div key={label}>
+                  <p style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>{label}</p>
+                  <p className="mono" style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                    {value === undefined ? '—' : `$${value.toLocaleString('en-US')}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <a href="/admin/revenue" style={{ flexShrink: 0, fontSize: '13px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              View full revenue →
+            </a>
           </div>
 
           </div>
@@ -501,33 +560,38 @@ export default function AdminPanel() {
             ))}
           </div>
 
-          {/* Lead Hunter has its own page now — it outgrew a panel here. */}
-          <a href="/discovery" style={{
-            display: 'flex', alignItems: 'center', gap: '14px', marginTop: '28px',
-            padding: '18px', borderRadius: '14px', textDecoration: 'none',
-            border: '1px solid rgba(61,79,224,0.25)',
-            background: 'linear-gradient(135deg, rgba(61,79,224,0.07), rgba(46,59,176,0.07))',
-          }}>
-            <span style={{ fontSize: '26px' }}>🎯</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Lead Hunter</p>
-              <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '3px 0 0', lineHeight: 1.6 }}>
-                Hunt new companies across award shortlists, national registries, trade-fair exhibitor
-                lists, job boards and more — with a citation for every lead.
-              </p>
-            </div>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#60A5FA', whiteSpace: 'nowrap' }}>Open →</span>
-          </a>
+          {/* ── SETTINGS (rare/config, collapsed behind drawers) ── */}
+          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '12px', marginTop: '32px' }}>Settings</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '40px' }}>
+            {([
+              ['planLimits', '📊', 'Plan Limits', 'Per-plan quotas, pricing and country scope'],
+              ['countries', '🌍', 'Duplicate Countries', 'Merge catalog country spellings'],
+              ['bulkDelete', '🗑', 'Bulk Delete Companies', 'Remove many companies at once by filter'],
+              ['broadcast', '📣', 'Broadcast & Notifications', 'Send an in-app or email announcement to a segment'],
+              ['payment', '💳', 'Payment Instructions', 'What users see on the upgrade page'],
+            ] as [typeof openDrawer, string, string, string][]).map(([key, icon, title, desc]) => (
+              <button key={key} onClick={() => setOpenDrawer(key)}
+                style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
+                <span style={{ fontSize: '18px', flexShrink: 0 }}>{icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</p>
+                  <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{desc}</p>
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', flexShrink: 0 }}>Edit →</span>
+              </button>
+            ))}
+          </div>
 
-          {/* ── PLAN LIMITS EDITOR ── */}
-          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '28px' }}>Plan Limits</p>
+          <AdminSettingsDrawer title="Plan Limits" open={openDrawer === 'planLimits'} onClose={() => setOpenDrawer(null)}>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
             Edit quotas per plan. Changes apply immediately to everyone on that plan. Use <strong>-1</strong> for unlimited.<br />
             <strong>Max companies</strong> is how many companies the user can <strong>unlock</strong>. Unlocking reveals a company&apos;s
             email, website, socials and contacts; everything else in the catalog stays visible but masked. Adding, starring
             or moving a company through the pipeline also unlocks it.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', paddingBottom: '40px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {planLimits.map(pl => (
               <div key={pl.plan} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -588,8 +652,10 @@ export default function AdminPanel() {
               </div>
             ))}
           </div>
-          {/* ── DUPLICATE COUNTRIES ── */}
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Duplicate Countries</p>
+          {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? '#34D399' : '#F87171', marginTop: '12px', marginBottom: 0 }}>{limitMsg}</p>}
+          </AdminSettingsDrawer>
+
+          <AdminSettingsDrawer title="Duplicate Countries" open={openDrawer === 'countries'} onClose={() => setOpenDrawer(null)}>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
             The same country sometimes lands in the catalog under two spellings (e.g. &quot;USA&quot; and &quot;United States&quot;), which splits one market
             into two rows everywhere that groups by country. New imports/hunts are normalized automatically — this fixes rows that already exist.
@@ -637,10 +703,10 @@ export default function AdminPanel() {
               Merge
             </button>
           </div>
-          {mergeMsg && <p style={{ fontSize: '12px', color: mergeMsg.startsWith('✓') ? '#34D399' : '#F87171', margin: '0 0 32px' }}>{mergeMsg}</p>}
+          {mergeMsg && <p style={{ fontSize: '12px', color: mergeMsg.startsWith('✓') ? '#34D399' : '#F87171', margin: '0' }}>{mergeMsg}</p>}
+          </AdminSettingsDrawer>
 
-          {/* ── BULK DELETE COMPANIES ── */}
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Bulk Delete Companies</p>
+          <AdminSettingsDrawer title="Bulk Delete Companies" open={openDrawer === 'bulkDelete'} onClose={() => setOpenDrawer(null)}>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
             Delete many companies at once by category instead of one at a time. Set any combination of filters, check how many match, then delete. This is permanent.
           </p>
@@ -682,9 +748,9 @@ export default function AdminPanel() {
             </button>
             {bulkMsg && <span style={{ fontSize: '12px', color: bulkMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bulkMsg}</span>}
           </div>
+          </AdminSettingsDrawer>
 
-          {/* ── BROADCAST & NOTIFICATION CENTER ── */}
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Broadcast &amp; Notification Center</p>
+          <AdminSettingsDrawer title="Broadcast & Notification Center" open={openDrawer === 'broadcast'} onClose={() => setOpenDrawer(null)}>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
             Send an in-app notification (optionally also by email) to every user matching a segment. Leave all filters empty to target everyone.
           </p>
@@ -745,9 +811,9 @@ export default function AdminPanel() {
             </button>
             {bcMsg && <span style={{ fontSize: '12px', color: bcMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bcMsg}</span>}
           </div>
+          </AdminSettingsDrawer>
 
-          {/* PAYMENT INSTRUCTIONS EDITOR */}
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '6px', marginTop: '32px' }}>Payment instructions</p>
+          <AdminSettingsDrawer title="Payment Instructions" open={openDrawer === 'payment'} onClose={() => setOpenDrawer(null)}>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
             Shown to users on the upgrade page. These are stored in the database, not in code, so they never end up in the repository.
           </p>
@@ -797,11 +863,11 @@ export default function AdminPanel() {
             </div>
           </div>
           <button onClick={saveInstructions} disabled={savingInstr}
-            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', marginBottom: '40px', opacity: savingInstr ? 0.6 : 1 }}>
+            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: savingInstr ? 0.6 : 1 }}>
             {savingInstr ? 'Saving…' : 'Save instructions'}
           </button>
-
-          {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? '#34D399' : '#F87171', marginTop: '-24px', marginBottom: '24px' }}>{limitMsg}</p>}
+          {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? '#34D399' : '#F87171', marginTop: '10px', marginBottom: 0 }}>{limitMsg}</p>}
+          </AdminSettingsDrawer>
         </div>
       </div>
     </div>

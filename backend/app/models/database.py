@@ -320,6 +320,24 @@ class PaymentRequest(Base):
     reviewed_at = Column(DateTime)
 
 
+class RevenueSnapshot(Base):
+    """A finalized weekly/monthly revenue total, written once by the cron job
+    when its period closes (see services/revenue.py + digest_scheduler.py).
+    Live "so far this week/month" numbers are computed on the fly instead —
+    this table only ever holds completed periods, so the trend chart has a
+    stable history that doesn't shift as new payments come in.
+    """
+    __tablename__ = "revenue_snapshots"
+    id              = Column(Integer, primary_key=True, index=True)
+    period_type     = Column(String, index=True)   # "week" | "month"
+    period_start    = Column(DateTime)
+    period_end      = Column(DateTime)
+    total_usd       = Column(Float, default=0)
+    breakdown_json  = Column(Text)   # {"trial":0,"basic":..,"pro":..,"agency":..} in USD
+    approved_count  = Column(Integer, default=0)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+
 class AppSetting(Base):
     """Small key/value store for admin-editable text, e.g. payment instructions."""
     __tablename__ = "app_settings"

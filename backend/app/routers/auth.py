@@ -682,6 +682,42 @@ def pending_payments_count(admin: User = Depends(require_admin), db: Session = D
     return {"count": db.query(PaymentRequest).filter(PaymentRequest.status == "pending").count()}
 
 
+@router.get("/admin/revenue/summary")
+def admin_revenue_summary(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.services.revenue import get_summary
+    return get_summary(db)
+
+
+@router.get("/admin/revenue/timeseries")
+def admin_revenue_timeseries(period: str = "week", limit: int = 12, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.services.revenue import list_timeseries, compute_revenue_for_period
+    from datetime import datetime, timedelta
+
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="period must be 'week' or 'month'")
+
+    history = list_timeseries(db, period, limit=limit)
+
+    # Append the current, still-open period as a live (uncommitted) point so
+    # the chart shows "so far this week/month" without waiting for the cron
+    # snapshot to close it.
+    now = datetime.utcnow()
+    if period == "week":
+        current_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        current_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current = compute_revenue_for_period(db, current_start, now + timedelta(seconds=1))
+    history.append({
+        "period_start": current_start.isoformat(),
+        "period_end": None,
+        "total_usd": current["total_usd"],
+        "breakdown": current["breakdown"],
+        "approved_count": current["approved_count"],
+        "in_progress": True,
+    })
+    return {"period": period, "items": history}
+
+
 @router.post("/billing/requests/{request_id}/approve")
 def approve_payment(request_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Confirm the payment landed and activate the plan with a fresh period."""

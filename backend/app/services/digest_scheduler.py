@@ -42,6 +42,16 @@ def _weekly_report_job():
     _run("weekly report reset", run_weekly_reports)
 
 
+def _revenue_weekly_job():
+    from app.services.revenue import snapshot_period
+    _run("revenue weekly snapshot", lambda db: snapshot_period(db, "week"))
+
+
+def _revenue_monthly_job():
+    from app.services.revenue import snapshot_period
+    _run("revenue monthly snapshot", lambda db: snapshot_period(db, "month"))
+
+
 def start():
     global _scheduler
     if _scheduler is not None:
@@ -53,6 +63,10 @@ def start():
     _scheduler.add_job(_daily_tasks_job, CronTrigger(hour=0, minute=0, timezone="Asia/Tehran"), id="daily_tasks_reset")
     # Every Saturday at 00:00 Iran time — start of the Iranian calendar week.
     _scheduler.add_job(_weekly_report_job, CronTrigger(day_of_week="sat", hour=0, minute=0, timezone="Asia/Tehran"), id="weekly_report_reset")
+    # Saturday 01:00 Iran time — an hour after the weekly report job so they don't overlap.
+    _scheduler.add_job(_revenue_weekly_job, CronTrigger(day_of_week="sat", hour=1, minute=0, timezone="Asia/Tehran"), id="revenue_weekly_snapshot")
+    # 1st of each (Gregorian) month, 01:30 UTC.
+    _scheduler.add_job(_revenue_monthly_job, CronTrigger(day="1", hour=1, minute=30), id="revenue_monthly_snapshot")
     _scheduler.start()
 
 
