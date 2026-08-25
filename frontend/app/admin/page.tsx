@@ -53,8 +53,6 @@ export default function AdminPanel() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [userCount, setUserCount] = useState(0)
   const [revenue, setRevenue] = useState<{ all_time_usd: number; this_week_usd: number; this_month_usd: number; mrr_usd: number } | null>(null)
-  const [waitlistPending, setWaitlistPending] = useState(0)
-  const [paymentsPending, setPaymentsPending] = useState(0)
   const [openDrawer, setOpenDrawer] = useState<'planLimits' | 'countries' | 'bulkDelete' | 'broadcast' | 'payment' | null>(null)
 
   // ── BULK DELETE ──
@@ -113,8 +111,6 @@ export default function AdminPanel() {
         ['trial', 'basic', 'pro', 'agency'].indexOf(a.plan) - ['trial', 'basic', 'pro', 'agency'].indexOf(b.plan)))
     }).catch(() => {})
     axios.get(`${API}/auth/admin/revenue/summary`, { headers: headers() }).then(res => setRevenue(res.data)).catch(() => {})
-    axios.get(`${API}/auth/waitlist/pending-count`, { headers: headers() }).then(res => setWaitlistPending(res.data.count)).catch(() => {})
-    axios.get(`${API}/auth/billing/requests/pending-count`, { headers: headers() }).then(res => setPaymentsPending(res.data.count)).catch(() => {})
   }, [])
 
   const saveInstructions = async () => {
@@ -339,95 +335,53 @@ export default function AdminPanel() {
     setBcSending(false)
   }
 
+  // A single organizational accent color throughout — no per-card rainbow.
+  // Semantic colors (success/error) are reserved for actual status feedback.
   const kpiCards = [
-    { icon: '🏢', label: 'Companies', value: stats?.total_companies ?? '—', color: '#3D4FE0', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)' },
-    { icon: '👥', label: 'Users', value: userCount || '—', color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.15)' },
-    { icon: '✉', label: 'Emails Sent', value: stats?.emails_sent ?? '—', color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)' },
-    { icon: '🏆', label: 'Clients Won', value: stats?.clients_won ?? '—', color: '#FBBF24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.15)' },
+    { icon: '🏢', label: 'Companies', value: stats?.total_companies ?? '—' },
+    { icon: '👥', label: 'Users', value: userCount || '—' },
+    { icon: '✉', label: 'Emails Sent', value: stats?.emails_sent ?? '—' },
+    { icon: '🏆', label: 'Clients Won', value: stats?.clients_won ?? '—' },
   ]
 
+  // Only tools with no equivalent in the Sidebar's own Admin/Workspace nav —
+  // Users, Analytics, Waitlist, Payments, Marketplace Admin, Lead Hunter and
+  // Weekly Report already have their own sidebar links, so listing them here
+  // too was pure duplication.
   const tools = [
     {
       icon: '📥', title: 'Import CSV', desc: 'Bulk import companies from spreadsheet',
-      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
       action: () => window.location.href = '/import',
       label: 'Open Import',
     },
     {
       icon: '📤', title: 'Export CSV', desc: 'Download all companies as CSV file',
-      color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)',
       action: exportCsv,
       label: 'Download CSV',
     },
     {
       icon: '🔄', title: 'Recalculate Scores', desc: 'Re-score every company with the current weights. Run this after editing services/scoring.py.',
-      color: '#FBBF24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.15)',
       action: recalcScores,
       label: recalculating ? 'Recalculating...' : 'Recalculate All',
-      msg: recalcMsg, msgColor: recalcMsg.startsWith('✗') ? '#F87171' : '#34D399',
+      msg: recalcMsg, msgColor: recalcMsg.startsWith('✗') ? '#F87171' : 'var(--success)',
       disabled: recalculating,
     },
     {
       icon: '🔥', title: 'Recalculate Heat', desc: 'Refresh hot / warm / cold across your pipeline from status, buying signals and score.',
-      color: '#FB923C', bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.15)',
       action: recalcHeat,
       label: recalcHeating ? 'Recalculating...' : 'Recalculate Heat',
-      msg: heatMsg, msgColor: heatMsg.startsWith('✗') ? '#F87171' : '#34D399',
+      msg: heatMsg, msgColor: heatMsg.startsWith('✗') ? '#F87171' : 'var(--success)',
       disabled: recalcHeating,
     },
     {
       icon: '💾', title: 'Manual Backup', desc: 'Full database export, saved on the server',
-      color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.15)',
       action: runBackup,
       label: backing ? 'Backing up...' : 'Run Backup',
-      msg: backMsg, msgColor: backMsg.startsWith('✓') ? '#34D399' : 'var(--text-muted)',
+      msg: backMsg, msgColor: backMsg.startsWith('✓') ? 'var(--success)' : 'var(--text-muted)',
       disabled: backing,
     },
     {
-      icon: '📊', title: 'Weekly AI Report', desc: 'AI-powered business development summary',
-      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
-      action: () => window.location.href = '/report',
-      label: 'Generate Report',
-    },
-    {
-      icon: '👥', title: 'User Management', desc: 'Manage subscribers, plans and permissions',
-      color: '#F472B6', bg: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.15)',
-      action: () => window.location.href = '/users',
-      label: 'Manage Users',
-    },
-    {
-      icon: '📈', title: 'Analytics', desc: 'Full pipeline and performance report',
-      color: '#22D3EE', bg: 'rgba(34,211,238,0.08)', border: 'rgba(34,211,238,0.15)',
-      action: () => window.location.href = '/analytics',
-      label: 'View Analytics',
-    },
-    {
-      icon: '📋', title: 'Waitlist', desc: waitlistPending > 0 ? `${waitlistPending} pending signup${waitlistPending === 1 ? '' : 's'}` : 'No pending signups',
-      color: '#FBBF24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.15)',
-      action: () => window.location.href = '/waitlist',
-      label: 'Review Waitlist',
-    },
-    {
-      icon: '💳', title: 'Payments', desc: paymentsPending > 0 ? `${paymentsPending} awaiting review` : 'No pending payments',
-      color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)',
-      action: () => window.location.href = '/payments',
-      label: 'Review Payments',
-    },
-    {
-      icon: '🛒', title: 'Marketplace Admin', desc: 'Contracts, milestone payments and disputes',
-      color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.15)',
-      action: () => window.location.href = '/marketplace-admin',
-      label: 'Open Marketplace Admin',
-    },
-    {
-      icon: '🎯', title: 'Lead Hunter', desc: 'Hunt new companies from award shortlists, registries and more',
-      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
-      action: () => window.location.href = '/discovery',
-      label: 'Open Lead Hunter',
-    },
-    {
       icon: '📖', title: 'API Documentation', desc: 'FastAPI Swagger UI for developers',
-      color: 'var(--text-muted)', bg: 'var(--bg-input)', border: 'var(--border)',
       action: () => window.open(`${API}/docs`, '_blank'),
       label: 'Open Docs',
     },
@@ -457,17 +411,14 @@ export default function AdminPanel() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '24px', marginTop: '24px' }}>
             {kpiCards.map(k => (
               <div key={k.label} style={{
-                borderRadius: '16px', border: `1px solid ${k.border}`,
-                background: k.bg, padding: isMobile ? '14px 16px' : '20px 24px',
-                position: 'relative', overflow: 'hidden',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                cursor: 'default',
+                borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
+                background: 'var(--bg-card)', padding: isMobile ? '14px 16px' : '20px 24px',
+                transition: 'border-color 0.15s',
               }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${k.border}` }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
-                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: k.color, opacity: 0.06 }} />
-                <p style={{ fontSize: isMobile ? '22px' : '28px', margin: isMobile ? '0 0 8px' : '0 0 12px' }}>{k.icon}</p>
-                <p style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: 800, color: k.color, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
+                <p style={{ fontSize: isMobile ? '18px' : '20px', margin: isMobile ? '0 0 8px' : '0 0 10px', opacity: 0.7 }}>{k.icon}</p>
+                <p className="mono" style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>{k.value}</p>
                 <p style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>{k.label}</p>
               </div>
             ))}
@@ -504,20 +455,20 @@ export default function AdminPanel() {
 
           {/* TOOLS GRID */}
           <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '16px', marginTop: '0' }}>Tools & Actions</p>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px', paddingBottom: '40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? '10px' : '14px', paddingBottom: '40px' }}>
             {tools.map((tool) => (
               <div key={tool.title} style={{
-                borderRadius: '16px', border: `1px solid ${tool.border}`,
+                borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
                 background: 'var(--bg-card)', padding: '20px',
                 display: 'flex', flexDirection: 'column',
-                transition: 'all 0.2s', cursor: 'default',
+                transition: 'border-color 0.15s', cursor: 'default',
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = tool.color + '50'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = tool.border; e.currentTarget.style.transform = 'none' }}>
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
 
                 {/* ICON + TITLE */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: tool.bg, border: `1px solid ${tool.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0, opacity: 0.85 }}>
                     {tool.icon}
                   </div>
                   <div>
@@ -532,14 +483,14 @@ export default function AdminPanel() {
                   disabled={'disabled' in tool ? tool.disabled : false}
                   style={{
                     marginTop: 'auto', width: '100%', padding: '9px',
-                    borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+                    borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600,
                     cursor: tool.disabled ? 'not-allowed' : 'pointer',
-                    color: tool.color, background: tool.bg,
-                    border: `1px solid ${tool.border}`,
-                    transition: 'all 0.15s',
+                    color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)',
+                    border: 'none',
+                    transition: 'opacity 0.15s',
                     opacity: tool.disabled ? 0.5 : 1,
                   }}
-                  onMouseEnter={e => { if (!tool.disabled) { e.currentTarget.style.opacity = '0.8' } }}
+                  onMouseEnter={e => { if (!tool.disabled) { e.currentTarget.style.opacity = '0.85' } }}
                   onMouseLeave={e => { e.currentTarget.style.opacity = tool.disabled ? '0.5' : '1' }}>
                   {tool.label}
                 </button>
@@ -552,7 +503,7 @@ export default function AdminPanel() {
                     can be kept off Railway */}
                 {tool.title === 'Manual Backup' && lastBackup && (
                   <button onClick={() => downloadBackup(lastBackup)}
-                    style={{ marginTop: '8px', width: '100%', padding: '8px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer' }}>
+                    style={{ marginTop: '8px', width: '100%', padding: '8px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 600, color: 'var(--success)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                     ⬇ Download backup file
                   </button>
                 )}
