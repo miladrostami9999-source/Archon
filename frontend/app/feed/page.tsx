@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
+import MemberPreviewDrawer from '../components/MemberPreviewDrawer'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -59,6 +60,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true)
   const [nextOffset, setNextOffset] = useState<number | null>(0)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [previewUserId, setPreviewUserId] = useState<number | null>(null)
 
   const [text, setText] = useState('')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -221,7 +223,9 @@ export default function FeedPage() {
               {posts.map(p => (
                 <div key={p.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <a href={`/members/${p.user_id}`} style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
+                    <a href={`/members/${p.user_id}`}
+                      onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); setPreviewUserId(p.user_id) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
                       <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                         {p.author_avatar
                           ? <img src={p.author_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -302,6 +306,7 @@ export default function FeedPage() {
           )}
         </div>
       </main>
+      <MemberPreviewDrawer userId={previewUserId} onClose={() => setPreviewUserId(null)} />
     </div>
   )
 }
