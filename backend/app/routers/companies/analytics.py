@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.database import get_db, Company, Campaign, UserCompanyState, User
+from app.models.database import get_db, Company, Campaign, UserCompanyState, User, DailyTask, DiscoveryHunt
 from app.routers.auth import get_current_user
 
 router = APIRouter()
@@ -49,6 +51,69 @@ def get_analytics(current_user: User = Depends(get_current_user), db: Session = 
     sent_emails = db.query(Campaign).filter(Campaign.user_id == uid, Campaign.status == "sent").count()
     replied_emails = db.query(Campaign).filter(Campaign.user_id == uid, Campaign.status == "replied").count()
 
+    # ── Heat distribution — hot/warm/cold across this user's own pipeline ──
+    heat_rows = dict(
+        db.query(UserCompanyState.heat_level, func.count(UserCompanyState.id))
+        .filter(UserCompanyState.user_id == uid)
+        .group_by(UserCompanyState.heat_level).all()
+    )
+    heat_counts = {
+        "hot": int(heat_rows.get("hot", 0)),
+        "warm": int(heat_rows.get("warm", 0)),
+        "cold": int(heat_rows.get("cold", 0)),
+    }
+
+    # ── Score distribution — where this user's touched companies land ──
+    touched_ids = [r[0] for r in db.query(UserCompanyState.company_id).filter(UserCompanyState.user_id == uid).all()]
+    score_buckets = {"poor": 0, "fair": 0, "good": 0, "great": 0}
+    if touched_ids:
+        for (score,) in db.query(Company.opportunity_score).filter(Company.id.in_(touched_ids)).all():
+            s = score or 0
+            if s < 40:
+                score_buckets["poor"] += 1
+            elif s < 60:
+                score_buckets["fair"] += 1
+            elif s < 80:
+                score_buckets["good"] += 1
+            else:
+                score_buckets["great"] += 1
+
+    # ── Pipeline velocity — average days a moved company has sat in its
+    # current stage. "new" is excluded since it's the untouched default. ──
+    moved_rows = db.query(UserCompanyState.created_at, UserCompanyState.updated_at).filter(
+        UserCompanyState.user_id == uid, UserCompanyState.status != "new"
+    ).all()
+    pipeline_velocity_days = None
+    if moved_rows:
+        days = [(u - c).total_seconds() / 86400 for c, u in moved_rows if c and u]
+        if days:
+            pipeline_velocity_days = round(sum(days) / len(days), 1)
+
+    # ── Task completion — last 30 days, this user ──
+    since_30 = datetime.utcnow() - timedelta(days=30)
+    task_rows = db.query(DailyTask.is_done).filter(DailyTask.user_id == uid, DailyTask.date >= since_30).all()
+    task_completion = {
+        "done": sum(1 for (d,) in task_rows if d),
+        "total": len(task_rows),
+    }
+
+    # ── Reply rate by tone ──
+    tone_rows = db.query(Campaign.tone, Campaign.status).filter(
+        Campaign.user_id == uid, Campaign.tone.isnot(None), Campaign.status.in_(["sent", "replied"])
+    ).all()
+    tone_agg: dict = {}
+    for tone, status in tone_rows:
+        t = tone or "unspecified"
+        agg = tone_agg.setdefault(t, {"sent": 0, "replied": 0})
+        agg["sent"] += 1
+        if status == "replied":
+            agg["replied"] += 1
+    tone_performance = [
+        {"tone": t, "sent": v["sent"], "replied": v["replied"],
+         "reply_rate": round((v["replied"] / v["sent"]) * 100) if v["sent"] else 0}
+        for t, v in sorted(tone_agg.items(), key=lambda kv: kv[1]["sent"], reverse=True)
+    ]
+
     return {
         "total_companies": total,
         "favorites": favorites,
@@ -59,5 +124,100 @@ def get_analytics(current_user: User = Depends(get_current_user), db: Session = 
             "total": total_emails,
             "sent": sent_emails,
             "replied": replied_emails
-        }
+        },
+        "heat_counts": heat_counts,
+        "score_buckets": score_buckets,
+        "pipeline_velocity_days": pipeline_velocity_days,
+        "task_completion": task_completion,
+        "tone_performance": tone_performance,
     }
+
+
+@router.get("/analytics/reply-trend")
+def get_reply_trend(interval: str = "day", current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Sent/replied counts bucketed by day, week or month, from real
+    EmailReputationEvent rows — a true trend, not a point-in-time ratio.
+
+    Buckets are computed in Python (not a DB-side date-trunc) — same approach
+    as GET /auth/admin/growth, which avoids a cast(DateTime, Date) crash that
+    already happened once on SQLite.
+    """
+    from app.models.database import EmailReputationEvent
+
+    if interval not in ("day", "week", "month"):
+        raise HTTPException(status_code=400, detail="interval must be 'day', 'week', or 'month'")
+
+    now = datetime.utcnow()
+    if interval == "day":
+        since = now - timedelta(days=31)
+    elif interval == "week":
+        since = now - timedelta(weeks=12)
+    else:
+        since = now - timedelta(days=366)
+
+    def bucket_key(dt: datetime) -> str:
+        if interval == "day":
+            return dt.strftime("%Y-%m-%d")
+        if interval == "week":
+            monday = dt - timedelta(days=dt.weekday())
+            return monday.strftime("%Y-%m-%d")
+        return dt.strftime("%Y-%m")
+
+    sent_by_bucket: dict = {}
+    replied_by_bucket: dict = {}
+    rows = db.query(EmailReputationEvent.event_type, EmailReputationEvent.created_at).filter(
+        EmailReputationEvent.user_id == current_user.id,
+        EmailReputationEvent.created_at >= since,
+        EmailReputationEvent.event_type.in_(["sent", "replied"]),
+    ).all()
+    for event_type, dt in rows:
+        if not dt:
+            continue
+        k = bucket_key(dt)
+        if event_type == "sent":
+            sent_by_bucket[k] = sent_by_bucket.get(k, 0) + 1
+        else:
+            replied_by_bucket[k] = replied_by_bucket.get(k, 0) + 1
+
+    points = []
+    if interval == "day":
+        cursor = since.date()
+        end = now.date()
+        while cursor <= end:
+            k = cursor.strftime("%Y-%m-%d")
+            points.append({"date": k, "label": cursor.strftime("%b %d"), "sent": sent_by_bucket.get(k, 0), "replied": replied_by_bucket.get(k, 0)})
+            cursor += timedelta(days=1)
+    elif interval == "week":
+        cursor = (since - timedelta(days=since.weekday())).date()
+        end_monday = (now - timedelta(days=now.weekday())).date()
+        while cursor <= end_monday:
+            k = cursor.strftime("%Y-%m-%d")
+            points.append({"date": k, "label": f"Week of {cursor.strftime('%b %d')}", "sent": sent_by_bucket.get(k, 0), "replied": replied_by_bucket.get(k, 0)})
+            cursor += timedelta(weeks=1)
+    else:
+        y, m = since.year, since.month
+        while (y, m) <= (now.year, now.month):
+            k = f"{y:04d}-{m:02d}"
+            points.append({"date": k, "label": datetime(y, m, 1).strftime("%b %Y"), "sent": sent_by_bucket.get(k, 0), "replied": replied_by_bucket.get(k, 0)})
+            m += 1
+            if m > 12:
+                m = 1; y += 1
+
+    return {"interval": interval, "points": points}
+
+
+@router.get("/analytics/discovery-roi")
+def get_discovery_roi(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Lead-hunting ROI per saved hunt — all fields are already aggregated on
+    the DiscoveryHunt row itself, so this is a plain read, no new query cost."""
+    hunts = db.query(DiscoveryHunt).filter(DiscoveryHunt.user_id == current_user.id).order_by(
+        DiscoveryHunt.last_run_at.desc().nullslast()
+    ).all()
+    return [{
+        "name": h.name,
+        "runs": h.runs,
+        "found_total": h.found_total,
+        "added_total": h.added_total,
+        "conversion_pct": round((h.added_total / h.found_total) * 100) if h.found_total else 0,
+        "last_run_at": h.last_run_at.isoformat() if h.last_run_at else None,
+    } for h in hunts]
