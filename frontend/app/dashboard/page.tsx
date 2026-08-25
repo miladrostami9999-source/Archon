@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import UsageWidget from '../components/UsageWidget'
-import { Search, SlidersHorizontal, Sparkles, List as ListIcon, LayoutGrid, ArrowUpDown, Bell, Plus } from 'lucide-react'
+import { Search, SlidersHorizontal, Sparkles, List as ListIcon, LayoutGrid, ArrowUpDown, Bell, Plus, X, ArrowRight } from 'lucide-react'
 import {
   DndContext,
   DragEndEvent,
@@ -261,6 +261,10 @@ export default function Dashboard() {
   const [isSmartMode, setIsSmartMode] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+  // Row click opens this instead of navigating away — the row data (c) is
+  // already in memory, so the drawer needs no fetch of its own. Full
+  // navigation only happens if the user explicitly asks for it.
+  const [previewCompany, setPreviewCompany] = useState<Company | null>(null)
   const [notifOpen, setNotifOpen] = useState(false)
   const [todayTasks, setTodayTasks] = useState<{ total: number; done: number }>({ total: 0, done: 0 })
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -332,6 +336,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (view === 'board') fetchAllCompanies()
   }, [view, search, filterStatus, filterIndustry, filterHeat, filterFavorite, sortBy, sortDir])
+
+  useEffect(() => {
+    if (!previewCompany) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPreviewCompany(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [previewCompany])
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -765,7 +776,7 @@ export default function Dashboard() {
                   const isLast = i === companies.length - 1
                   return (
                     <div key={c.id}
-                      onClick={() => goToCompany(c.id)}
+                      onClick={() => setPreviewCompany(c)}
                       onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, company: c }) }}
                       style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.15s', background: 'transparent' }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
@@ -950,7 +961,93 @@ export default function Dashboard() {
         </div>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* QUICK PREVIEW DRAWER — clicking a row opens this instead of
+          navigating away, so the list's scroll position and filters stay
+          put. "Open full profile" is the only way to actually leave. */}
+      {previewCompany && (() => {
+        const p = previewCompany
+        const psc = STATUS_COLORS[p.status] || STATUS_COLORS.new
+        const pLocked = p.lock_reason && p.lock_reason !== 'not_unlocked'
+        return (
+          <>
+            <div onClick={() => setPreviewCompany(null)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60, transition: 'opacity 0.2s' }} />
+            <div style={{
+              position: 'fixed', top: 0, right: 0, height: '100vh', width: isMobile ? '100%' : '420px',
+              background: 'var(--bg-card)', borderLeft: '1px solid var(--border)', zIndex: 61,
+              display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.3)',
+              animation: 'slideInRight 0.2s cubic-bezier(0.16,1,0.3,1)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quick preview</span>
+                <button onClick={() => setPreviewCompany(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex', borderRadius: 'var(--radius-sm)' }}>
+                  <X size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0, background: 'linear-gradient(135deg, rgba(61,79,224,0.2), rgba(46,59,176,0.2))', border: '1px solid rgba(61,79,224,0.15)', color: '#7BAEF7' }}>
+                    {getInitials(p.name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{
+                      fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px',
+                      filter: pLocked ? 'blur(5px)' : undefined, userSelect: pLocked ? 'none' : undefined,
+                    }}>{p.name}</h2>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: 0 }}>
+                      {[p.country, p.city, p.industry].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  <span className="mono" style={{ fontSize: '18px', fontWeight: 600, color: getScoreColor(p.opportunity_score), flexShrink: 0 }}>
+                    {Math.round(p.opportunity_score)}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <select value={p.status} onChange={e => { updateStatus(e, p.id); setPreviewCompany({ ...p, status: e.target.value }) }} onClick={e => e.stopPropagation()}
+                    style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '999px', fontWeight: 500, cursor: 'pointer', border: 'none', outline: 'none', background: psc.bg, color: psc.text }}>
+                    {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                  </select>
+                  <button onClick={e => { toggleFavorite(e, p.id); setPreviewCompany({ ...p, is_favorite: !p.is_favorite }) }}
+                    style={{ fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', color: p.is_favorite ? '#FBBF24' : 'var(--text-dim)' }}>★</button>
+                </div>
+
+                {p.ai_summary && (
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 16px' }}>{p.ai_summary}</p>
+                )}
+
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 8px' }}>Contact</p>
+                  {p.locked ? (
+                    <div onClick={e => e.stopPropagation()}>
+                      <LockedField label="Email" placeholder="hello@studio.com" width={160} />
+                      <div style={{ marginTop: '10px' }}>
+                        <UnlockButton size="sm" reason={p.lock_reason ?? 'not_unlocked'} busy={unlocking === p.id} onUnlock={() => unlockCompany(p.id)} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>{p.email || 'No email on file'}</p>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+                <button onClick={() => goToCompany(p.id)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '11px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
+                  Open full profile <ArrowRight size={16} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      `}</style>
     </div>
   )
 }
