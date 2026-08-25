@@ -115,10 +115,10 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
     else setOpen(false)
   }
 
-  const border = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-  const surface = dark ? '#161B27' : '#FFFFFF'
-  const text = dark ? '#E2E8F0' : '#1A1A2E'
-  const dim = dark ? 'rgba(255,255,255,0.45)' : '#6B7280'
+  const border = 'var(--border)'
+  const surface = 'var(--bg-sidebar)'
+  const text = 'var(--text)'
+  const dim = 'var(--text-muted)'
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -164,7 +164,7 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
                 style={{
                   width: '100%', display: 'flex', gap: '9px', textAlign: 'left', cursor: 'pointer',
                   padding: '11px 14px', border: 'none', borderBottom: `1px solid ${border}`,
-                  background: n.read ? 'transparent' : (dark ? 'rgba(61,79,224,0.07)' : 'rgba(61,79,224,0.05)'),
+                  background: n.read ? 'transparent' : 'var(--accent-dim)',
                 }}>
                 <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1.3 }}>{ICON[n.kind] || '🔔'}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>

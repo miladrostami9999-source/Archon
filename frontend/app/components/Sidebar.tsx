@@ -1,6 +1,10 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, type ReactElement } from 'react'
+import {
+  Home, CheckSquare, BarChart3, Map, FileText, Briefcase, FileCheck2,
+  MessageCircle, Rss, Search, ShieldCheck, Users, ArrowUpCircle, CreditCard, UserPlus,
+} from 'lucide-react'
 import NotificationBell from './NotificationBell'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -13,22 +17,26 @@ const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> =
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.15)' },
 }
 
+// Lucide icons, 1.5px stroke — replaces the hand-drawn SVGs so every icon
+// in the sidebar shares one consistent weight and geometry.
+const ICON_SIZE = 16
+const ICON_STROKE = 1.5
 const ICONS: Record<string, ReactElement> = {
-  home:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
-  tasks:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
-  analytics: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
-  map:       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
-  admin:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>,
-  projects:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
-  contracts: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M9 15l2 2 4-4"/></svg>,
-  messages:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>,
-  feed:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11a9 9 0 019 9"/><path d="M4 4a16 16 0 0116 16"/><circle cx="5" cy="19" r="1"/></svg>,
-  hunt:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>,
-  report:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-  users:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-  upgrade:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>,
-  payments:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
-  waitlist:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>,
+  home:      <Home size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  tasks:     <CheckSquare size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  analytics: <BarChart3 size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  map:       <Map size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  admin:     <ShieldCheck size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  projects:  <Briefcase size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  contracts: <FileCheck2 size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  messages:  <MessageCircle size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  feed:      <Rss size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  hunt:      <Search size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  report:    <FileText size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  users:     <Users size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  upgrade:   <ArrowUpCircle size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  payments:  <CreditCard size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  waitlist:  <UserPlus size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
 }
 
 // Hamburger icon
@@ -183,11 +191,14 @@ export default function Sidebar() {
 
   const logout = () => { localStorage.removeItem('archon-token'); localStorage.removeItem('archon-user'); window.location.href = '/login' }
 
-  const b   = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-  const tm  = dark ? '#E2E8F0' : '#1A1A2E'
-  const ts  = dark ? 'rgba(255,255,255,0.5)' : '#6B7280'
-  const td  = dark ? 'rgba(255,255,255,0.22)' : '#9CA3AF'
-  const sbg = dark ? '#161B27' : '#FFFFFF'
+  // Sourced from the CSS custom properties in globals.css, not recomputed
+  // from the `dark` flag here — that duplication used to mean the sidebar's
+  // own colors never moved when the design tokens changed.
+  const b   = 'var(--border)'
+  const tm  = 'var(--text)'
+  const ts  = 'var(--text-muted)'
+  const td  = 'var(--text-dim)'
+  const sbg = 'var(--bg-sidebar)'
 
   const isAdmin = user?.role === 'admin'
   const workspaceItems = [
@@ -230,12 +241,12 @@ export default function Sidebar() {
         style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           padding: isMobile ? '12px 14px' : '9px 12px',
-          borderRadius: '8px', fontSize: '13px',
+          borderRadius: 'var(--radius-md)', fontSize: '13px',
           fontWeight: 500, textDecoration: 'none', marginBottom: '2px',
           background: active ? activeBg : 'transparent',
           color: active ? accentColor : ts, transition: 'all 0.18s',
         }}
-        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'; e.currentTarget.style.color = tm } }}
+        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = tm } }}
         onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = ts } }}>
         <span style={{ color: active ? accentColor : td, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           {ICONS[item.iconKey]}
@@ -265,7 +276,7 @@ export default function Sidebar() {
       <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <a href="/dashboard" onClick={() => setMobileOpen(false)}
           style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-          <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', boxShadow: '0 2px 8px rgba(61,79,224,0.35)', flexShrink: 0 }}>A</div>
+          <div style={{ width: '30px', height: '30px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', boxShadow: '0 2px 8px rgba(61,79,224,0.35)', flexShrink: 0 }}>A</div>
           <div>
             <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0 }}>Archon</p>
             <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
@@ -276,7 +287,7 @@ export default function Sidebar() {
           {/* Close button on mobile */}
           {isMobile && (
             <button onClick={() => setMobileOpen(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '4px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center' }}>
               <CloseIcon />
             </button>
           )}
@@ -306,7 +317,7 @@ export default function Sidebar() {
           <a href="/verification"
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
-              padding: '9px 10px', borderRadius: '9px', marginBottom: '10px',
+              padding: '9px 10px', borderRadius: 'var(--radius-md)', marginBottom: '10px',
               border: `1px solid ${verifyStatus === 'pending' ? 'rgba(251,191,36,0.3)' : 'rgba(61,79,224,0.3)'}`,
               background: verifyStatus === 'pending' ? 'rgba(251,191,36,0.08)' : 'rgba(61,79,224,0.08)',
             }}>
@@ -322,25 +333,30 @@ export default function Sidebar() {
           </a>
         )}
 
-        <button onClick={() => setDark(!dark)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '8px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
-          <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
-          <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(61,79,224,0.4)' : '#D1D5DB' }}>
-            <div style={{ position: 'absolute', top: '1.5px', left: dark ? '15px' : '1.5px', width: '12px', height: '12px', borderRadius: '50%', background: dark ? '#60A5FA' : 'white', transition: 'left 0.2s' }} />
-          </div>
-        </button>
-
-        <button onClick={() => window.dispatchEvent(new Event('archon:open-onboarding'))}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', borderRadius: '8px', marginBottom: '10px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer', color: ts, fontSize: '12px', fontWeight: 500, transition: 'color 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
-          onMouseLeave={e => { e.currentTarget.style.color = ts }}>
-          <span>❓</span> Help &amp; Tour
-        </button>
+        {/* Quiet utility row — plain text/icon, background only on hover,
+            rather than two permanently-filled pills sitting in the footer. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginBottom: '10px' }}>
+          <button onClick={() => setDark(!dark)}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 8px', borderRadius: 'var(--radius-md)', background: 'transparent', border: 'none', cursor: 'pointer', color: ts, fontSize: '12px', fontWeight: 500 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+            <div style={{ width: '26px', height: '14px', borderRadius: 'var(--radius-md)', position: 'relative', flexShrink: 0, background: dark ? 'var(--accent-dim)' : 'var(--border-mid)' }}>
+              <div style={{ position: 'absolute', top: '1.5px', left: dark ? '13px' : '1.5px', width: '11px', height: '11px', borderRadius: '50%', background: dark ? 'var(--accent)' : 'white', transition: 'left 0.2s' }} />
+            </div>
+            {dark ? 'Dark' : 'Light'}
+          </button>
+          <button onClick={() => window.dispatchEvent(new Event('archon:open-onboarding'))}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 8px', borderRadius: 'var(--radius-md)', background: 'transparent', border: 'none', cursor: 'pointer', color: ts, fontSize: '12px', fontWeight: 500 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+            Help &amp; Tour
+          </button>
+        </div>
 
         {user && (
           <div data-tour="profile-link" onClick={() => { window.location.href = '/profile'; setMobileOpen(false) }}
-            style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: '10px', margin: '-2px -4px', transition: 'background 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: 'var(--radius-lg)', margin: '-2px -4px', transition: 'background 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
             <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(61,79,224,0.3)' }}>
               {avatar ? (
@@ -359,7 +375,7 @@ export default function Sidebar() {
               </div>
             </div>
             <button onClick={e => { e.stopPropagation(); logout() }}
-              style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '3px', borderRadius: '5px', transition: 'color 0.15s', flexShrink: 0 }}
+              style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: td, padding: '3px', borderRadius: 'var(--radius-xs)', transition: 'color 0.15s', flexShrink: 0 }}
               onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
               onMouseLeave={e => { e.currentTarget.style.color = td }}>⏻</button>
           </div>
@@ -368,7 +384,7 @@ export default function Sidebar() {
         {/* Explicit, always-visible logout — especially important on mobile */}
         {user && (
           <button onClick={logout}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '9px 10px', borderRadius: '8px', marginTop: '10px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', cursor: 'pointer', color: '#F87171', fontSize: '12.5px', fontWeight: 600 }}>
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '9px 10px', borderRadius: 'var(--radius-md)', marginTop: '10px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', cursor: 'pointer', color: '#F87171', fontSize: '12.5px', fontWeight: 600 }}>
             <span>⏻</span> Log out
           </button>
         )}
@@ -387,11 +403,11 @@ export default function Sidebar() {
           padding: '0 16px', zIndex: 40,
         }}>
           <button onClick={() => setMobileOpen(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: tm, padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: tm, padding: '6px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center' }}>
             <HamburgerIcon />
           </button>
           <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
+            <div style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
             <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
           </a>
           {/* Account menu — logout used to live only at the bottom of the drawer,
@@ -414,7 +430,7 @@ export default function Sidebar() {
                   style={{ position: 'fixed', inset: 0, zIndex: 25 }} />
                 <div style={{
                   position: 'absolute', top: '40px', right: 0, zIndex: 26, minWidth: '190px',
-                  background: sbg, border: `1px solid ${b}`, borderRadius: '12px',
+                  background: sbg, border: `1px solid ${b}`, borderRadius: 'var(--radius-lg)',
                   boxShadow: '0 12px 32px rgba(0,0,0,0.28)', overflow: 'hidden',
                 }}>
                   {user && (
