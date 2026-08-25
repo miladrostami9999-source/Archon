@@ -71,14 +71,14 @@ export default function AdminRevenuePage() {
           {/* KPI ROW */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '28px' }}>
             {([
-              ['All-time revenue', summary?.all_time_usd, '#3D4FE0'],
-              ['Estimated MRR', summary?.mrr_usd, '#A78BFA'],
-              ['This month', summary?.this_month_usd, '#34D399'],
-              ['This week', summary?.this_week_usd, '#FBBF24'],
-            ] as [string, number | undefined, string][]).map(([label, value, color]) => (
-              <div key={label} style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: isMobile ? '14px 16px' : '18px 20px' }}>
+              ['All-time revenue', summary?.all_time_usd],
+              ['Estimated MRR', summary?.mrr_usd],
+              ['This month', summary?.this_month_usd],
+              ['This week', summary?.this_week_usd],
+            ] as [string, number | undefined][]).map(([label, value]) => (
+              <div key={label} style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: isMobile ? '14px 16px' : '18px 20px' }}>
                 <p style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>{label}</p>
-                <p className="mono" style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, color, margin: 0 }}>
+                <p className="mono" style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, color: 'var(--text)', margin: 0 }}>
                   {value === undefined ? '—' : `$${value.toLocaleString('en-US')}`}
                 </p>
               </div>

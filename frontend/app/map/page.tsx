@@ -366,7 +366,7 @@ export default function MapPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '12px', flexShrink: 0 }}>
             {[
               { label: 'Avg Score', value: selected.avg_score, color: getScoreColor(selected.avg_score) },
-              { label: 'Hot Leads', value: selected.hot, color: '#FB923C' },
+              { label: 'Hot Leads', value: selected.hot, color: 'var(--text)' },
             ].map(s => (
               <div key={s.label} style={{ background: 'var(--bg-input)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
                 <p style={{ fontSize: '20px', fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
@@ -483,12 +483,12 @@ export default function MapPage() {
           </div>
           <div style={{ display: 'flex', gap: isMobile ? '12px' : '20px' }}>
             {[
-              { label: 'Countries', value: totalCountries, color: '#60A5FA' },
-              { label: 'Companies', value: totalCompanies, color: '#A78BFA' },
-              { label: 'Hot Leads', value: hotCount, color: '#FB923C' },
+              { label: 'Countries', value: totalCountries },
+              { label: 'Companies', value: totalCompanies },
+              { label: 'Hot Leads', value: hotCount },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: isMobile ? '15px' : '16px', fontWeight: 700, color: s.color, margin: 0 }}>{s.value}</p>
+                <p style={{ fontSize: isMobile ? '15px' : '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{s.value}</p>
                 <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: 0 }}>{s.label}</p>
               </div>
             ))}
