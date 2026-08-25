@@ -2,14 +2,13 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
-import { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 import PortfolioGrid from '../components/PortfolioGrid'
 import ProfileCompletion from '../components/ProfileCompletion'
 import {
-  Pencil, Plus, X, GraduationCap, Briefcase, ShieldCheck,
-  Mail, Phone, Globe, CheckCircle2, Clock, AlertCircle,
+  Pencil, Plus, X, GraduationCap, Briefcase, ShieldCheck, Lock,
+  Mail, Phone, Globe,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -50,13 +49,6 @@ const PLAN_META: Record<string, { label: string; color: string; bg: string; desc
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)', desc: '50 companies · 30 emails/month' },
   pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(61,79,224,0.1)',  desc: '500 companies · 300 emails/month · AI Search' },
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.1)', desc: 'Unlimited · All features' },
-}
-
-const VERIFICATION_META: Record<string, { label: string; desc: string; color: string; Icon: typeof ShieldCheck }> = {
-  unverified: { label: 'Not started', desc: 'Verify your identity to get paid for contracts.', color: 'var(--text-dim)', Icon: ShieldCheck },
-  pending:    { label: 'Pending review', desc: "We're reviewing your submission.", color: '#FBBF24', Icon: Clock },
-  verified:   { label: 'Verified', desc: 'Your identity has been verified.', color: 'var(--success)', Icon: CheckCircle2 },
-  rejected:   { label: 'Needs attention', desc: 'Some information needs to be corrected.', color: '#F87171', Icon: AlertCircle },
 }
 
 interface UserProfile {
@@ -146,7 +138,6 @@ export default function ProfilePage() {
   const [editingExperience, setEditingExperience] = useState(false)
   const [newEducation, setNewEducation] = useState({ school: '', degree: '', field: '', start_year: '', end_year: '' })
   const [newExperience, setNewExperience] = useState({ title: '', company: '', start_date: '', end_date: '', description: '' })
-  const [verification, setVerification] = useState<{ status: string; admin_note?: string | null } | null>(null)
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -155,10 +146,6 @@ export default function ProfilePage() {
 
     axios.get(`${API}/companies/email/reputation`, { headers: headers() })
       .then(res => setReputation(res.data))
-      .catch(() => {})
-
-    axios.get(`${API}/marketplace/verification/me`, { headers: headers() })
-      .then(res => setVerification(res.data))
       .catch(() => {})
 
     // Show cached profile immediately, then reconcile with the server, which is
@@ -408,7 +395,6 @@ export default function ProfilePage() {
   const initials = user?.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
   const plan = user ? PLAN_META[user.plan] || PLAN_META.basic : null
   const allSkills = [...profile.skills, ...profile.customSkills]
-  const vMeta = VERIFICATION_META[verification?.status || 'unverified'] || VERIFICATION_META.unverified
 
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
@@ -585,12 +571,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {profile.bio && (
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.6, textAlign: 'left' }}>
-                  {profile.bio.length > 150 ? `${profile.bio.slice(0, 150)}…` : profile.bio}
-                </p>
-              )}
-
               {allSkills.length > 0 && (
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
                   {allSkills.slice(0, 6).map(s => (
@@ -678,14 +658,34 @@ export default function ProfilePage() {
               <div style={{ borderTop: '1px solid var(--border)', marginTop: '12px', paddingTop: '12px' }}>
                 <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Settings</p>
                 <a href="/verification"
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: vMeta.color === 'var(--text-dim)' ? 'var(--text-muted)' : vMeta.color, textDecoration: 'none', marginBottom: '8px' }}>
-                  <vMeta.Icon size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Identity Verification — {vMeta.label}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none', marginBottom: '8px' }}>
+                  <ShieldCheck size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Identity Verification
                 </a>
                 <a href="/profile/security"
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none' }}>
-                  🔒 Security settings
+                  <Lock size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Security settings
                 </a>
               </div>
+            </div>
+
+            {/* MARKETPLACE MODE — a view preference, not a permission; both
+                modes can post work and take work (see switchAccountMode). */}
+            <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Marketplace mode</p>
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '4px' }}>
+                {([['freelancer', 'Freelancer'], ['client', 'Client']] as const).map(([key, label]) => {
+                  const on = accountMode === key
+                  return (
+                    <button key={key} type="button" onClick={() => switchAccountMode(key)} disabled={modeSaving}
+                      style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', border: 'none', fontSize: '12px', fontWeight: 600, cursor: modeSaving ? 'wait' : 'pointer', transition: 'all 0.15s', background: on ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: on ? 'white' : 'var(--text-muted)' }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: '10.5px', color: 'var(--text-dim)', margin: '8px 0 0', lineHeight: 1.5 }}>
+                View preference only — both modes can post and take work.
+              </p>
             </div>
           </aside>
 
@@ -705,44 +705,6 @@ export default function ProfilePage() {
           {/* ── TAB: PROFILE (merged Info + Skills + Portfolio + Education + Experience + Verification) ── */}
           {activeTab === 'profile' && (
             <>
-            {/* Marketplace mode — a view preference, not a permission. Both
-                modes can post work and take work; this decides which one the
-                Projects page leads with. */}
-            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Marketplace mode</h2>
-                <BetaTag />
-              </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
-                Switch any time — one account does both. Hiring and working just lead with different views, and your
-                reviews build up on the same profile either way.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
-                {([
-                  { key: 'freelancer', icon: '🎨', title: 'I take work', sub: 'Browse the open board and send proposals' },
-                  { key: 'client', icon: '💼', title: 'I hire', sub: 'Post projects and review proposals' },
-                ] as const).map(opt => {
-                  const on = accountMode === opt.key
-                  return (
-                    <button key={opt.key} type="button" onClick={() => switchAccountMode(opt.key)} disabled={modeSaving}
-                      style={{
-                        textAlign: 'left', padding: '14px', borderRadius: '12px', cursor: modeSaving ? 'wait' : 'pointer',
-                        border: `1px solid ${on ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`,
-                        background: on ? 'rgba(61,79,224,0.1)' : 'var(--bg-input)',
-                        transition: 'all 0.15s',
-                      }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '17px' }}>{opt.icon}</span>
-                        <span style={{ fontSize: '13.5px', fontWeight: 600, color: on ? '#60A5FA' : 'var(--text)' }}>{opt.title}</span>
-                        {on && <span style={{ fontSize: '10px', fontWeight: 700, color: '#34D399', marginLeft: 'auto' }}>✓ Active</span>}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', lineHeight: 1.5 }}>{opt.sub}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
             {reputation && reputation.sent > 0 && (
               <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: 'var(--space-4)' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>Email Reputation</h2>
@@ -768,14 +730,14 @@ export default function ProfilePage() {
             )}
 
             {/* HEADLINE & BIO */}
-            <SectionCard title="Headline & Bio" editing={editingBio} onToggleEdit={() => setEditingBio(v => !v)}>
+            <SectionCard title="Headline & Description" editing={editingBio} onToggleEdit={() => setEditingBio(v => !v)}>
               {editingBio ? (
                 <>
                   <label style={labelStyle}>Professional headline</label>
                   <input value={profile.headline} maxLength={80} onChange={e => setProfile(p => ({ ...p, headline: e.target.value }))}
                     placeholder="e.g. Senior Architectural Visualization Artist" style={inputStyle} />
                   <p style={counterStyle}>{profile.headline.length}/80</p>
-                  <label style={{ ...labelStyle, marginTop: '14px' }}>Bio</label>
+                  <label style={{ ...labelStyle, marginTop: '14px' }}>Description</label>
                   <textarea value={profile.bio} maxLength={600} rows={5} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
                     placeholder="Tell clients about your studio and expertise..." style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }} />
                   <p style={counterStyle}>{profile.bio.length}/600</p>
@@ -790,7 +752,7 @@ export default function ProfilePage() {
                     : <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 8px' }}>No headline yet</p>}
                   {profile.bio
                     ? <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
-                    : <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No bio yet — introduce your studio and expertise.</p>}
+                    : <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No description yet — introduce your studio and expertise.</p>}
                 </>
               )}
             </SectionCard>
