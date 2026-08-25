@@ -509,6 +509,8 @@ def update_plan_limit(plan: str, data: PlanLimitUpdate, admin: User = Depends(re
         row.allowed_countries = ", ".join(
             c.strip() for c in data.allowed_countries.split(",") if c.strip()
         )
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "plan_limit.update", target=f"plan:{plan}")
     db.commit()
     return {"message": f"Updated {plan} limits", "plan": plan}
 
@@ -718,6 +720,169 @@ def admin_revenue_timeseries(period: str = "week", limit: int = 12, admin: User 
     return {"period": period, "items": history}
 
 
+@router.get("/admin/growth")
+def admin_growth(days: int = 30, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Daily new-user / new-company counts for the last N days."""
+    from app.models.database import Company
+
+    since = datetime.utcnow() - timedelta(days=days)
+    user_rows = (
+        db.query(func.date(User.created_at), func.count(User.id))
+        .filter(User.created_at >= since).group_by(func.date(User.created_at)).all()
+    )
+    company_rows = (
+        db.query(func.date(Company.created_at), func.count(Company.id))
+        .filter(Company.created_at >= since).group_by(func.date(Company.created_at)).all()
+    )
+    users_by_day = {str(d): c for d, c in user_rows}
+    companies_by_day = {str(d): c for d, c in company_rows}
+
+    points = []
+    for i in range(days, -1, -1):
+        day = (datetime.utcnow() - timedelta(days=i)).date()
+        key = str(day)
+        points.append({"date": key, "users": users_by_day.get(key, 0), "companies": companies_by_day.get(key, 0)})
+    return {"days": days, "points": points}
+
+
+@router.get("/admin/at-risk-users")
+def admin_at_risk_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Users who paid but aren't confirmed, have gone quiet, or expire soon."""
+    from app.models.database import PaymentRequest
+
+    now = datetime.utcnow()
+    stale_cutoff = now - timedelta(days=30)
+    soon_cutoff = now + timedelta(days=7)
+
+    out = {}
+
+    pending_user_ids = {
+        r[0] for r in db.query(PaymentRequest.user_id).filter(PaymentRequest.status == "pending").all()
+    }
+    for uid in pending_user_ids:
+        out.setdefault(uid, []).append("payment awaiting approval")
+
+    inactive = db.query(User).filter(
+        User.is_active.is_(True),
+        User.role != "admin",
+        (User.last_login.is_(None)) | (User.last_login < stale_cutoff),
+    ).all()
+    for u in inactive:
+        out.setdefault(u.id, []).append("no login in 30+ days")
+
+    expiring = db.query(User).filter(
+        User.is_active.is_(True),
+        User.plan_expires_at.isnot(None),
+        User.plan_expires_at <= soon_cutoff,
+        User.plan_expires_at >= now,
+    ).all()
+    for u in expiring:
+        out.setdefault(u.id, []).append("plan expires within 7 days")
+
+    if not out:
+        return {"users": []}
+
+    users = db.query(User).filter(User.id.in_(out.keys())).all()
+    by_id = {u.id: u for u in users}
+    return {"users": [
+        {
+            "id": uid, "name": by_id[uid].name, "email": by_id[uid].email,
+            "plan": by_id[uid].plan, "reasons": reasons,
+        }
+        for uid, reasons in out.items() if uid in by_id
+    ]}
+
+
+KNOWN_CRON_JOBS = ["weekly_digest", "daily_tasks_reset", "weekly_report_reset", "revenue_weekly_snapshot", "revenue_monthly_snapshot"]
+
+
+@router.get("/admin/system-health")
+def admin_system_health(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import CronRunLog
+    from app.services import digest_scheduler
+    from app.services.exchange import get_usd_to_toman
+    from app.routers.companies.backup import list_backups
+
+    jobs_by_id = {j.id: j for j in digest_scheduler.get_jobs()}
+    job_status = []
+    for job_id in KNOWN_CRON_JOBS:
+        last = (
+            db.query(CronRunLog).filter(CronRunLog.job_id == job_id)
+            .order_by(CronRunLog.ran_at.desc()).first()
+        )
+        job = jobs_by_id.get(job_id)
+        job_status.append({
+            "job_id": job_id,
+            "last_status": last.status if last else None,
+            "last_ran_at": last.ran_at.isoformat() if last else None,
+            "last_detail": last.detail if last else None,
+            "next_run_time": job.next_run_time.isoformat() if job and job.next_run_time else None,
+        })
+
+    try:
+        backups = list_backups(admin=admin)
+        latest_backup = backups[0] if backups else None
+    except Exception:
+        latest_backup = None
+
+    try:
+        rate = get_usd_to_toman(db)
+    except Exception:
+        rate = None
+
+    return {"jobs": job_status, "latest_backup": latest_backup, "exchange_rate": rate}
+
+
+@router.get("/admin/activity-log")
+def admin_activity_log(limit: int = 50, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import AdminActivityLog
+    rows = db.query(AdminActivityLog).order_by(AdminActivityLog.created_at.desc()).limit(limit).all()
+    return [{
+        "id": r.id, "admin_name": r.admin_name, "action": r.action,
+        "target": r.target, "detail": r.detail, "created_at": r.created_at.isoformat(),
+    } for r in rows]
+
+
+FEATURE_FLAG_REGISTRY = {
+    "marketplace_beta_rollout_pct": {"label": "Marketplace beta rollout %", "default": "0"},
+    "lead_hunter_enabled": {"label": "Lead Hunter enabled", "default": "true"},
+    "ai_search_enabled": {"label": "AI Search enabled", "default": "true"},
+}
+
+
+@router.get("/admin/feature-flags")
+def admin_feature_flags(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """A small, fixed registry of flags stored as AppSetting rows. This is
+    storage only — nothing elsewhere in the code reads these values yet."""
+    from app.models.database import AppSetting
+    stored = {s.key: s.value for s in db.query(AppSetting).all()}
+    return [{
+        "key": key, "label": meta["label"],
+        "value": stored.get(f"feature_flag_{key}", meta["default"]),
+    } for key, meta in FEATURE_FLAG_REGISTRY.items()]
+
+
+class FeatureFlagUpdate(BaseModel):
+    value: str
+
+
+@router.put("/admin/feature-flags/{key}")
+def update_feature_flag(key: str, data: FeatureFlagUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    from app.models.database import AppSetting
+    if key not in FEATURE_FLAG_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown feature flag")
+    setting_key = f"feature_flag_{key}"
+    row = db.query(AppSetting).filter(AppSetting.key == setting_key).first()
+    if not row:
+        row = AppSetting(key=setting_key)
+        db.add(row)
+    row.value = data.value
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "feature_flag.update", target=key, detail=data.value)
+    db.commit()
+    return {"key": key, "value": data.value}
+
+
 @router.post("/billing/requests/{request_id}/approve")
 def approve_payment(request_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Confirm the payment landed and activate the plan with a fresh period."""
@@ -737,6 +902,8 @@ def approve_payment(request_id: int, admin: User = Depends(require_admin), db: S
     activate_plan(db, user, pr.plan)
     pr.status = "approved"
     pr.reviewed_at = now
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "payment.approve", target=f"user:{user.id}", detail=f"plan={pr.plan}")
     db.commit()
 
     try:
@@ -773,6 +940,8 @@ def reject_payment(request_id: int, data: PaymentReject, admin: User = Depends(r
     pr.status = "rejected"
     pr.admin_note = (data.admin_note or "").strip() or None
     pr.reviewed_at = datetime.utcnow()
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "payment.reject", target=f"request:{request_id}")
     db.commit()
     return {"message": "Payment request rejected"}
 
@@ -845,6 +1014,8 @@ def update_payment_settings(data: PaymentSettingsUpdate, admin: User = Depends(r
             row = AppSetting(key=key)
             db.add(row)
         row.value = value
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "payment_settings.update")
     db.commit()
     return {"message": "Payment instructions updated"}
 
@@ -1346,6 +1517,9 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
     entry = db.query(WaitlistEntry).filter(WaitlistEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Waitlist entry not found")
+
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "waitlist.approve", target=f"entry:{entry_id}", detail=entry.email)
 
     # Signups now create the account up front, so approving usually means
     # activating an existing pending user rather than creating one.

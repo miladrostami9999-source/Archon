@@ -346,6 +346,28 @@ class AppSetting(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AdminActivityLog(Base):
+    """Audit trail of admin-only mutations, written by services/audit.py."""
+    __tablename__ = "admin_activity_log"
+    id         = Column(Integer, primary_key=True, index=True)
+    admin_id   = Column(Integer, ForeignKey("users.id"))
+    admin_name = Column(String)   # denormalized so the log still reads if the admin account is later removed
+    action     = Column(String, index=True)   # e.g. "plan_limit.update", "broadcast.send"
+    target     = Column(String, default="")   # e.g. "plan:pro", "users:42 matched"
+    detail     = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class CronRunLog(Base):
+    """One row per background-job run, written by digest_scheduler._run()."""
+    __tablename__ = "cron_run_log"
+    id      = Column(Integer, primary_key=True, index=True)
+    job_id  = Column(String, index=True)
+    status  = Column(String)   # "success" | "failed"
+    detail  = Column(Text, default="")
+    ran_at  = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 # Shown to users on the upgrade page; the admin edits these in the Admin Panel.
 # Payment details live here rather than in code so they never end up in git.
 DEFAULT_SETTINGS = {

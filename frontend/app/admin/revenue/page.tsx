@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
+import AdminSideNav from '../../components/AdminSideNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -59,11 +60,13 @@ export default function AdminRevenuePage() {
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
 
         <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', gap: '10px', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
-          <a href="/admin" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none' }}>← Admin</a>
           <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Revenue</h1>
         </div>
 
-        <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
+          {!isMobile && <AdminSideNav active="/admin/revenue" />}
+
+          <main style={{ flex: 1, minWidth: 0, maxWidth: '1000px' }}>
 
           {/* KPI ROW */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '28px' }}>
@@ -140,6 +143,7 @@ export default function AdminRevenuePage() {
               ))}
             </div>
           </div>
+          </main>
         </div>
       </div>
     </div>

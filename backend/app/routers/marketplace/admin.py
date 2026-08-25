@@ -303,5 +303,7 @@ def send_broadcast(
     if not recipients:
         return {"sent": 0}
     sent = notif.broadcast(db, recipients, data.title, data.body, data.link, data.also_email)
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "broadcast.send", target=f"{sent} recipients", detail=data.title)
     db.commit()
     return {"sent": sent}

@@ -429,6 +429,8 @@ def bulk_delete_companies(
 
     db.query(UserCompanyState).filter(UserCompanyState.company_id.in_(ids)).delete(synchronize_session=False)
     db.query(Company).filter(Company.id.in_(ids)).delete(synchronize_session=False)
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "companies.bulk_delete", target=f"{len(ids)} companies")
     db.commit()
     return {"message": f"Deleted {len(ids)} companies", "deleted": len(ids)}
 
@@ -451,6 +453,8 @@ def merge_country(
         .filter(Company.country == from_name)
         .update({Company.country: to_name}, synchronize_session=False)
     )
+    from app.services.audit import log_admin_action
+    log_admin_action(db, admin, "countries.merge", target=f"{from_name} -> {to_name}", detail=f"moved={moved}")
     db.commit()
     return {"message": f"Moved {moved} companies from '{from_name}' to '{to_name}'", "moved": moved}
 
