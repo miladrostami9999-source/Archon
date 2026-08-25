@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { Globe, CheckCircle2, Check, Copy } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -108,7 +109,7 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div>
           <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🌐 Public Profile
+            <Globe size={15} strokeWidth={1.75} /> Public Profile
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0' }}>
             Share your portfolio with a public link — anyone can view it without logging in.
@@ -152,13 +153,13 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
 
       {publicUrl && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '16px', padding: '12px 14px', borderRadius: '10px', background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
-          <span style={{ fontSize: '16px' }}>✅</span>
+          <CheckCircle2 size={16} strokeWidth={1.75} color="#34D399" />
           <a href={publicUrl} target="_blank" style={{ flex: 1, fontSize: '13px', color: '#34D399', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {publicUrl}
           </a>
           <button onClick={copyLink}
-            style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', cursor: 'pointer' }}>
-            {copied ? '✓ Copied' : '📋 Copy'}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', cursor: 'pointer' }}>
+            {copied ? <Check size={12} strokeWidth={1.75} /> : <Copy size={12} strokeWidth={1.75} />} {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
       )}

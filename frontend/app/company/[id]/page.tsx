@@ -4,7 +4,12 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { LayoutGrid, StickyNote, History as HistoryIcon, Mail, Pencil } from 'lucide-react'
+import {
+  LayoutGrid, StickyNote, History as HistoryIcon, Mail, Pencil,
+  Flame, CloudSun, Snowflake, Trash2, Send, Paperclip, FileText, X, CheckCircle2, AlertTriangle,
+  Star, Lock, Globe, Briefcase, Camera, Thermometer, Tag, Sparkles, Pin, RefreshCw, Clipboard,
+  Smile, Zap, BookOpen, Loader2, Clock,
+} from 'lucide-react'
 import { LockedField, UnlockButton } from '../../components/AccessLock'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -27,7 +32,12 @@ const CAMPAIGN_STATUS: Record<string, { bg: string; text: string }> = {
   replied: { bg: 'rgba(52,211,153,0.15)',  text: '#34D399' },
 }
 
-const HEAT: Record<string, string> = { hot: '🔥 Hot', warm: '🌤 Warm', cold: '❄️ Cold' }
+const HEAT_ICON: Record<string, any> = { hot: Flame, warm: CloudSun, cold: Snowflake }
+const HEAT_LABEL: Record<string, string> = { hot: 'Hot', warm: 'Warm', cold: 'Cold' }
+function HeatTag({ level, size = 12 }: { level: string; size?: number }) {
+  const Icon = HEAT_ICON[level] || Snowflake
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Icon size={size} strokeWidth={1.5} /> {HEAT_LABEL[level] || 'Cold'}</span>
+}
 
 interface Company {
   id: number; name: string; domain: string; website: string; email: string
@@ -273,7 +283,7 @@ export default function CompanyDetail() {
           <div style={{ ...card, maxWidth: '360px', width: '100%', margin: '0 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <span style={{ fontSize: '24px' }}>🗑</span>
+                <Trash2 size={24} strokeWidth={1.5} color="#F87171" />
               </div>
               <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>Delete Company?</h3>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
@@ -300,7 +310,7 @@ export default function CompanyDetail() {
           <div style={{ ...card, maxWidth: '520px', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' as const }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(61,79,224,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: '18px' }}>📨</span>
+                <Send size={18} strokeWidth={1.5} color="#60A5FA" />
               </div>
               <div>
                 <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Confirm Send</h3>
@@ -372,21 +382,21 @@ export default function CompanyDetail() {
               <input id="attach-input" type="file" multiple style={{ display: 'none' }} onChange={handleAttachmentUpload} accept=".pdf,.jpg,.jpeg,.png,.zip,.doc,.docx" />
               <button onClick={() => document.getElementById('attach-input')?.click()}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: 'var(--radius-md)', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
-                📎 Add Portfolio / Files
+                <Paperclip size={13} strokeWidth={1.5} /> Add Portfolio / Files
               </button>
               {attachments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
                   {attachments.map(a => (
                     <div key={a.filename} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                        <span style={{ fontSize: '14px' }}>📄</span>
+                        <FileText size={14} strokeWidth={1.5} color="var(--text-dim)" />
                         <span style={{ fontSize: '12px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{a.filename}</span>
                         <span style={{ fontSize: '11px', color: 'var(--text-dim)', flexShrink: 0 }}>{formatFileSize(a.size)}</span>
                       </div>
                       <button onClick={() => removeAttachment(a.filename)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '13px', padding: '2px 6px', flexShrink: 0 }}
+                        style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '2px 6px', flexShrink: 0 }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>✕</button>
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}><X size={13} strokeWidth={1.5} /></button>
                     </div>
                   ))}
                 </div>
@@ -394,8 +404,8 @@ export default function CompanyDetail() {
             </div>
 
             {sendResult && (
-              <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: '14px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
-                {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: '14px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+                {sendResult.ok ? <CheckCircle2 size={14} strokeWidth={1.5} /> : <AlertTriangle size={14} strokeWidth={1.5} />} {sendResult.msg}
               </div>
             )}
 
@@ -406,7 +416,7 @@ export default function CompanyDetail() {
               </button>
               <button onClick={confirmSend} disabled={sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()}
                 style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: (sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: (sending || !selectedRecipient || !editSubject.trim() || !editBody.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                {sending ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Sending...</> : '📨 Confirm & Send'}
+                {sending ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Sending...</> : <><Send size={14} strokeWidth={1.5} /> Confirm & Send</>}
               </button>
             </div>
           </div>
@@ -432,8 +442,8 @@ export default function CompanyDetail() {
           </button>
           <div style={{ flex: 1 }} />
           <button onClick={toggleFavorite}
-            style={{ fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer', color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}>
-            ★
+            style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}>
+            <Star size={18} strokeWidth={1.5} fill={company.is_favorite ? '#FBBF24' : 'none'} />
           </button>
           <select value={company.status} onChange={e => updateStatus(e.target.value)}
             style={{ fontSize: isMobile ? '11px' : '12px', padding: isMobile ? '5px 8px' : '6px 12px', borderRadius: '999px', fontWeight: 500, cursor: 'pointer', border: 'none', outline: 'none', background: sc.bg, color: sc.text, maxWidth: isMobile ? '90px' : 'none' }}>
@@ -483,13 +493,13 @@ export default function CompanyDetail() {
                       style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s', opacity: generatingSummary ? 0.4 : 1 }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
-                      {generatingSummary ? '⏳ Regenerating...' : '↻ Regenerate Summary'}
+                      {generatingSummary ? <><Loader2 size={12} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} /> Regenerating...</> : <><RefreshCw size={12} strokeWidth={1.5} /> Regenerate Summary</>}
                     </button>
                   </div>
                 ) : (
                   <button onClick={generateSummary} disabled={generatingSummary}
                     style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', borderRadius: 'var(--radius-md)', padding: '7px 14px', cursor: 'pointer', opacity: generatingSummary ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                    {generatingSummary ? <><div className="spinner-sm" /> Researching with AI...</> : '✨ Research with AI — get score & summary'}
+                    {generatingSummary ? <><div className="spinner-sm" /> Researching with AI...</> : <><Sparkles size={13} strokeWidth={1.5} /> Research with AI — get score & summary</>}
                   </button>
                 )}
               </div>
@@ -517,7 +527,7 @@ export default function CompanyDetail() {
                 marginTop: '16px', padding: '14px 16px', borderRadius: '10px',
                 background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)',
               }}>
-                <span style={{ fontSize: '18px' }}>🔒</span>
+                <Lock size={18} strokeWidth={1.5} color="#FBBF24" />
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <p style={{ fontSize: '13px', fontWeight: 600, color: '#FBBF24', margin: 0 }}>
                     {company.lock_reason === 'not_unlocked'
@@ -543,16 +553,16 @@ export default function CompanyDetail() {
               {company.locked && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <span>✉</span><LockedField label="Email" placeholder="hello@studio.com" width={130} />
+                    <Mail size={13} strokeWidth={1.5} /><LockedField label="Email" placeholder="hello@studio.com" width={130} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                    <span>🌐</span><LockedField label="Website" placeholder="studio.com" width={100} />
+                    <Globe size={13} strokeWidth={1.5} /><LockedField label="Website" placeholder="studio.com" width={100} />
                   </div>
                 </>
               )}
               {company.email && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>✉</span>
+                  <Mail size={13} strokeWidth={1.5} />
                   <a href={`mailto:${company.email}`} style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -562,7 +572,7 @@ export default function CompanyDetail() {
               )}
               {company.website && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>🌐</span>
+                  <Globe size={13} strokeWidth={1.5} />
                   <a href={company.website} target="_blank" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -572,7 +582,7 @@ export default function CompanyDetail() {
               )}
               {company.linkedin && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>💼</span>
+                  <Briefcase size={13} strokeWidth={1.5} />
                   <a href={company.linkedin} target="_blank" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -582,7 +592,7 @@ export default function CompanyDetail() {
               )}
               {company.instagram && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>📸</span>
+                  <Camera size={13} strokeWidth={1.5} />
                   <a href={company.instagram} target="_blank" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -591,12 +601,12 @@ export default function CompanyDetail() {
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                <span>🌡</span>
-                <span>{HEAT[company.heat_level] || '❄️ Cold'}</span>
+                <Thermometer size={13} strokeWidth={1.5} />
+                <HeatTag level={company.heat_level} size={13} />
               </div>
               {company.tags && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                  <span>🏷</span>
+                  <Tag size={13} strokeWidth={1.5} />
                   {company.tags.split(',').map(tag => (
                     <span key={tag} style={{ fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-dim)', padding: '2px 8px', borderRadius: '999px' }}>{tag.trim()}</span>
                   ))}
@@ -608,12 +618,12 @@ export default function CompanyDetail() {
           {/* ACTIONS — same placement on mobile and desktop */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => setShowDeleteModal(true)}
-              style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
-              🗑 Delete
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
+              <Trash2 size={13} strokeWidth={1.5} /> Delete
             </button>
             <button onClick={() => window.location.href = `/edit?id=${id}`}
-              style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(61,79,224,0.08)', cursor: 'pointer' }}>
-              ✏️ Edit
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(61,79,224,0.08)', cursor: 'pointer' }}>
+              <Pencil size={13} strokeWidth={1.5} /> Edit
             </button>
           </div>
 
@@ -716,12 +726,12 @@ export default function CompanyDetail() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {contact.email && <a href={`mailto:${contact.email}`} style={{ fontSize: '12px', color: 'var(--text-dim)', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>✉</a>}
-                        {contact.linkedin && <a href={contact.linkedin} target="_blank" style={{ fontSize: '12px', color: 'var(--text-dim)', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>💼</a>}
+                        {contact.email && <a href={`mailto:${contact.email}`} style={{ display: 'flex', color: 'var(--text-dim)', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}><Mail size={13} strokeWidth={1.5} /></a>}
+                        {contact.linkedin && <a href={contact.linkedin} target="_blank" style={{ display: 'flex', color: 'var(--text-dim)', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA' }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}><Briefcase size={13} strokeWidth={1.5} /></a>}
                         <button onClick={() => deleteContact(contact.id)}
-                          style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+                          style={{ display: 'flex', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>✕</button>
+                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}><X size={13} strokeWidth={1.5} /></button>
                       </div>
                     </div>
                   ))}
@@ -758,16 +768,16 @@ export default function CompanyDetail() {
                       <p style={{ fontSize: '14px', color: 'var(--text)', flex: 1, margin: 0, lineHeight: 1.6 }}>{note.content}</p>
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                         <button onClick={() => togglePin(note.id, note.pinned)}
-                          style={{ fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', opacity: note.pinned ? 1 : 0.3, transition: 'opacity 0.15s' }}
+                          style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: '#FBBF24', opacity: note.pinned ? 1 : 0.3, transition: 'opacity 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
                           onMouseLeave={e => { e.currentTarget.style.opacity = note.pinned ? '1' : '0.3' }}>
-                          📌
+                          <Pin size={14} strokeWidth={1.5} />
                         </button>
                         <button onClick={() => deleteNote(note.id)}
-                          style={{ fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', opacity: 0.5, transition: 'all 0.15s' }}
+                          style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', opacity: 0.5, transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#F87171' }}
                           onMouseLeave={e => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = 'var(--text-dim)' }}>
-                          🗑
+                          <Trash2 size={13} strokeWidth={1.5} />
                         </button>
                       </div>
                     </div>
@@ -803,22 +813,27 @@ export default function CompanyDetail() {
               <div style={card}>
                 <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: '0 0 12px' }}>Email Tone</p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['friendly', 'formal', 'brief', 'storytelling'].map(tone => (
+                  {(['friendly', 'formal', 'brief', 'storytelling'] as const).map(tone => {
+                    const ToneIcon = tone === 'friendly' ? Smile : tone === 'formal' ? Briefcase : tone === 'brief' ? Zap : BookOpen
+                    const toneLabel = tone === 'friendly' ? 'Friendly' : tone === 'formal' ? 'Formal' : tone === 'brief' ? 'Brief' : 'Storytelling'
+                    return (
                     <button key={tone} onClick={() => setEmailTone(tone)}
                       style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
                         fontSize: '12px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontWeight: 500,
                         border: emailTone === tone ? 'none' : '1px solid var(--border)',
                         background: emailTone === tone ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)',
                         color: emailTone === tone ? 'white' : 'var(--text-muted)',
                         cursor: 'pointer', transition: 'all 0.15s',
                       }}>
-                      {tone === 'friendly' ? '😊 Friendly' : tone === 'formal' ? '💼 Formal' : tone === 'brief' ? '⚡ Brief' : '📖 Storytelling'}
+                      <ToneIcon size={13} strokeWidth={1.5} /> {toneLabel}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
                 <button onClick={generateEmail} disabled={generatingEmail}
-                  style={{ width: '100%', marginTop: '16px', padding: '10px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: generatingEmail ? 0.5 : 1 }}>
-                  {generatingEmail ? '⏳ Generating...' : '✨ Generate Email'}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', marginTop: '16px', padding: '10px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: generatingEmail ? 0.5 : 1 }}>
+                  {generatingEmail ? <><Loader2 size={14} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <><Sparkles size={14} strokeWidth={1.5} /> Generate Email</>}
                 </button>
               </div>
 
@@ -835,23 +850,23 @@ export default function CompanyDetail() {
                       rows={10} style={{ width: '100%', fontSize: '14px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', resize: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
                   </div>
                   {sendResult && (
-                    <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: '12px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171', border: `1px solid ${sendResult.ok ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-                      {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: '12px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171', border: `1px solid ${sendResult.ok ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                      {sendResult.ok ? <CheckCircle2 size={14} strokeWidth={1.5} /> : <AlertTriangle size={14} strokeWidth={1.5} />} {sendResult.msg}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button onClick={generateEmail} disabled={generatingEmail}
-                      style={{ flex: isMobile ? '1 1 100%' : 1, padding: '9px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', cursor: 'pointer' }}>
-                      🔄 Regenerate
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: isMobile ? '1 1 100%' : 1, padding: '9px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', cursor: 'pointer' }}>
+                      <RefreshCw size={13} strokeWidth={1.5} /> Regenerate
                     </button>
                     <button onClick={copyAndOpenGmail}
-                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
-                      {copied ? '✅ Copied!' : '📋 Copy'}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
+                      {copied ? <><CheckCircle2 size={13} strokeWidth={1.5} /> Copied!</> : <><Clipboard size={13} strokeWidth={1.5} /> Copy</>}
                     </button>
                     <button onClick={() => emailDraft && openSendModal(emailDraft.subject, emailDraft.body)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
                       title={(!company?.email && contacts.filter(c => c.email).length === 0) ? 'No email address available' : ''}
-                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: 'var(--radius-md)', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
-                      📨 Send Now
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: 'var(--radius-md)', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                      <Send size={13} strokeWidth={1.5} /> Send Now
                     </button>
                   </div>
                 </div>
@@ -885,13 +900,13 @@ export default function CompanyDetail() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
                             <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? '160px' : '320px' }}>{campaign.subject}</p>
                             {campaign.status === 'replied' && (
-                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
-                                ✅ Replied
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
+                                <CheckCircle2 size={10} strokeWidth={1.5} /> Replied
                               </span>
                             )}
                             {needsFollowUp && (
-                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
-                                ⏰ {waitingDays}d — Follow up
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', padding: '2px 7px', borderRadius: '999px', flexShrink: 0 }}>
+                                <Clock size={10} strokeWidth={1.5} /> {waitingDays}d — Follow up
                               </span>
                             )}
                           </div>
@@ -918,30 +933,30 @@ export default function CompanyDetail() {
                           <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Body</p>
                           <p style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: '0 0 12px' }}>{campaign.body}</p>
                           {sendResult && (
-                            <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-md)', marginBottom: '10px', fontSize: '12px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
-                              {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: 'var(--radius-md)', marginBottom: '10px', fontSize: '12px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+                              {sendResult.ok ? <CheckCircle2 size={13} strokeWidth={1.5} /> : <AlertTriangle size={13} strokeWidth={1.5} />} {sendResult.msg}
                             </div>
                           )}
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             <button onClick={() => { navigator.clipboard.writeText(`Subject: ${campaign.subject}\n\n${campaign.body}`); window.open('https://mail.google.com/mail/u/0/#compose', '_blank') }}
-                              style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                              📋 Copy
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                              <Clipboard size={12} strokeWidth={1.5} /> Copy
                             </button>
                             {campaign.status === 'draft' && (
                               <button onClick={() => sendCampaignDirectly(campaign)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
-                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
-                                📨 Send Now
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                                <Send size={12} strokeWidth={1.5} /> Send Now
                               </button>
                             )}
                             {campaign.status === 'sent' && (
                               <button onClick={() => markAsReplied(campaign.id)}
                                 style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #34D399, #10B981)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                ✅ Mark as Replied
+                                <CheckCircle2 size={12} strokeWidth={1.5} /> Mark as Replied
                               </button>
                             )}
                             {campaign.status === 'replied' && campaign.replied_at && (
                               <span style={{ fontSize: '12px', padding: '6px 12px', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                ✅ Replied on {formatDateTime(campaign.replied_at)}
+                                <CheckCircle2 size={12} strokeWidth={1.5} /> Replied on {formatDateTime(campaign.replied_at)}
                               </span>
                             )}
                           </div>

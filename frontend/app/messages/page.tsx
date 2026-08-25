@@ -6,6 +6,7 @@ import ContractChat from '../components/ContractChat'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 10000
@@ -165,7 +166,7 @@ export default function MessagesPage() {
       <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         {isMobile && (
           <button onClick={() => setSelected(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '15px', padding: 0 }}>←</button>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center' }}><ArrowLeft size={16} strokeWidth={1.75} /></button>
         )}
         <div style={{ minWidth: 0 }}>
           <a href={`/members/${active.other_party_id}`}
@@ -178,8 +179,8 @@ export default function MessagesPage() {
         </div>
         {active.contract_id && (
           <a href={`/contracts/${active.contract_id}`}
-            style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', flexShrink: 0 }}>
-            Open contract →
+            style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            Open contract <ArrowRight size={13} strokeWidth={1.75} />
           </a>
         )}
       </div>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Target, Flame, Building2, Trophy, Crosshair, Search, Microscope, Check, CircleCheck, Paperclip, DollarSign, ArrowLeft } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
@@ -130,9 +131,10 @@ type Stage = 'setup' | 'scouted' | 'enriched'
  * afterwards. Everything they set is optional — a preset is a shortcut, not a
  * requirement.
  */
-const PRESETS: { label: string; blurb: string; patch: Partial<Criteria> }[] = [
+const PRESETS: { label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>; blurb: string; patch: Partial<Criteria> }[] = [
   {
-    label: '🔥 Hiring a visualiser',
+    label: 'Hiring a visualiser',
+    icon: Flame,
     blurb: 'The strongest buying signal there is — they need the capacity now',
     patch: {
       signals: ['hiring_viz', 'no_inhouse'],
@@ -141,7 +143,8 @@ const PRESETS: { label: string; blurb: string; patch: Partial<Criteria> }[] = [
     },
   },
   {
-    label: '🏗 Gulf developers launching',
+    label: 'Gulf developers launching',
+    icon: Building2,
     blurb: 'Biggest budgets, and every launch needs marketing imagery',
     patch: {
       countries: 'United Arab Emirates, Saudi Arabia, Qatar',
@@ -151,7 +154,8 @@ const PRESETS: { label: string; blurb: string; patch: Partial<Criteria> }[] = [
     },
   },
   {
-    label: '🏆 Award shortlists',
+    label: 'Award shortlists',
+    icon: Trophy,
     blurb: 'They just won something and need press images',
     patch: {
       segments: ['Architecture studio', 'Interior design studio'],
@@ -160,7 +164,8 @@ const PRESETS: { label: string; blurb: string; patch: Partial<Criteria> }[] = [
     },
   },
   {
-    label: '🎯 Small studios, no in-house 3D',
+    label: 'Small studios, no in-house 3D',
+    icon: Crosshair,
     blurb: 'The bread and butter — they outsource by default',
     patch: {
       company_sizes: ['small', 'solo'],
@@ -392,7 +397,7 @@ export default function LeadHunter() {
         {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: isMobile ? '0 16px' : '0 24px', height: '56px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>🎯 Lead Hunter</h1>
+            <h1 style={{ fontSize: '15px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><Target size={15} strokeWidth={1.75} color="var(--text)" /> Lead Hunter</h1>
             <p style={{ fontSize: '10.5px', color: 'var(--text-dim)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {criteria.sources.length ? `${criteria.sources.length} sources · ` : ''}{summary}
             </p>
@@ -427,8 +432,8 @@ export default function LeadHunter() {
                         background: active ? 'rgba(61,79,224,0.07)' : 'var(--bg-card)',
                         opacity: done ? 0.65 : 1,
                       }}>
-                        <p style={{ fontSize: '12.5px', fontWeight: 700, margin: 0, color: active ? '#60A5FA' : done ? '#34D399' : 'var(--text-dim)' }}>
-                          {done ? '✓' : s.n}. {s.label}
+                        <p style={{ fontSize: '12.5px', fontWeight: 700, margin: 0, color: active ? '#60A5FA' : done ? '#34D399' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {done ? <Check size={13} strokeWidth={2} color="#34D399" /> : `${s.n}.`} {s.label}
                         </p>
                         <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{s.sub}</p>
                       </div>
@@ -443,7 +448,7 @@ export default function LeadHunter() {
                     padding: '10px 14px', borderRadius: '10px',
                     background: 'rgba(251,146,60,0.07)', border: '1px solid rgba(251,146,60,0.2)',
                   }}>
-                    <span style={{ fontSize: '15px' }}>💸</span>
+                    <DollarSign size={15} strokeWidth={1.75} color="#FB923C" />
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, flex: 1, minWidth: '220px', lineHeight: 1.6 }}>
                       {catalog.search.note}
                     </p>
@@ -482,8 +487,8 @@ export default function LeadHunter() {
 
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
                         <button onClick={runScout} disabled={scouting}
-                          style={{ padding: '12px 26px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
-                          {scouting ? 'Scouting…' : '🔍 Scout for leads'}
+                          style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '12px 26px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
+                          {scouting ? 'Scouting…' : <><Search size={15} strokeWidth={2} color="white" /> Scout for leads</>}
                         </button>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
                           Find
@@ -546,7 +551,9 @@ export default function LeadHunter() {
                               textAlign: 'left', padding: '13px 15px', borderRadius: '11px', cursor: 'pointer',
                               border: '1px solid var(--border)', background: 'var(--bg-card)',
                             }}>
-                            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{p.label}</p>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <p.icon size={14} strokeWidth={1.75} color="var(--text-muted)" /> {p.label}
+                            </p>
                             <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '3px 0 0', lineHeight: 1.5 }}>{p.blurb}</p>
                           </button>
                         ))}
@@ -736,7 +743,7 @@ export default function LeadHunter() {
                               {c.note && <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: '4px 0 0', lineHeight: 1.5 }}>{c.note}</p>}
                               <div style={{ display: 'flex', gap: '12px', marginTop: '5px', flexWrap: 'wrap' }}>
                                 {c.website && <a href={c.website} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none' }}>Website</a>}
-                                {c.source_url && <a href={c.source_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none' }}>📎 {c.source || 'Source'}</a>}
+                                {c.source_url && <a href={c.source_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={11} strokeWidth={1.75} /> {c.source || 'Source'}</a>}
                               </div>
                             </div>
                           </label>
@@ -746,12 +753,12 @@ export default function LeadHunter() {
 
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', paddingBottom: '30px' }}>
                       <button onClick={runEnrich} disabled={researching || keep.size === 0}
-                        style={{ padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: researching ? 'wait' : 'pointer', opacity: researching || keep.size === 0 ? 0.55 : 1 }}>
-                        {researching ? 'Researching…' : `🔬 Research & score ${keep.size}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: researching ? 'wait' : 'pointer', opacity: researching || keep.size === 0 ? 0.55 : 1 }}>
+                        {researching ? 'Researching…' : <><Microscope size={15} strokeWidth={1.75} color="white" /> Research &amp; score {keep.size}</>}
                       </button>
                       <button onClick={() => { setStage('setup'); setMsg('') }}
-                        style={{ padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                        ← Back to criteria
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                        <ArrowLeft size={13} strokeWidth={1.75} /> Back to criteria
                       </button>
                       {researching && (
                         <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0, alignSelf: 'center', flexBasis: '100%', lineHeight: 1.6 }}>
@@ -842,8 +849,8 @@ export default function LeadHunter() {
 
                                 <div style={{ display: 'flex', gap: '12px', marginTop: '9px', flexWrap: 'wrap', alignItems: 'center' }}>
                                   {c.source_url
-                                    ? <a href={c.source_url} target="_blank" rel="noreferrer" style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none' }}>📎 {c.source || 'Source'}</a>
-                                    : c.source && <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>📎 {c.source}</span>}
+                                    ? <a href={c.source_url} target="_blank" rel="noreferrer" style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={11} strokeWidth={1.75} /> {c.source || 'Source'}</a>
+                                    : c.source && <span style={{ fontSize: '11.5px', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={11} strokeWidth={1.75} /> {c.source}</span>}
                                   {c.linkedin && <a href={c.linkedin} target="_blank" rel="noreferrer" style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none' }}>LinkedIn</a>}
                                   {c.instagram && <a href={c.instagram} target="_blank" rel="noreferrer" style={{ fontSize: '11.5px', color: '#60A5FA', textDecoration: 'none' }}>Instagram</a>}
                                   {c.signals?.map(s => (
@@ -859,12 +866,12 @@ export default function LeadHunter() {
 
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', paddingBottom: '30px' }}>
                       <button onClick={saveChosen} disabled={saving || keep.size === 0}
-                        style={{ padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer', opacity: saving || keep.size === 0 ? 0.55 : 1 }}>
-                        {saving ? 'Adding…' : `✓ Add ${keep.size} to catalog`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer', opacity: saving || keep.size === 0 ? 0.55 : 1 }}>
+                        {saving ? 'Adding…' : <><CircleCheck size={15} strokeWidth={1.75} color="white" /> Add {keep.size} to catalog</>}
                       </button>
                       <button onClick={() => { setStage('scouted'); setKeep(new Set(scouted.map((_, i) => i))); setMsg('') }}
-                        style={{ padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                        ← Back to shortlist
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 16px', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                        <ArrowLeft size={13} strokeWidth={1.75} /> Back to shortlist
                       </button>
                     </div>
                   </>

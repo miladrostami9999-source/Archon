@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import PublishSection from '../PublishSection'
+import { ArrowLeft, Lock, Mail, Check, Crown, User } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -181,7 +182,7 @@ export default function ProfileSecurityPage() {
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <a href="/profile" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none' }}>← Profile</a>
+            <a href="/profile" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={14} strokeWidth={1.75} /> Profile</a>
           </div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 20px' }}>Security & Account</h1>
 
@@ -218,15 +219,15 @@ export default function ProfileSecurityPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button onClick={saveContact} disabled={savingContact}
                   style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: savedContact ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  {savedContact ? '✓ Saved!' : savingContact ? 'Saving...' : 'Save Changes'}
+                  {savedContact ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Check size={14} strokeWidth={2} /> Saved!</span> : savingContact ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
 
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔐 Change Password</h2>
+              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}><Lock size={15} strokeWidth={1.75} /> Change Password</h2>
               {pwdError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>{pwdError}</div>}
-              {pwdSuccess && <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>✓ Password changed!</div>}
+              {pwdSuccess && <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} strokeWidth={2} /> Password changed!</div>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '400px' }}>
                 {[
                   { label: 'Current Password', key: 'old_password', ph: 'Enter current password' },
@@ -248,13 +249,13 @@ export default function ProfileSecurityPage() {
             </div>
 
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>📧 Send emails from Gmail</h2>
+              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}><Mail size={15} strokeWidth={1.75} /> Send emails from Gmail</h2>
               <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
                 Connect your own Gmail so outreach sends from your address instead of Archon's shared sender. Send-only access — Archon never reads your inbox.
               </p>
               {user?.google_connected ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '13px', color: '#34D399' }}>✓ Connected{user.google_email ? ` as ${user.google_email}` : ''}</span>
+                  <span style={{ fontSize: '13px', color: '#34D399', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Check size={14} strokeWidth={2} /> Connected{user.google_email ? ` as ${user.google_email}` : ''}</span>
                   <button onClick={disconnectGmail} disabled={gmailConnecting}
                     style={{ padding: '8px 16px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
                     {gmailConnecting ? 'Disconnecting…' : 'Disconnect'}
@@ -276,7 +277,7 @@ export default function ProfileSecurityPage() {
                   { label: 'Member since', value: user ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—' },
                   { label: 'Last login', value: user?.last_login ? new Date(user.last_login).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'First session' },
                   { label: 'Account ID', value: `#${user?.id || '—'}` },
-                  { label: 'Role', value: user?.role === 'admin' ? '👑 Administrator' : '👤 Member' },
+                  { label: 'Role', value: user?.role === 'admin' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Crown size={13} strokeWidth={1.75} /> Administrator</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={13} strokeWidth={1.75} /> Member</span> },
                   { label: 'Plan', value: user ? `${user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} — ${plan?.desc}` : '—' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '8px', background: 'var(--bg-input)' }}>

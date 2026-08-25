@@ -6,6 +6,10 @@ import Sidebar from '../../components/Sidebar'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import PortfolioGrid, { type PortfolioItem } from '../../components/PortfolioGrid'
+import {
+  ArrowLeft, Briefcase, Palette, Building2, MapPin, Star,
+  MessageCircle, Heart,
+} from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -73,7 +77,7 @@ export default function MemberProfilePage() {
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '820px', margin: '0 auto' }}>
           <button onClick={() => window.history.back()}
-            style={{ fontSize: '12.5px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px' }}>← Back</button>
+            style={{ fontSize: '12.5px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={13} strokeWidth={1.75} /> Back</button>
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
@@ -96,10 +100,10 @@ export default function MemberProfilePage() {
                       {m.name}{m.is_verified && <VerifiedBadge size={17} />}
                     </h1>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
-                      <span>{m.account_mode === 'client' ? '💼 Hires' : '🎨 Takes work'}</span>
-                      {m.company && <span>🏢 {m.company}</span>}
-                      {m.location && <span>📍 {m.location}</span>}
-                      {m.review_count > 0 && <span style={{ color: '#FBBF24' }}>★ {m.rating} ({m.review_count})</span>}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{m.account_mode === 'client' ? <><Briefcase size={12} strokeWidth={1.75} /> Hires</> : <><Palette size={12} strokeWidth={1.75} /> Takes work</>}</span>
+                      {m.company && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} strokeWidth={1.75} /> {m.company}</span>}
+                      {m.location && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} strokeWidth={1.75} /> {m.location}</span>}
+                      {m.review_count > 0 && <span style={{ color: '#FBBF24', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Star size={12} strokeWidth={1.75} fill="#FBBF24" /> {m.rating} ({m.review_count})</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -111,8 +115,8 @@ export default function MemberProfilePage() {
                     )}
                     {!m.is_me && (
                       <button onClick={message} disabled={messaging}
-                        style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
-                        {messaging ? 'Opening…' : '💬 Message'}
+                        style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {messaging ? 'Opening…' : <><MessageCircle size={14} strokeWidth={1.75} /> Message</>}
                       </button>
                     )}
                   </div>
@@ -134,11 +138,11 @@ export default function MemberProfilePage() {
                   <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>Reputation</p>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
                     {([
-                      ['★ ' + m.rating, 'Average', '#FBBF24'],
+                      [<><Star size={16} strokeWidth={1.75} fill="#FBBF24" style={{ verticalAlign: '-2px', marginRight: '2px' }} />{m.rating}</>, 'Average', '#FBBF24'],
                       [`${m.satisfaction}%`, 'Satisfaction', '#34D399'],
                       [String(m.completed_contracts), 'Completed', '#60A5FA'],
                       [String(m.review_count), 'Reviews', '#A78BFA'],
-                    ] as [string, string, string][]).map(([v, name, color]) => (
+                    ] as [React.ReactNode, string, string][]).map(([v, name, color]) => (
                       <div key={name} style={{ flex: '1 1 120px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '13px 15px' }}>
                         <div style={{ fontSize: '19px', fontWeight: 800, color, marginBottom: '2px' }}>{v}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{name}</div>
@@ -149,8 +153,10 @@ export default function MemberProfilePage() {
                     {m.reviews.map((r, i) => (
                       <div key={i} style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '13px 15px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: r.comment ? '5px' : 0 }}>
-                          <span style={{ fontSize: '13px', color: '#FBBF24', letterSpacing: '1px' }}>
-                            {'★'.repeat(r.rating)}<span style={{ opacity: 0.25 }}>{'★'.repeat(5 - r.rating)}</span>
+                          <span style={{ display: 'inline-flex', gap: '1px' }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} size={12} strokeWidth={1.75} color="#FBBF24" fill={i < r.rating ? '#FBBF24' : 'none'} style={{ opacity: i < r.rating ? 1 : 0.25 }} />
+                            ))}
                           </span>
                           <a href={`/members/${r.reviewer_id}`} style={{ fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{r.reviewer_name}{r.reviewer_verified && <VerifiedBadge size={11} />}</a>
                           <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginLeft: 'auto' }}>
@@ -175,8 +181,8 @@ export default function MemberProfilePage() {
                         {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
                         <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
                           <span>{new Date(p.created_at).toLocaleDateString()}</span>
-                          <span>♡ {p.like_count}</span>
-                          <span>💬 {p.comment_count}</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Heart size={12} strokeWidth={1.75} /> {p.like_count}</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={12} strokeWidth={1.75} /> {p.comment_count}</span>
                         </div>
                       </div>
                     ))}

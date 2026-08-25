@@ -7,6 +7,7 @@ import MarketplaceBeta from '../../components/MarketplaceBeta'
 import ContractChat from '../../components/ContractChat'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { DollarSign, Paperclip, Check, Star, ArrowLeft } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -150,13 +151,13 @@ export default function ContractDetailPage() {
   }, [id, openPanel])
 
   const submitReview = async () => {
-    if (!reviewRating) { setReviewMsg('✗ Pick a star rating'); return }
+    if (!reviewRating) { setReviewMsg('Pick a star rating'); return }
     setReviewBusy(true); setReviewMsg('')
     try {
       await axios.post(`${API}/marketplace/contracts/${id}/review`, { rating: reviewRating, comment: reviewComment.trim() || null })
       setReviewComment('')
       load()
-    } catch (e: any) { setReviewMsg(`✗ ${e.response?.data?.detail || 'Could not submit review'}`) }
+    } catch (e: any) { setReviewMsg(e.response?.data?.detail || 'Could not submit review') }
     setReviewBusy(false)
   }
 
@@ -168,7 +169,7 @@ export default function ContractDetailPage() {
       const r = await axios.post(`${API}/auth/upload/receipt`, fd)
       setter({ url: r.data.url, name: file.name })
     } catch (e: any) {
-      setMsg(`✗ ${e.response?.data?.detail || 'Upload failed'}`)
+      setMsg(e.response?.data?.detail || 'Upload failed')
     }
     setUploading(false)
   }
@@ -187,7 +188,7 @@ export default function ContractDetailPage() {
   }
 
   const submitFund = async (milestoneId: number) => {
-    if (!fundForm.reference.trim() && !receipt) { setMsg('✗ Attach a receipt or enter a tracking number'); return }
+    if (!fundForm.reference.trim() && !receipt) { setMsg('Attach a receipt or enter a tracking number'); return }
     setBusy(milestoneId); setMsg('')
     try {
       await axios.post(`${API}/marketplace/milestones/${milestoneId}/fund`, {
@@ -198,23 +199,23 @@ export default function ContractDetailPage() {
         receipt_url: receipt?.url || null,
         note: fundForm.note || null,
       })
-      setMsg('✓ Payment submitted — the admin will verify and fund this milestone')
+      setMsg('Payment submitted — the admin will verify and fund this milestone')
       setOpenPanel(null)
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not submit payment'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not submit payment') }
     setBusy(null)
   }
 
   const submitDeliver = async (milestoneId: number) => {
     const url = deliverFile?.url || deliverUrl.trim()
-    if (!url) { setMsg('✗ Attach a file or paste a link to the delivered work'); return }
+    if (!url) { setMsg('Attach a file or paste a link to the delivered work'); return }
     setBusy(milestoneId); setMsg('')
     try {
       await axios.post(`${API}/marketplace/milestones/${milestoneId}/deliver`, { deliverable_url: url })
-      setMsg('✓ Delivery submitted')
+      setMsg('Delivery submitted')
       setOpenPanel(null)
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not submit delivery'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not submit delivery') }
     setBusy(null)
   }
 
@@ -223,9 +224,9 @@ export default function ContractDetailPage() {
     setBusy(milestoneId); setMsg('')
     try {
       await axios.post(`${API}/marketplace/milestones/${milestoneId}/approve`)
-      setMsg('✓ Delivery approved')
+      setMsg('Delivery approved')
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not approve'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not approve') }
     setBusy(null)
   }
 
@@ -245,7 +246,7 @@ export default function ContractDetailPage() {
       <Sidebar />
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-          <a href="/contracts" style={{ fontSize: '12.5px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: '14px' }}>← Back to contracts</a>
+          <a href="/contracts" style={{ fontSize: '12.5px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '14px' }}><ArrowLeft size={13} strokeWidth={1.75} />Back to contracts</a>
 
           <MarketplaceBeta />
 
@@ -263,13 +264,13 @@ export default function ContractDetailPage() {
                   <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
-                  <span>💰 {contract.total_amount?.toLocaleString('en-US')} {contract.currency}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={13} strokeWidth={1.75} />{contract.total_amount?.toLocaleString('en-US')} {contract.currency}</span>
                   <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={12} />}</a></span>
                   <span style={{ textTransform: 'capitalize' }}>You're the {contract.viewer_role}</span>
                 </div>
               </div>
 
-              {msg && <p style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171', marginBottom: '14px' }}>{msg}</p>}
+              {msg && <p style={{ fontSize: '12.5px', color: /submitted|approved/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
 
               <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>
                 Milestones
@@ -288,8 +289,8 @@ export default function ContractDetailPage() {
                           <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</span>
                           {m.description && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{m.description}</p>}
                           {m.deliverable_url && (
-                            <a href={m.deliverable_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '4px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
-                              📎 View delivered work
+                            <a href={m.deliverable_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
+                              <Paperclip size={12} strokeWidth={1.75} />View delivered work
                             </a>
                           )}
                         </div>
@@ -355,7 +356,7 @@ export default function ContractDetailPage() {
                                     </div>
                                     <button onClick={() => copy('card', pay.card_number)}
                                       style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
-                                      {copied === 'card' ? '✓ Copied' : 'Copy'}
+                                      {copied === 'card' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={11} strokeWidth={2} />Copied</span> : 'Copy'}
                                     </button>
                                   </div>
                                 )}
@@ -367,7 +368,7 @@ export default function ContractDetailPage() {
                                     </div>
                                     <button onClick={() => copy('paypal', pay.paypal_email)}
                                       style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
-                                      {copied === 'paypal' ? '✓ Copied' : 'Copy'}
+                                      {copied === 'paypal' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={11} strokeWidth={2} />Copied</span> : 'Copy'}
                                     </button>
                                   </div>
                                 )}
@@ -413,12 +414,12 @@ export default function ContractDetailPage() {
                             <label style={label}>Receipt</label>
                             {receipt ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}>📎 {receipt.name}</a>
+                                <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{receipt.name}</a>
                                 <button onClick={() => setReceipt(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
                               </div>
                             ) : (
                               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                                📎 {uploading ? 'Uploading…' : 'Attach a receipt'}
+                                <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach a receipt'}
                                 <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
                                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f, setReceipt); e.target.value = '' }} />
                               </label>
@@ -448,12 +449,12 @@ export default function ContractDetailPage() {
                             <label style={label}>Or attach a file</label>
                             {deliverFile ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <a href={deliverFile.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}>📎 {deliverFile.name}</a>
+                                <a href={deliverFile.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{deliverFile.name}</a>
                                 <button onClick={() => setDeliverFile(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
                               </div>
                             ) : (
                               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                                📎 {uploading ? 'Uploading…' : 'Attach a file'}
+                                <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach a file'}
                                 <input type="file" style={{ display: 'none' }}
                                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f, setDeliverFile); e.target.value = '' }} />
                               </label>
@@ -487,7 +488,9 @@ export default function ContractDetailPage() {
                     {myReview ? (
                       <div style={{ marginBottom: theirReview ? '14px' : 0 }}>
                         <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 4px' }}>Your review:</p>
-                        <div style={{ fontSize: '15px', color: '#FBBF24' }}>{'★'.repeat(myReview.rating)}{'☆'.repeat(5 - myReview.rating)}</div>
+                        <div style={{ display: 'flex', gap: '2px', color: 'var(--warning)' }}>
+                          {[1, 2, 3, 4, 5].map(n => <Star key={n} size={14} strokeWidth={1.75} fill={n <= myReview.rating ? 'currentColor' : 'none'} />)}
+                        </div>
                         {myReview.comment && <p style={{ fontSize: '13px', color: 'var(--text)', margin: '6px 0 0' }}>{myReview.comment}</p>}
                       </div>
                     ) : (
@@ -499,8 +502,8 @@ export default function ContractDetailPage() {
                           {[1, 2, 3, 4, 5].map(n => (
                             <button key={n} onClick={() => setReviewRating(n)}
                               onMouseEnter={() => setReviewHover(n)} onMouseLeave={() => setReviewHover(0)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', padding: 0, lineHeight: 1, color: n <= (reviewHover || reviewRating) ? '#FBBF24' : 'var(--border)' }}>
-                              ★
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, color: n <= (reviewHover || reviewRating) ? 'var(--warning)' : 'var(--border)' }}>
+                              <Star size={22} strokeWidth={1.5} fill={n <= (reviewHover || reviewRating) ? 'currentColor' : 'none'} />
                             </button>
                           ))}
                         </div>
@@ -512,14 +515,16 @@ export default function ContractDetailPage() {
                             style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: reviewBusy ? 0.6 : 1 }}>
                             {reviewBusy ? 'Submitting…' : 'Submit review'}
                           </button>
-                          {reviewMsg && <span style={{ fontSize: '12px', color: '#F87171' }}>{reviewMsg}</span>}
+                          {reviewMsg && <span style={{ fontSize: '12px', color: 'var(--error)' }}>{reviewMsg}</span>}
                         </div>
                       </div>
                     )}
                     {theirReview && (
                       <div style={{ paddingTop: myReview ? '14px' : 0, borderTop: myReview ? '1px solid var(--border)' : 'none' }}>
                         <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 4px' }}>{theirReview.reviewer_name} said:</p>
-                        <div style={{ fontSize: '15px', color: '#FBBF24' }}>{'★'.repeat(theirReview.rating)}{'☆'.repeat(5 - theirReview.rating)}</div>
+                        <div style={{ display: 'flex', gap: '2px', color: 'var(--warning)' }}>
+                          {[1, 2, 3, 4, 5].map(n => <Star key={n} size={14} strokeWidth={1.75} fill={n <= theirReview.rating ? 'currentColor' : 'none'} />)}
+                        </div>
                         {theirReview.comment && <p style={{ fontSize: '13px', color: 'var(--text)', margin: '6px 0 0' }}>{theirReview.comment}</p>}
                       </div>
                     )}

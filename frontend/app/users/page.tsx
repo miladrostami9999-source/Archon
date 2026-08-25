@@ -4,16 +4,17 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Hourglass, Gem, Star, Trophy, X, Download, Plus, Search, Trash2, Briefcase, Palette, Crown, MessageCircle, ShoppingCart, Users, Check } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
 const PLAN_META = {
-  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', icon: '⏳', gradient: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05))' },
-  basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', icon: '◈', gradient: 'linear-gradient(135deg,rgba(156,163,175,0.15),rgba(156,163,175,0.05))' },
-  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  icon: '⭐', gradient: 'linear-gradient(135deg,rgba(61,79,224,0.2),rgba(61,79,224,0.05))' },
-  agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', icon: '🏆', gradient: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.05))' },
+  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', icon: Hourglass, gradient: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05))' },
+  basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', icon: Gem, gradient: 'linear-gradient(135deg,rgba(156,163,175,0.15),rgba(156,163,175,0.05))' },
+  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  icon: Star, gradient: 'linear-gradient(135deg,rgba(61,79,224,0.2),rgba(61,79,224,0.05))' },
+  agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', icon: Trophy, gradient: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.05))' },
 } as const
 
 interface User {
@@ -151,7 +152,7 @@ export default function UsersPage() {
                       {!detail.is_active && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: '#F87171', background: 'rgba(248,113,113,0.12)' }}>disabled</span>}
                     </div>
                   </div>
-                  <button onClick={() => setDetail(null)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}>X</button>
+                  <button onClick={() => setDetail(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}><X size={15} strokeWidth={1.75} /></button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '8px', marginBottom: '18px' }}>
@@ -195,7 +196,7 @@ export default function UsersPage() {
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button onClick={() => emailUser(detail.email)}
                     style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
-                    {copiedEmail ? '✓ Email copied' : 'Email this user'}
+                    {copiedEmail ? <><Check size={13} strokeWidth={2} style={{ verticalAlign: '-2px', marginRight: '4px' }} />Email copied</> : 'Email this user'}
                   </button>
                   {detail.public_url && (
                     <a href={detail.public_url} target="_blank" rel="noreferrer"
@@ -213,7 +214,7 @@ export default function UsersPage() {
       {deleteConfirm !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '32px 28px', maxWidth: '320px', width: 'calc(100% - 32px)', textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🗑</div>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><Trash2 size={24} strokeWidth={1.5} color="#F87171" /></div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>Delete User?</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 24px', lineHeight: 1.6 }}>This action is permanent and cannot be undone.</p>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -235,11 +236,11 @@ export default function UsersPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button onClick={exportUsers} title="Download all users as CSV"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 12px' : '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer' }}>
-              ⬇ {isMobile ? '' : 'Export'}
+              <Download size={14} strokeWidth={1.75} /> {isMobile ? '' : 'Export'}
             </button>
             <button onClick={() => setShowAdd(!showAdd)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 14px' : '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(61,79,224,0.3)' }}>
-              + {isMobile ? 'Add' : 'Add User'}
+              <Plus size={14} strokeWidth={2} /> {isMobile ? 'Add' : 'Add User'}
             </button>
           </div>
         </div>
@@ -263,7 +264,7 @@ export default function UsersPage() {
                       <p style={{ fontSize: isMobile ? '26px' : '32px', fontWeight: 800, color: pm.color, margin: 0, lineHeight: 1, letterSpacing: '-0.02em' }}>{count}</p>
                       <p style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 600, color: 'var(--text-muted)', margin: '5px 0 0', textTransform: 'capitalize' }}>{plan} Plan</p>
                     </div>
-                    <span style={{ fontSize: isMobile ? '20px' : '24px', opacity: 0.5, marginTop: '2px' }}>{pm.icon}</span>
+                    <span style={{ opacity: 0.5, marginTop: '2px', display: 'flex' }}><pm.icon size={isMobile ? 20 : 24} strokeWidth={1.5} color={pm.color} /></span>
                   </div>
                   {!isMobile && (
                     <div style={{ marginTop: '14px', height: '3px', background: 'var(--border)', borderRadius: '999px', overflow: 'hidden' }}>
@@ -279,7 +280,7 @@ export default function UsersPage() {
           {showAdd && (
             <div style={{ borderRadius: '16px', border: '1px solid rgba(61,79,224,0.25)', background: 'rgba(61,79,224,0.04)', padding: isMobile ? '16px' : '22px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(61,79,224,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>➕</span>
+                <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(61,79,224,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={13} strokeWidth={2} color="#60A5FA" /></span>
                 Create New User
               </h3>
               {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '12px', padding: '8px 12px', borderRadius: '8px', marginBottom: '14px' }}>{error}</div>}
@@ -318,7 +319,7 @@ export default function UsersPage() {
           {/* SEARCH + COUNT */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', display: 'flex' }}><Search size={14} strokeWidth={1.75} /></span>
               <input placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ ...inp, paddingLeft: '30px' }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
@@ -326,8 +327,8 @@ export default function UsersPage() {
             </div>
             {(search || filterPlan) && (
               <button onClick={() => { setSearch(''); setFilterPlan('') }}
-                style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                ✕ Clear
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <X size={12} strokeWidth={1.75} /> Clear
               </button>
             )}
             <span style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{filtered.length} / {users.length}</span>
@@ -341,7 +342,7 @@ export default function UsersPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
-              <p style={{ fontSize: '36px', opacity: 0.15, margin: '0 0 10px' }}>👥</p>
+              <p style={{ opacity: 0.15, margin: '0 0 10px', display: 'flex', justifyContent: 'center' }}><Users size={36} strokeWidth={1.5} /></p>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>No users found</p>
             </div>
           ) : (
@@ -378,15 +379,15 @@ export default function UsersPage() {
                               <option value="trial">Trial</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option>
                             </select>
                           ) : (
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize' }}>
-                              {pm.icon} {u.plan}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize' }}>
+                              <pm.icon size={11} strokeWidth={1.75} /> {u.plan}
                             </span>
                           )}
 
                           {/* Which marketplace view this account leads with */}
                           {!isEditing && u.role !== 'admin' && (
-                            <span title="Marketplace mode" style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
-                              {u.account_mode === 'client' ? '💼 hires' : '🎨 takes work'}
+                            <span title="Marketplace mode" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-dim)' }}>
+                              {u.account_mode === 'client' ? <><Briefcase size={11} strokeWidth={1.75} /> hires</> : <><Palette size={11} strokeWidth={1.75} /> takes work</>}
                             </span>
                           )}
 
@@ -397,7 +398,7 @@ export default function UsersPage() {
                               <option value="member">Member</option><option value="admin">Admin</option>
                             </select>
                           ) : u.role === 'admin' ? (
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', padding: '2px 8px', borderRadius: '999px' }}>👑 Admin</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', padding: '2px 8px', borderRadius: '999px' }}><Crown size={11} strokeWidth={1.75} /> Admin</span>
                           ) : null}
 
                           {/* STATUS */}
@@ -420,7 +421,7 @@ export default function UsersPage() {
                             <button onClick={() => updateUser(u.id, { plan: editUser.plan, role: editUser.role })}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer', fontWeight: 700 }}>Save</button>
                             <button onClick={() => setEditUser(null)}
-                              style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>✕</button>
+                              style={{ display: 'flex', alignItems: 'center', fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}><X size={12} strokeWidth={1.75} /></button>
                           </>
                         ) : (
                           <>
@@ -431,8 +432,8 @@ export default function UsersPage() {
                             {/* Reach a member directly rather than only ever
                                 seeing them as a row in a table. */}
                             <button onClick={() => messageUser(u.id)} disabled={messagingId === u.id}
-                              style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', cursor: 'pointer', fontWeight: 600 }}>
-                              {messagingId === u.id ? '…' : (isMobile ? '💬' : '💬 Message')}
+                              style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', cursor: 'pointer', fontWeight: 600 }}>
+                              {messagingId === u.id ? '…' : <><MessageCircle size={12} strokeWidth={1.75} /> {isMobile ? '' : 'Message'}</>}
                             </button>
                             <button onClick={() => updateUser(u.id, { is_active: !u.is_active })}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: u.is_active ? '#F87171' : '#34D399', background: u.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)', border: `1px solid ${u.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)'}`, cursor: 'pointer', fontWeight: 600 }}>
@@ -444,18 +445,18 @@ export default function UsersPage() {
                               <button
                                 title={u.marketplace_beta_enabled === false ? 'Marketplace is off for this account' : 'Marketplace is on for this account'}
                                 onClick={() => updateUser(u.id, { marketplace_beta_enabled: u.marketplace_beta_enabled === false })}
-                                style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
+                                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', padding: '6px 10px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer',
                                   color: u.marketplace_beta_enabled === false ? 'var(--text-dim)' : '#A78BFA',
                                   background: u.marketplace_beta_enabled === false ? 'var(--bg-input)' : 'rgba(139,92,246,0.1)',
                                   border: `1px solid ${u.marketplace_beta_enabled === false ? 'var(--border)' : 'rgba(139,92,246,0.2)'}` }}>
-                                {u.marketplace_beta_enabled === false ? '🛒 Off' : '🛒 On'}
+                                <ShoppingCart size={12} strokeWidth={1.75} /> {u.marketplace_beta_enabled === false ? 'Off' : 'On'}
                               </button>
                             )}
                             {u.role !== 'admin' && (
                               <button onClick={() => setDeleteConfirm(u.id)}
-                                style={{ fontSize: '14px', padding: '5px 8px', borderRadius: '8px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+                                style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', borderRadius: '8px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
                                 onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
-                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>🗑</button>
+                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}><Trash2 size={14} strokeWidth={1.75} /></button>
                             )}
                           </>
                         )}

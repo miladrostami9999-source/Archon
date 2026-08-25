@@ -2,7 +2,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
-import { Sun, Moon } from 'lucide-react'
+import {
+  Sun, Moon, Search, ArrowLeft, X, Link2, MessageCircle,
+  Building2, MapPin, Mail, Globe, Star, Heart,
+} from 'lucide-react'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import PortfolioGrid, { type PortfolioItem } from '../../components/PortfolioGrid'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -122,10 +125,10 @@ export default function PublicProfilePage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px', fontFamily: 'Inter, sans-serif', padding: '20px', textAlign: 'center' }}>
         <ThemeToggle />
-        <p style={{ fontSize: '48px', opacity: 0.15, margin: 0 }}>🔍</p>
+        <Search size={48} strokeWidth={1.5} style={{ opacity: 0.15 }} />
         <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Profile not found</h1>
         <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>This profile doesn't exist or hasn't been made public yet.</p>
-        <a href="/" style={{ marginTop: '12px', fontSize: '13px', color: '#60A5FA', textDecoration: 'none' }}>← Back to Archon</a>
+        <a href="/" style={{ marginTop: '12px', fontSize: '13px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowLeft size={13} strokeWidth={1.75} /> Back to Archon</a>
       </div>
     )
   }
@@ -151,7 +154,7 @@ export default function PublicProfilePage() {
                 <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>{selectedProject.title}</h2>
                 {selectedProject.desc && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{selectedProject.desc}</p>}
               </div>
-              <button onClick={() => setSelectedProject(null)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', border: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: '15px' }}>✕</button>
+              <button onClick={() => setSelectedProject(null)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={15} strokeWidth={2} /></button>
             </div>
             <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               {selectedProject.images.length === 0 ? (
@@ -167,8 +170,8 @@ export default function PublicProfilePage() {
                 </div>
               ))}
               {selectedProject.url && (
-                <a href={selectedProject.url} target="_blank" style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '13px', color: '#60A5FA', padding: '10px', border: '1px solid rgba(61,79,224,0.2)', borderRadius: '10px', textDecoration: 'none', background: 'rgba(61,79,224,0.06)' }}>
-                  🔗 View External Link
+                <a href={selectedProject.url} target="_blank" style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '13px', color: '#60A5FA', padding: '10px', border: '1px solid rgba(61,79,224,0.2)', borderRadius: '10px', textDecoration: 'none', background: 'rgba(61,79,224,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Link2 size={14} strokeWidth={1.75} /> View External Link
                 </a>
               )}
             </div>
@@ -195,21 +198,21 @@ export default function PublicProfilePage() {
               {profile.headline && <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', margin: '0 0 8px' }}>{profile.headline}</p>}
 
               {profile.marketplace_review_count > 0 && (
-                <p style={{ fontSize: '12.5px', color: '#FBBF24', margin: '0 0 10px' }}>
-                  ★ {profile.marketplace_rating} <span style={{ color: 'var(--text-muted)' }}>({profile.marketplace_review_count})</span>
+                <p style={{ fontSize: '12.5px', color: '#FBBF24', margin: '0 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <Star size={12} strokeWidth={1.75} fill="#FBBF24" /> {profile.marketplace_rating} <span style={{ color: 'var(--text-muted)' }}>({profile.marketplace_review_count})</span>
                 </p>
               )}
 
               <button onClick={messageThem} disabled={messaging}
-                style={{ width: '100%', padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1, marginBottom: '12px' }}>
-                {messaging ? 'Opening…' : '💬 Message'}
+                style={{ width: '100%', padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1, marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {messaging ? 'Opening…' : <><MessageCircle size={14} strokeWidth={1.75} /> Message</>}
               </button>
               {msgError && <p style={{ fontSize: '11.5px', color: '#F87171', margin: '-6px 0 10px' }}>{msgError}</p>}
 
               {(profile.location || profile.company) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' }}>
-                  {profile.company && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>🏢 {profile.company}</span>}
-                  {profile.location && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>📍 {profile.location}</span>}
+                  {profile.company && <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} strokeWidth={1.75} /> {profile.company}</span>}
+                  {profile.location && <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} strokeWidth={1.75} /> {profile.location}</span>}
                 </div>
               )}
 
@@ -226,11 +229,11 @@ export default function PublicProfilePage() {
 
             {(profile.email || profile.website) && (
               <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {profile.email && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>✉ {profile.email}</span>}
+                {profile.email && <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Mail size={12} strokeWidth={1.75} /> {profile.email}</span>}
                 {profile.website && (
                   <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank"
-                    style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
-                    🌐 {profile.website.replace(/^https?:\/\//, '')}
+                    style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Globe size={12} strokeWidth={1.75} /> {profile.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
               </div>
@@ -318,8 +321,8 @@ export default function PublicProfilePage() {
                       <p style={{ fontSize: '13.5px', color: 'var(--text)', margin: '0 0 8px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.text}</p>
                       {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
                       <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
-                        <span>♡ {p.like_count}</span>
-                        <span>💬 {p.comment_count}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Heart size={12} strokeWidth={1.75} /> {p.like_count}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={12} strokeWidth={1.75} /> {p.comment_count}</span>
                       </div>
                     </div>
                   ))}

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Paperclip } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -120,8 +121,8 @@ export default function PaymentsPage() {
                         </div>
                         {r.receipt_url && (
                           <a href={r.receipt_url} target="_blank" rel="noreferrer"
-                            style={{ display: 'inline-block', marginTop: '6px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>
-                            📎 View receipt
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>
+                            <Paperclip size={12} strokeWidth={1.75} /> View receipt
                           </a>
                         )}
                         {r.note && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>“{r.note}”</div>}

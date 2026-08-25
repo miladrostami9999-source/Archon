@@ -8,7 +8,8 @@ import PortfolioGrid from '../components/PortfolioGrid'
 import ProfileCompletion from '../components/ProfileCompletion'
 import {
   Pencil, Plus, X, GraduationCap, Briefcase, ShieldCheck, Lock,
-  Mail, Phone, Globe,
+  Mail, Phone, Globe, User, FileText, Image as ImageIcon, Camera,
+  Link2, Crown, MapPin, Building2, MessageCircle, Heart, Check,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -413,8 +414,8 @@ export default function ProfilePage() {
   const rowDeleteBtnStyle: React.CSSProperties = { width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: 'none', color: '#F87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'posts', label: 'Posts', icon: '📝' },
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'posts', label: 'Posts', icon: FileText },
   ] as const
 
   return (
@@ -425,7 +426,7 @@ export default function ProfilePage() {
       {lightboxImg && (
         <div onClick={() => setLightboxImg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', backdropFilter: 'blur(8px)' }}>
           <img src={lightboxImg} alt="" style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }} />
-          <button onClick={() => setLightboxImg(null)} style={{ position: 'absolute', top: '20px', right: '24px', color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+          <button onClick={() => setLightboxImg(null)} style={{ position: 'absolute', top: '20px', right: '24px', color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={18} strokeWidth={2} /></button>
         </div>
       )}
 
@@ -466,10 +467,10 @@ export default function ProfilePage() {
                     style={{ height: '36px', padding: '0 14px', borderRadius: '10px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
-                    ✏️ Edit
+                    <Pencil size={13} strokeWidth={1.75} /> Edit
                   </button>
                 )}
-                <button onClick={() => { setSelectedProject(null); setEditingProject(null) }} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+                <button onClick={() => { setSelectedProject(null); setEditingProject(null) }} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><X size={16} strokeWidth={2} /></button>
               </div>
             </div>
 
@@ -477,7 +478,7 @@ export default function ProfilePage() {
               {/* IMAGE GRID */}
               {selectedProject.images.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-dim)' }}>
-                  <p style={{ fontSize: '40px', marginBottom: '8px', opacity: 0.2 }}>🖼</p>
+                  <ImageIcon size={40} strokeWidth={1.5} style={{ marginBottom: '8px', opacity: 0.2 }} />
                   <p style={{ fontSize: '14px' }}>No images yet</p>
                 </div>
               ) : (
@@ -490,7 +491,7 @@ export default function ProfilePage() {
                           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)' }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }} />
                         <button onClick={e => { e.stopPropagation(); removePortfolioImage(selectedProject.id, img.id); setSelectedProject(prev => prev ? { ...prev, images: prev.images.filter(i => i.id !== img.id) } : null) }}
-                          style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                          style={{ position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} strokeWidth={2.5} /></button>
                       </div>
                       <input
                         value={img.alt || ''}
@@ -513,11 +514,11 @@ export default function ProfilePage() {
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)'; e.currentTarget.style.color = 'var(--text)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
-                  📷 Add Images
+                  <Camera size={14} strokeWidth={1.75} /> Add Images
                 </button>
                 {selectedProject.url && (
                   <a href={selectedProject.url} target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.08)', color: '#60A5FA', fontSize: '13px', textDecoration: 'none' }}>
-                    🔗 View External Link
+                    <Link2 size={14} strokeWidth={1.75} /> View External Link
                   </a>
                 )}
               </div>
@@ -548,10 +549,10 @@ export default function ProfilePage() {
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
                     onMouseLeave={e => { e.currentTarget.style.opacity = '0' }}>
-                    <span style={{ fontSize: '22px' }}>📷</span>
+                    <Camera size={22} strokeWidth={1.75} color="white" />
                   </div>
                 </div>
-                <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: '#3D4FE0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}>✏</div>
+                <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: '#3D4FE0', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}><Pencil size={11} strokeWidth={2} color="white" /></div>
               </div>
 
               <h1 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -561,13 +562,13 @@ export default function ProfilePage() {
 
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '10px' }}>
                 {plan && <span style={{ fontSize: '10.5px', fontWeight: 700, color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase' }}>{plan.label}</span>}
-                {user?.role === 'admin' && <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '3px 10px', borderRadius: '999px' }}>👑 Admin</span>}
+                {user?.role === 'admin' && <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '3px 10px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Crown size={11} strokeWidth={2} /> Admin</span>}
               </div>
 
               {(profile.location || profile.company) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center', marginBottom: '10px' }}>
-                  {profile.location && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>📍 {profile.location}</span>}
-                  {profile.company && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>🏢 {profile.company}</span>}
+                  {profile.location && <span style={{ fontSize: '12px', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={12} strokeWidth={1.75} /> {profile.location}</span>}
+                  {profile.company && <span style={{ fontSize: '12px', color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={12} strokeWidth={1.75} /> {profile.company}</span>}
                 </div>
               )}
 
@@ -697,7 +698,7 @@ export default function ProfilePage() {
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 style={{ flex: 1, padding: '9px', fontSize: isMobile ? '11px' : '13px', fontWeight: 500, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? '4px' : '6px', transition: 'all 0.15s', background: activeTab === tab.id ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--text-muted)' }}>
-                <span>{tab.icon}</span> {tab.label}
+                <tab.icon size={14} strokeWidth={1.75} /> {tab.label}
               </button>
             ))}
           </div>
@@ -766,8 +767,8 @@ export default function ProfilePage() {
                       const selected = profile.skills.includes(skill)
                       return (
                         <button key={skill} onClick={() => toggleSkill(skill)}
-                          style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', background: selected ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(61,79,224,0.3)' : 'none' }}>
-                          {selected ? '✓ ' : ''}{skill}
+                          style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', background: selected ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(61,79,224,0.3)' : 'none' }}>
+                          {selected && <Check size={12} strokeWidth={2.5} />}{skill}
                         </button>
                       )
                     })}
@@ -787,7 +788,7 @@ export default function ProfilePage() {
                       {profile.customSkills.map(skill => (
                         <span key={skill} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', padding: '5px 12px', borderRadius: '999px' }}>
                           {skill}
-                          <button onClick={() => removeCustomSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(167,139,250,0.5)', fontSize: '12px', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>✕</button>
+                          <button onClick={() => removeCustomSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(167,139,250,0.5)', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}><X size={12} strokeWidth={2} /></button>
                         </span>
                       ))}
                     </div>
@@ -834,7 +835,7 @@ export default function ProfilePage() {
                     <input ref={newProjectImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleNewProjectImages} />
                     <button onClick={() => newProjectImgRef.current?.click()}
                       style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', width: '100%', justifyContent: 'center' }}>
-                      📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#3D4FE0', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
+                      <Camera size={14} strokeWidth={1.75} /> Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#3D4FE0', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
                     </button>
                     {newPortfolioImages.length > 0 && (
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
@@ -842,7 +843,7 @@ export default function ProfilePage() {
                           <div key={img.id} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
                             <img src={img.data} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             <button onClick={() => setNewPortfolioImages(prev => prev.filter(i => i.id !== img.id))}
-                              style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                              style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={9} strokeWidth={2.5} /></button>
                           </div>
                         ))}
                       </div>
@@ -1000,8 +1001,8 @@ export default function ProfilePage() {
                       )}
                       {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
                       <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-dim)' }}>
-                        <span>♡ {p.like_count}</span>
-                        <span>💬 {p.comment_count}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Heart size={12} strokeWidth={1.75} /> {p.like_count}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MessageCircle size={12} strokeWidth={1.75} /> {p.comment_count}</span>
                       </div>
                     </div>
                   ))}

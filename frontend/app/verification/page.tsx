@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Paperclip } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -164,12 +165,12 @@ export default function VerificationPage() {
                     <label style={label}>ID document <span style={{ color: 'var(--text-dim)' }}>(optional — speeds up review)</span></label>
                     {v.id_document_url ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <a href={v.id_document_url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}>📎 Uploaded</a>
+                        <a href={v.id_document_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}><Paperclip size={12} strokeWidth={1.75} /> Uploaded</a>
                         {!locked && <button onClick={() => set('id_document_url', '')} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>}
                       </div>
                     ) : (
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: locked ? 'not-allowed' : 'pointer', fontSize: '12px', color: 'var(--text-muted)', opacity: locked ? 0.6 : 1 }}>
-                        📎 {uploading ? 'Uploading…' : 'Attach a photo or scan'}
+                        <Paperclip size={12} strokeWidth={1.75} /> {uploading ? 'Uploading…' : 'Attach a photo or scan'}
                         <input type="file" accept="image/*,application/pdf" disabled={locked} style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadDoc(f); e.target.value = '' }} />
                       </label>

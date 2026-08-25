@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { FeatureLocked } from '../components/AccessLock'
+import { Plus, Minus, Home, Map as MapIcon, X, Flame, CloudSun, Snowflake } from 'lucide-react'
 import {
   ComposableMap,
   Geographies,
@@ -206,7 +207,9 @@ export default function MapPage() {
   }
 
   const getScoreColor = (s: number) => s >= 80 ? '#34D399' : s >= 60 ? '#FBBF24' : '#9CA3AF'
-  const HEAT = { hot: '🔥', warm: '🌤', cold: '❄️' } as any
+  const HEAT_ICON: Record<string, { Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>; color: string }> = {
+    hot: { Icon: Flame, color: '#FB923C' }, warm: { Icon: CloudSun, color: '#FBBF24' }, cold: { Icon: Snowflake, color: '#60A5FA' },
+  }
 
   // MOBILE: bottom sheet for country detail
   // DESKTOP: side panel
@@ -221,13 +224,13 @@ export default function MapPage() {
       {/* ZOOM */}
       <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {[
-          { label: '+', action: () => { const nz = Math.min(zoomRef.current + 0.5, MAX_ZOOM); zoomRef.current = nz; setZoom(nz) } },
-          { label: '−', action: () => { const nz = Math.max(zoomRef.current - 0.5, 1); zoomRef.current = nz; setZoom(nz) } },
-          { label: '⌂', action: () => { zoomRef.current = 1; centerRef.current = [10,20]; setZoom(1); setCenter([10,20]) } },
+          { key: 'in', Icon: Plus, action: () => { const nz = Math.min(zoomRef.current + 0.5, MAX_ZOOM); zoomRef.current = nz; setZoom(nz) } },
+          { key: 'out', Icon: Minus, action: () => { const nz = Math.max(zoomRef.current - 0.5, 1); zoomRef.current = nz; setZoom(nz) } },
+          { key: 'home', Icon: Home, action: () => { zoomRef.current = 1; centerRef.current = [10,20]; setZoom(1); setCenter([10,20]) } },
         ].map(btn => (
-          <button key={btn.label} onClick={btn.action}
+          <button key={btn.key} onClick={btn.action}
             style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {btn.label}
+            <btn.Icon size={14} strokeWidth={1.75} color="var(--text-muted)" />
           </button>
         ))}
       </div>
@@ -264,7 +267,7 @@ export default function MapPage() {
       {/* MAP */}
       {mapData.length === 0 && !loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '8px' }}>
-          <p style={{ fontSize: '28px', opacity: 0.2 }}>🗺</p>
+          <p style={{ opacity: 0.2, display: 'flex' }}><MapIcon size={28} strokeWidth={1.5} color="var(--text-dim)" /></p>
           <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>No geographic data yet</p>
         </div>
       ) : (
@@ -356,7 +359,7 @@ export default function MapPage() {
               <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{selected.count} {selected.count === 1 ? 'company' : 'companies'}</p>
             </div>
             <button onClick={() => setSelected(null)}
-              style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px', borderRadius: '6px' }}>✕</button>
+              style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'flex' }}><X size={16} strokeWidth={1.75} color="var(--text-dim)" /></button>
           </div>
 
           {/* STATS */}
@@ -397,7 +400,7 @@ export default function MapPage() {
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '1px 0 0' }}>{c.industry} · {HEAT[c.heat_level]}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '1px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>{c.industry} · {HEAT_ICON[c.heat_level] && (() => { const { Icon, color } = HEAT_ICON[c.heat_level]; return <Icon size={11} strokeWidth={1.75} color={color} /> })()}</p>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
                     <p style={{ fontSize: '12px', fontWeight: 700, color: getScoreColor(c.score), margin: 0 }}>{c.score}</p>
@@ -433,7 +436,7 @@ export default function MapPage() {
                     </div>
                     <div style={{ flexShrink: 0, textAlign: 'right' }}>
                       <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{country.count}</p>
-                      {country.hot > 0 && <p style={{ fontSize: '10px', color: '#FB923C', margin: 0 }}>🔥{country.hot}</p>}
+                      {country.hot > 0 && <p style={{ fontSize: '10px', color: '#FB923C', margin: 0, display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'flex-end' }}><Flame size={11} strokeWidth={1.75} color="#FB923C" />{country.hot}</p>}
                     </div>
                   </button>
                 ))}

@@ -6,6 +6,7 @@ import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import MemberPreviewDrawer from '../components/MemberPreviewDrawer'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Camera, X, Heart, MessageCircle } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
@@ -194,15 +195,15 @@ export default function FeedPage() {
               <div style={{ position: 'relative', marginBottom: '10px', display: 'inline-block' }}>
                 <img src={imageUrl} alt="" style={{ maxHeight: '160px', borderRadius: '10px', display: 'block' }} />
                 <button onClick={() => setImageUrl(null)}
-                  style={{ position: 'absolute', top: '6px', right: '6px', width: '22px', height: '22px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+                  style={{ position: 'absolute', top: '6px', right: '6px', width: '22px', height: '22px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} strokeWidth={2} color="white" /></button>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
-                {uploading ? 'Uploading…' : '📷 Add image'}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                {uploading ? 'Uploading…' : <><Camera size={13} strokeWidth={1.75} color="#60A5FA" /> Add image</>}
               </button>
               <button onClick={submitPost} disabled={posting || !text.trim()}
                 style={{ marginLeft: 'auto', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (posting || !text.trim()) ? 0.5 : 1 }}>
@@ -266,11 +267,11 @@ export default function FeedPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
                     <button onClick={() => toggleLike(p)}
                       style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: p.liked_by_me ? '#F472B6' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      {p.liked_by_me ? '♥' : '♡'} {p.like_count > 0 ? p.like_count : ''} Like
+                      <Heart size={13} strokeWidth={1.75} color={p.liked_by_me ? '#F472B6' : 'var(--text-muted)'} fill={p.liked_by_me ? '#F472B6' : 'none'} /> {p.like_count > 0 ? p.like_count : ''} Like
                     </button>
                     <button onClick={() => toggleComments(p.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      💬 {p.comment_count > 0 ? p.comment_count : ''} Comment
+                      <MessageCircle size={13} strokeWidth={1.75} color="var(--text-muted)" /> {p.comment_count > 0 ? p.comment_count : ''} Comment
                     </button>
                   </div>
 

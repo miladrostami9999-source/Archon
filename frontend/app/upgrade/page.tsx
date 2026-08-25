@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Check, Mail, Paperclip, CheckCircle2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -137,8 +138,8 @@ export default function UpgradePage() {
           </p>
 
           {done && (
-            <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', color: '#34D399', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '18px' }}>
-              ✅ {done}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', color: '#34D399', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '18px' }}>
+              <CheckCircle2 size={15} strokeWidth={1.75} color="#34D399" /> {done}
             </div>
           )}
 
@@ -180,11 +181,11 @@ export default function UpgradePage() {
                     <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>per {p.period_days} days</div>
                   </div>
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <li style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                      ✓ {p.max_companies === -1 ? 'Unlimited' : p.max_companies} companies
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                      <Check size={12} strokeWidth={2} color="var(--text-muted)" /> {p.max_companies === -1 ? 'Unlimited' : p.max_companies} companies
                     </li>
-                    <li style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                      ✓ {p.max_emails_per_month === -1 ? 'Unlimited' : p.max_emails_per_month} emails
+                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                      <Check size={12} strokeWidth={2} color="var(--text-muted)" /> {p.max_emails_per_month === -1 ? 'Unlimited' : p.max_emails_per_month} emails
                     </li>
                   </ul>
                   <button onClick={() => { setSelected(p); setDone(''); setForm(f => ({ ...f, currency: 'IRR', amount: amountFor(p, 'IRR') })) }}
@@ -225,8 +226,8 @@ export default function UpgradePage() {
                         {pay.card_holder && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{pay.card_holder}</div>}
                       </div>
                       <button onClick={() => { navigator.clipboard.writeText(pay.card_number); setCopied('card'); setTimeout(() => setCopied(''), 2000) }}
-                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', cursor: 'pointer' }}>
-                        {copied === 'card' ? '✓ Copied' : 'Copy'}
+                        style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)', color: '#34D399', cursor: 'pointer' }}>
+                        {copied === 'card' ? <><Check size={12} strokeWidth={2} color="#34D399" /> Copied</> : 'Copy'}
                       </button>
                     </div>
                   )}
@@ -237,8 +238,8 @@ export default function UpgradePage() {
                         <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', direction: 'ltr' }}>{pay.paypal_email}</div>
                       </div>
                       <button onClick={() => { navigator.clipboard.writeText(pay.paypal_email); setCopied('paypal'); setTimeout(() => setCopied(''), 2000) }}
-                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(61,79,224,0.3)', background: 'rgba(61,79,224,0.1)', color: '#60A5FA', cursor: 'pointer' }}>
-                        {copied === 'paypal' ? '✓ Copied' : 'Copy'}
+                        style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(61,79,224,0.3)', background: 'rgba(61,79,224,0.1)', color: '#60A5FA', cursor: 'pointer' }}>
+                        {copied === 'paypal' ? <><Check size={12} strokeWidth={2} color="#60A5FA" /> Copied</> : 'Copy'}
                       </button>
                     </div>
                   )}
@@ -249,7 +250,7 @@ export default function UpgradePage() {
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px', fontSize: '12.5px' }}>
                   {pay.support_email && (
                     <a href={`mailto:${pay.support_email}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', textDecoration: 'none' }}>
-                      ✉️ {pay.support_email}
+                      <Mail size={13} strokeWidth={1.75} color="var(--text-muted)" /> {pay.support_email}
                     </a>
                   )}
                   {pay.support_phone && (
@@ -315,8 +316,8 @@ export default function UpgradePage() {
                 <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }}>Payment receipt</label>
                 {receipt ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: '8px', padding: '10px 12px' }}>
-                    <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      📎 {receipt.name}
+                    <a href={receipt.url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#34D399', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Paperclip size={13} strokeWidth={1.75} color="#34D399" /> {receipt.name}
                     </a>
                     <button onClick={() => setReceipt(null)}
                       style={{ fontSize: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}>Remove</button>
@@ -325,7 +326,7 @@ export default function UpgradePage() {
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px dashed var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: '12.5px', cursor: uploading ? 'wait' : 'pointer' }}>
                     <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} disabled={uploading}
                       onChange={e => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.target.value = '' }} />
-                    {uploading ? 'Uploading…' : '📎 Attach a screenshot or PDF of the transfer'}
+                    {uploading ? 'Uploading…' : <><Paperclip size={13} strokeWidth={1.75} color="var(--text-muted)" /> Attach a screenshot or PDF of the transfer</>}
                   </label>
                 )}
               </div>

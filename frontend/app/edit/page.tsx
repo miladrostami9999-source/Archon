@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { ArrowLeft } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -93,10 +94,10 @@ function EditForm() {
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
           <button onClick={() => window.location.href = `/company/${companyId}`}
-            style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+            style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
-            ← Back
+            <ArrowLeft size={14} strokeWidth={1.75} />Back
           </button>
           <div>
             <h1 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Edit Company</h1>
@@ -109,14 +110,14 @@ function EditForm() {
           <div style={{ width: '100%', maxWidth: '640px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {error && (
-              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '14px', padding: '12px 16px', borderRadius: '8px' }}>
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--error)', fontSize: '14px', padding: '12px 16px', borderRadius: '8px' }}>
                 {error}
               </div>
             )}
 
             {/* Name */}
             <div>
-              <label style={labelStyle}>Company Name <span style={{ color: '#F87171' }}>*</span></label>
+              <label style={labelStyle}>Company Name <span style={{ color: 'var(--error)' }}>*</span></label>
               <input name="name" value={form.name} onChange={handleChange}
                 style={inputStyle}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { BarChart3, RefreshCw, Target, Clock, Mail, Sparkles, TrendingUp, Lock, Copy, CheckCircle2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -13,12 +14,12 @@ interface Report {
 }
 
 const SECTIONS = [
-  { key: 'summary',           icon: '📊', label: 'Executive Summary',   labelFa: 'خلاصه اجرایی',      color: '#3D4FE0', bg: 'rgba(61,79,224,0.06)' },
-  { key: 'pipeline_insight',  icon: '🔄', label: 'Pipeline Health',     labelFa: 'سلامت پایپلاین',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.06)' },
-  { key: 'top_leads',         icon: '🎯', label: 'Top Leads',           labelFa: 'بهترین لیدها',       color: '#F59E0B', bg: 'rgba(245,158,11,0.06)' },
-  { key: 'follow_up_action',  icon: '⏰', label: 'Follow-up Actions',   labelFa: 'پیگیری‌ها',          color: '#F97316', bg: 'rgba(249,115,22,0.06)' },
-  { key: 'email_performance', icon: '✉', label:  'Email Performance',   labelFa: 'عملکرد ایمیل',       color: '#34D399', bg: 'rgba(52,211,153,0.06)' },
-  { key: 'weekly_goals',      icon: '✦', label:  'Goals for Next Week', labelFa: 'اهداف هفته آینده',  color: '#14B8A6', bg: 'rgba(20,184,166,0.06)' },
+  { key: 'summary',           icon: BarChart3, textIcon: '📊', label: 'Executive Summary',   labelFa: 'خلاصه اجرایی',      color: '#3D4FE0', bg: 'rgba(61,79,224,0.06)' },
+  { key: 'pipeline_insight',  icon: RefreshCw, textIcon: '🔄', label: 'Pipeline Health',     labelFa: 'سلامت پایپلاین',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.06)' },
+  { key: 'top_leads',         icon: Target, textIcon: '🎯', label: 'Top Leads',           labelFa: 'بهترین لیدها',       color: '#F59E0B', bg: 'rgba(245,158,11,0.06)' },
+  { key: 'follow_up_action',  icon: Clock, textIcon: '⏰', label: 'Follow-up Actions',   labelFa: 'پیگیری‌ها',          color: '#F97316', bg: 'rgba(249,115,22,0.06)' },
+  { key: 'email_performance', icon: Mail, textIcon: '✉', label:  'Email Performance',   labelFa: 'عملکرد ایمیل',       color: '#34D399', bg: 'rgba(52,211,153,0.06)' },
+  { key: 'weekly_goals',      icon: Sparkles, textIcon: '✦', label:  'Goals for Next Week', labelFa: 'اهداف هفته آینده',  color: '#14B8A6', bg: 'rgba(20,184,166,0.06)' },
 ] as const
 
 export default function WeeklyReport() {
@@ -101,7 +102,7 @@ export default function WeeklyReport() {
   const copyReport = () => {
     if (!report) return
     const isFa = lang === 'fa'
-    const text = SECTIONS.map(s => `${s.icon} ${isFa ? s.labelFa : s.label}\n${report[s.key as keyof Report]}`).join('\n\n')
+    const text = SECTIONS.map(s => `${s.textIcon} ${isFa ? s.labelFa : s.label}\n${report[s.key as keyof Report]}`).join('\n\n')
     navigator.clipboard.writeText(`${report.title}\n${'─'.repeat(40)}\n\n${text}\n\n─\n"${report.motivation}"`)
     setCopied(true); setTimeout(() => setCopied(false), 2500)
   }
@@ -129,7 +130,7 @@ export default function WeeklyReport() {
             {report && (
               <button onClick={copyReport}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: copied ? 'rgba(52,211,153,0.1)' : 'var(--bg-input)', color: copied ? '#34D399' : 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}>
-                {copied ? '✅ Copied!' : '📋 Copy'}
+                {copied ? <><CheckCircle2 size={14} strokeWidth={1.75} color="#34D399" /> Copied!</> : <><Copy size={14} strokeWidth={1.75} color="var(--text-muted)" /> Copy</>}
               </button>
             )}
             {report && (
@@ -154,8 +155,8 @@ export default function WeeklyReport() {
           ) : !report ? (
             /* ── GENERATE CARD ── */
             <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '48px 32px', textAlign: 'center' }}>
-              <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(61,79,224,0.15), rgba(46,59,176,0.15))', border: '1px solid rgba(61,79,224,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '32px' }}>
-                📈
+              <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(61,79,224,0.15), rgba(46,59,176,0.15))', border: '1px solid rgba(61,79,224,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <TrendingUp size={32} strokeWidth={1.5} color="#3D4FE0" />
               </div>
               <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
                 {isFa ? 'گزارش هفتگی هوش مصنوعی' : 'Weekly AI Report'}
@@ -184,15 +185,15 @@ export default function WeeklyReport() {
               {isLocked ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '10px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '16px' }}>🔒</span>
+                    <Lock size={15} strokeWidth={1.75} color="var(--text-muted)" />
                     <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>{isFa ? 'گزارش این هفته تولید شده' : 'Report already generated this week'}</span>
                   </div>
-                  {timeLeft && <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>⏱ Next report available in: <strong style={{ color: '#FBBF24' }}>{timeLeft}</strong></p>}
+                  {timeLeft && <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}><Clock size={12} strokeWidth={1.75} color="var(--text-dim)" /> Next report available in: <strong style={{ color: '#FBBF24' }}>{timeLeft}</strong></p>}
                 </div>
               ) : (
                 <button onClick={generate} disabled={loading}
                   style={{ padding: '10px 28px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'rgba(61,79,224,0.5)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: loading ? 'none' : '0 4px 16px rgba(61,79,224,0.3)', transition: 'all 0.15s' }}>
-                  {loading ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />{isFa ? 'در حال تولید...' : 'Generating...'}</> : `✦ ${isFa ? 'تولید گزارش' : 'Generate Report'}`}
+                  {loading ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />{isFa ? 'در حال تولید...' : 'Generating...'}</> : <><Sparkles size={14} strokeWidth={1.75} color="white" /> {isFa ? 'تولید گزارش' : 'Generate Report'}</>}
                 </button>
               )}
             </div>
@@ -211,7 +212,7 @@ export default function WeeklyReport() {
                 </div>
                 {isLocked && timeLeft && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
-                    <span style={{ fontSize: '12px' }}>⏱</span>
+                    <Clock size={12} strokeWidth={1.75} color="#FBBF24" />
                     <span style={{ fontSize: '11px', color: '#FBBF24', fontWeight: 500 }}>{timeLeft}</span>
                   </div>
                 )}
@@ -225,7 +226,7 @@ export default function WeeklyReport() {
                     onMouseEnter={e => { e.currentTarget.style.borderColor = section.color + '40'; e.currentTarget.style.transform = 'translateX(2px)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = section.color + '20'; e.currentTarget.style.transform = 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: section.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>{section.icon}</div>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: section.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><section.icon size={14} strokeWidth={1.75} color={section.color} /></div>
                       <h3 style={{ fontSize: '11px', fontWeight: 700, color: section.color, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                         {isFa ? section.labelFa : section.label}
                       </h3>

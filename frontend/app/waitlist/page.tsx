@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Building2, CircleCheck, Clipboard, Check } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -113,7 +114,7 @@ export default function WaitlistPage() {
                           <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
                         </div>
                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{e.email}</div>
-                        {e.company && <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>🏢 {e.company}</div>}
+                        {e.company && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}><Building2 size={12} strokeWidth={1.75} /> {e.company}</div>}
                         {e.note && <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '6px', fontStyle: 'italic' }}>“{e.note}”</div>}
                       </div>
                       <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -148,7 +149,7 @@ export default function WaitlistPage() {
       {approved && (
         <div onClick={() => setApproved(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
           <div onClick={ev => ev.stopPropagation()} style={{ width: '100%', maxWidth: '420px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '26px' }}>
-            <div style={{ fontSize: '34px', textAlign: 'center', marginBottom: '10px' }}>✅</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><CircleCheck size={34} strokeWidth={1.5} color="#34D399" /></div>
             <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 6px', textAlign: 'center' }}>Account approved</h2>
 
             {approved.temp_password ? (
@@ -165,8 +166,8 @@ export default function WaitlistPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => { navigator.clipboard.writeText(`Email: ${approved.email}\nPassword: ${approved.temp_password}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                    style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
-                    {copied ? '✓ Copied' : '📋 Copy credentials'}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
+                    {copied ? <><Check size={14} strokeWidth={2} /> Copied</> : <><Clipboard size={14} strokeWidth={1.75} /> Copy credentials</>}
                   </button>
                   <button onClick={() => setApproved(null)}
                     style={{ padding: '11px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>

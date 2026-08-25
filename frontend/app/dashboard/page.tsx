@@ -3,7 +3,11 @@ import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import UsageWidget from '../components/UsageWidget'
-import { Search, SlidersHorizontal, Sparkles, List as ListIcon, LayoutGrid, ArrowUpDown, Bell, Plus, X, ArrowRight } from 'lucide-react'
+import {
+  Search, SlidersHorizontal, Sparkles, List as ListIcon, LayoutGrid, ArrowUpDown, Bell, Plus, X, ArrowRight,
+  Flame, CloudSun, Snowflake, Lock, Star, Trophy, ArrowDownAZ, Calendar, Globe2, CheckCircle2, Circle,
+  Building2, Clock, AlertTriangle, Inbox, Loader2, ChevronLeft, ChevronRight, Eye, Pencil, Mail,
+} from 'lucide-react'
 import {
   DndContext,
   DragEndEvent,
@@ -39,7 +43,12 @@ const KANBAN_COLUMNS = ['new','reviewed','ready','sent','waiting','replied','mee
 const KANBAN_ROW1 = ['new','reviewed','ready','sent','waiting']
 const KANBAN_ROW2 = ['replied','meeting','client','archive']
 
-const HEAT_ICON: Record<string, string> = { hot: '🔥', warm: '🌤', cold: '❄️' }
+const HEAT_ICON_CMP: Record<string, any> = { hot: Flame, warm: CloudSun, cold: Snowflake }
+function HeatIcon({ level, size = 12 }: { level: string; size?: number }) {
+  const Icon = HEAT_ICON_CMP[level]
+  if (!Icon) return null
+  return <Icon size={size} strokeWidth={1.5} />
+}
 
 interface Company {
   id: number; name: string; domain: string; country: string; city: string
@@ -134,18 +143,18 @@ function KanbanCard({ company, onFavorite, onClick }: {
           }}>
             {company.name}
           </p>
-          {company.locked && <span style={{ fontSize: '11px', flexShrink: 0 }} title="Locked">🔒</span>}
+          {company.locked && <span style={{ flexShrink: 0, display: 'inline-flex' }} title="Locked"><Lock size={11} strokeWidth={1.5} /></span>}
         </div>
         <button
           onClick={e => { e.stopPropagation(); onFavorite(e, company.id) }}
-          style={{ fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', padding: '0', lineHeight: 1 }}>
-          ★
+          style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, color: company.is_favorite ? '#FBBF24' : 'var(--text-dim)', padding: '0', lineHeight: 1 }}>
+          <Star size={14} strokeWidth={1.5} fill={company.is_favorite ? '#FBBF24' : 'none'} />
         </button>
       </div>
 
       {/* META */}
       <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {[company.country, company.industry].filter(Boolean).join(' · ')} {HEAT_ICON[company.heat_level]}
+        {[company.country, company.industry].filter(Boolean).join(' · ')} <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><HeatIcon level={company.heat_level} size={11} /></span>
       </p>
 
       {/* SCORE */}
@@ -538,8 +547,8 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {['hot', 'warm', 'cold'].map(h => (
                         <button key={h} onClick={() => setFilterHeat(filterHeat === h ? '' : h)}
-                          style={{ flex: 1, padding: '6px', borderRadius: 'var(--radius-md)', fontSize: '12px', border: filterHeat === h ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)', background: filterHeat === h ? 'rgba(61,79,224,0.2)' : 'var(--bg-input)', color: filterHeat === h ? '#93C5FD' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                          {HEAT_ICON[h]} {h}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flex: 1, padding: '6px', borderRadius: 'var(--radius-md)', fontSize: '12px', border: filterHeat === h ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)', background: filterHeat === h ? 'rgba(61,79,224,0.2)' : 'var(--bg-input)', color: filterHeat === h ? '#93C5FD' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                          <HeatIcon level={h} size={12} /> {h}
                         </button>
                       ))}
                     </div>
@@ -547,7 +556,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
                     <button onClick={() => setFilterFavorite(!filterFavorite)}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: filterFavorite ? '1px solid rgba(245,158,11,0.3)' : '1px solid var(--border)', background: filterFavorite ? 'rgba(245,158,11,0.15)' : 'var(--bg-input)', color: filterFavorite ? '#FBBF24' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      ★ Favorites only
+                      <Star size={12} strokeWidth={1.5} fill={filterFavorite ? '#FBBF24' : 'none'} /> Favorites only
                     </button>
                     {hasFilters && <button onClick={clearFilters} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear all</button>}
                   </div>
@@ -584,12 +593,12 @@ export default function Dashboard() {
                 </button>
                 {sortMenuOpen && (
                   <div style={{ position: 'absolute', right: 0, top: '44px', width: '176px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', padding: '4px', zIndex: 30, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-                    {[['recent','✨ Recently added'],['score','🏆 Score'],['name','🔤 Name'],['date','📅 Date'],['country','🌍 Country']].map(([k, l]) => (
+                    {[['recent', Sparkles, 'Recently added'],['score', Trophy, 'Score'],['name', ArrowDownAZ, 'Name'],['date', Calendar, 'Date'],['country', Globe2, 'Country']].map(([k, Icon, l]: any) => (
                       <button key={k} onClick={e => { e.stopPropagation(); toggleSort(k) }}
                         style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-md)', color: sortBy === k ? '#60A5FA' : 'var(--text-muted)', transition: 'all 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-                        {l} {sortBy === k && <span>{sortDir === 'desc' ? '↓' : '↑'}</span>}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon size={13} strokeWidth={1.5} /> {l}</span> {sortBy === k && <span>{sortDir === 'desc' ? '↓' : '↑'}</span>}
                       </button>
                     ))}
                   </div>
@@ -614,7 +623,7 @@ export default function Dashboard() {
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
                     <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: '12px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      <span style={{ fontSize: '18px' }}>✅</span>
+                      <span style={{ display: 'flex', color: 'var(--success)' }}><CheckCircle2 size={18} strokeWidth={1.5} /></span>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, margin: 0 }}>Daily Tasks</p>
                         <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{todayTasks.total === 0 ? 'No tasks yet' : `${todayTasks.done}/${todayTasks.total} done`}</p>
@@ -628,7 +637,7 @@ export default function Dashboard() {
                   </button>
                   <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '18px' }}>🏢</span>
+                      <span style={{ display: 'flex', color: 'var(--text-muted)' }}><Building2 size={18} strokeWidth={1.5} /></span>
                       <div>
                         <p style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, margin: 0 }}>CRM</p>
                         <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{total} companies · {companies.filter(c=>c.status==='new').length} new</p>
@@ -638,7 +647,7 @@ export default function Dashboard() {
                   {followUps.length > 0 && (
                     <div style={{ borderTop: '1px solid var(--border)', background: 'rgba(245,158,11,0.05)', padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '18px' }}>⏰</span>
+                        <span style={{ display: 'flex', color: '#FBBF24' }}><Clock size={18} strokeWidth={1.5} /></span>
                         <div>
                           <p style={{ fontSize: '14px', color: '#FBBF24', fontWeight: 500, margin: 0 }}>Follow-up Needed</p>
                           <p style={{ fontSize: '12px', color: 'rgba(251,191,36,0.6)', margin: '2px 0 0' }}>{followUps.map(c=>c.name).join(', ')}</p>
@@ -663,7 +672,7 @@ export default function Dashboard() {
         {isMobile && searchOpen && (
           <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-main)' }}>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
+              <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', display: 'flex' }}><Search size={14} strokeWidth={1.5} /></span>
               <input
                 type="text"
                 autoFocus
@@ -675,7 +684,7 @@ export default function Dashboard() {
               />
               {search && (
                 <button onClick={() => { setSearch(''); setIsSmartMode(false) }}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '14px', padding: '2px' }}>✕</button>
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '2px' }}><X size={14} strokeWidth={1.5} /></button>
               )}
             </div>
           </div>
@@ -697,11 +706,11 @@ export default function Dashboard() {
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)' }} />
               <button onClick={runSmartSearch} disabled={smartSearching || !smartQuery.trim()}
-                style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#A78BFA', fontSize: '14px', padding: '8px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all 0.15s', opacity: (smartSearching || !smartQuery.trim()) ? 0.4 : 1 }}>
-                {smartSearching ? '⏳' : '✦ Search'}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#A78BFA', fontSize: '14px', padding: '8px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all 0.15s', opacity: (smartSearching || !smartQuery.trim()) ? 0.4 : 1 }}>
+                {smartSearching ? <Loader2 size={14} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} /> : <><Sparkles size={14} strokeWidth={1.5} /> Search</>}
               </button>
               {isSmartMode && (
-                <button onClick={clearSmartSearch} style={{ fontSize: '14px', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer' }}>✕</button>
+                <button onClick={clearSmartSearch} style={{ display: 'flex', fontSize: '14px', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} strokeWidth={1.5} /></button>
               )}
             </div>
             {isSmartMode && <p style={{ fontSize: '12px', color: 'rgba(167,139,250,0.6)', marginTop: '6px', marginBottom: 0 }}>AI results for: "{smartQuery}" — {total} found</p>}
@@ -712,7 +721,7 @@ export default function Dashboard() {
         {followUps.length > 0 && !isSmartMode && (
           <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(245,158,11,0.1)', background: 'rgba(245,158,11,0.04)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <p style={{ fontSize: '12px', color: 'rgba(251,191,36,0.7)', fontWeight: 500, margin: 0 }}>⏰ Follow-up:</p>
+              <p style={{ fontSize: '12px', color: 'rgba(251,191,36,0.7)', fontWeight: 500, margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} strokeWidth={1.5} /> Follow-up:</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {followUps.map(c => (
                   <button key={c.id} onClick={() => goToCompany(c.id)}
@@ -729,7 +738,7 @@ export default function Dashboard() {
         {error && (
           <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(239,68,68,0.1)', background: 'rgba(239,68,68,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '14px', color: '#F87171', margin: 0 }}>⚠ {error}</p>
+              <p style={{ fontSize: '14px', color: '#F87171', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><AlertTriangle size={14} strokeWidth={1.5} /> {error}</p>
               <button onClick={() => fetchCompanies()} style={{ fontSize: '12px', color: 'rgba(248,113,113,0.6)', border: '1px solid rgba(248,113,113,0.2)', padding: '4px 12px', borderRadius: 'var(--radius-md)', background: 'none', cursor: 'pointer' }}>Retry</button>
             </div>
           </div>
@@ -744,7 +753,7 @@ export default function Dashboard() {
           </p>
           {isSmartMode && <span style={{ fontSize: '12px', background: 'rgba(139,92,246,0.15)', color: '#A78BFA', padding: '2px 8px', borderRadius: '999px' }}>AI filtered</span>}
           {hasFilters && <span style={{ fontSize: '12px', background: 'rgba(61,79,224,0.15)', color: '#60A5FA', padding: '2px 8px', borderRadius: '999px' }}>Filtered</span>}
-          {view === 'board' && <span style={{ fontSize: '12px', background: 'rgba(52,211,153,0.12)', color: '#34D399', padding: '2px 8px', borderRadius: '999px' }}>⊞ Board View</span>}
+          {view === 'board' && <span style={{ fontSize: '12px', background: 'rgba(52,211,153,0.12)', color: '#34D399', padding: '2px 8px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><LayoutGrid size={11} strokeWidth={1.5} /> Board View</span>}
         </div>
 
         {/* ═══ LIST VIEW ═══ */}
@@ -760,7 +769,7 @@ export default function Dashboard() {
             ) : companies.length === 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }}>⬡</p>
+                  <p style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', opacity: 0.3 }}><Inbox size={32} strokeWidth={1.5} /></p>
                   <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: 0 }}>No companies found</p>
                 </div>
               </div>
@@ -796,7 +805,7 @@ export default function Dashboard() {
                               filter: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'blur(5px)' : undefined,
                               userSelect: c.lock_reason && c.lock_reason !== 'not_unlocked' ? 'none' : undefined,
                             }}>{c.name}</h3>
-                            <span style={{ fontSize: '12px', opacity: 0.6 }} title={`${c.heat_level} lead`}>{HEAT_ICON[c.heat_level]}</span>
+                            <span style={{ display: 'inline-flex', opacity: 0.6 }} title={`${c.heat_level} lead`}><HeatIcon level={c.heat_level} size={12} /></span>
                             <SizeBadge size={c.company_size} count={c.employee_count} />
                             {c.signals?.slice(0, 2).map(s => (
                               <span key={s} style={{ fontSize: '9.5px', fontWeight: 500, color: '#B8791C', background: 'rgba(251,191,36,0.08)', padding: '1px 6px', borderRadius: '999px', whiteSpace: 'nowrap' }}>
@@ -835,7 +844,7 @@ export default function Dashboard() {
                             ))}
                           </select>
                           <button onClick={e => toggleFavorite(e, c.id)}
-                            style={{ fontSize: '20px', background: 'none', border: 'none', cursor: 'pointer', color: c.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}>★</button>
+                            style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: c.is_favorite ? '#FBBF24' : 'var(--text-dim)', transition: 'color 0.15s' }}><Star size={18} strokeWidth={1.5} fill={c.is_favorite ? '#FBBF24' : 'none'} /></button>
                         </div>
                       </div>
                       {c.ai_summary && (
@@ -850,7 +859,7 @@ export default function Dashboard() {
                 {!isSmartMode && totalPages > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', paddingTop: '16px', paddingBottom: '8px' }}>
                     <button onClick={() => goToPage(page - 1)} disabled={page === 1}
-                      style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: page === 1 ? 'var(--text-dim)' : 'var(--text-muted)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: page === 1 ? 0.4 : 1, transition: 'all 0.15s' }}>←</button>
+                      style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: page === 1 ? 'var(--text-dim)' : 'var(--text-muted)', cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: page === 1 ? 0.4 : 1, transition: 'all 0.15s' }}><ChevronLeft size={16} strokeWidth={1.5} /></button>
                     {getPageNumbers().map((p, i) => (
                       p === '...' ? (
                         <span key={`dots-${i}`} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'var(--text-dim)' }}>…</span>
@@ -862,7 +871,7 @@ export default function Dashboard() {
                       )
                     ))}
                     <button onClick={() => goToPage(page + 1)} disabled={page === totalPages}
-                      style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: page === totalPages ? 'var(--text-dim)' : 'var(--text-muted)', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: page === totalPages ? 0.4 : 1, transition: 'all 0.15s' }}>→</button>
+                      style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: page === totalPages ? 'var(--text-dim)' : 'var(--text-muted)', cursor: page === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: page === totalPages ? 0.4 : 1, transition: 'all 0.15s' }}><ChevronRight size={16} strokeWidth={1.5} /></button>
                   </div>
                 )}
               </>
@@ -937,25 +946,25 @@ export default function Dashboard() {
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contextMenu.company.name}</p>
           </div>
           {[
-            { label: '👁 View', action: () => { goToCompany(contextMenu.company.id); setContextMenu(null) } },
-            { label: '✏️ Edit', action: () => { window.location.href = `/edit?id=${contextMenu.company.id}`; setContextMenu(null) } },
-            { label: '✉ Generate Email', action: () => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) } },
+            { label: 'View', Icon: Eye, action: () => { goToCompany(contextMenu.company.id); setContextMenu(null) } },
+            { label: 'Edit', Icon: Pencil, action: () => { window.location.href = `/edit?id=${contextMenu.company.id}`; setContextMenu(null) } },
+            { label: 'Generate Email', Icon: Mail, action: () => { window.location.href = `/company/${contextMenu.company.id}`; setContextMenu(null) } },
           ].map(item => (
             <button key={item.label} onClick={item.action}
-              style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s', display: 'block' }}
+              style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '8px' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}>
-              {item.label}
+              <item.Icon size={14} strokeWidth={1.5} /> {item.label}
             </button>
           ))}
           <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
           <p style={{ padding: '4px 12px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Status</p>
           {['reviewed','ready','sent','replied','archive'].map(s => (
             <button key={s} onClick={() => quickUpdateStatus(contextMenu.company.id, s)}
-              style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: '12px', color: contextMenu.company.status === s ? '#60A5FA' : 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s' }}
+              style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: '12px', color: contextMenu.company.status === s ? '#60A5FA' : 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '8px', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '6px' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-              {contextMenu.company.status === s ? '✓ ' : '○ '}{s.charAt(0).toUpperCase() + s.slice(1)}
+              {contextMenu.company.status === s ? <CheckCircle2 size={12} strokeWidth={1.5} /> : <Circle size={12} strokeWidth={1.5} />}{s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
@@ -1011,7 +1020,7 @@ export default function Dashboard() {
                     {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                   </select>
                   <button onClick={e => { toggleFavorite(e, p.id); setPreviewCompany({ ...p, is_favorite: !p.is_favorite }) }}
-                    style={{ fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', color: p.is_favorite ? '#FBBF24' : 'var(--text-dim)' }}>★</button>
+                    style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: p.is_favorite ? '#FBBF24' : 'var(--text-dim)' }}><Star size={18} strokeWidth={1.5} fill={p.is_favorite ? '#FBBF24' : 'none'} /></button>
                 </div>
 
                 {p.ai_summary && (

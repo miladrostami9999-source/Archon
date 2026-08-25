@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { X, ArrowRight, MapPin } from 'lucide-react'
+import { X, ArrowRight, MapPin, Briefcase, Palette, Star } from 'lucide-react'
 import VerifiedBadge from './VerifiedBadge'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -83,8 +83,9 @@ export default function MemberPreviewDrawer({ userId, onClose }: { userId: numbe
                   <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {member.name}{member.is_verified && <VerifiedBadge size={14} />}
                   </h2>
-                  <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
-                    {member.account_mode === 'client' ? '💼 Hires' : '🎨 Takes work'}
+                  <p style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
+                    {member.account_mode === 'client' ? <Briefcase size={11} strokeWidth={1.75} /> : <Palette size={11} strokeWidth={1.75} />}
+                    {member.account_mode === 'client' ? 'Hires' : 'Takes work'}
                   </p>
                 </div>
               </div>
@@ -108,7 +109,10 @@ export default function MemberPreviewDrawer({ userId, onClose }: { userId: numbe
               )}
 
               <div style={{ display: 'flex', gap: '16px', borderTop: '1px solid var(--border)', paddingTop: '14px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                <span>{member.rating ? `★ ${member.rating.toFixed(1)}` : 'No ratings yet'}{member.review_count > 0 ? ` (${member.review_count})` : ''}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  {member.rating && <Star size={12} strokeWidth={1.5} fill="currentColor" />}
+                  {member.rating ? member.rating.toFixed(1) : 'No ratings yet'}{member.review_count > 0 ? ` (${member.review_count})` : ''}
+                </span>
                 <span>{member.completed_contracts} completed</span>
                 <span>{member.portfolio.length} portfolio</span>
               </div>

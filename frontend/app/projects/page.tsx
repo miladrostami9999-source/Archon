@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { DollarSign, Calendar, Plus } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -84,7 +85,7 @@ export default function ProjectsPage() {
   }, [])
 
   const submitPost = async () => {
-    if (!form.title.trim()) { setPostMsg('✗ Title is required'); return }
+    if (!form.title.trim()) { setPostMsg('Title is required'); return }
     setPosting(true); setPostMsg('')
     try {
       await axios.post(`${API}/marketplace/projects`, {
@@ -101,7 +102,7 @@ export default function ProjectsPage() {
       setTab('mine')
       load()
     } catch (e: any) {
-      setPostMsg(`✗ ${e.response?.data?.detail || 'Could not post project'}`)
+      setPostMsg(e.response?.data?.detail || 'Could not post project')
     }
     setPosting(false)
   }
@@ -126,7 +127,7 @@ export default function ProjectsPage() {
             </div>
             <button onClick={() => setShowPost(s => !s)}
               style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
-              {showPost ? 'Cancel' : '+ Post a Project'}
+              {showPost ? 'Cancel' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Plus size={14} strokeWidth={2} />Post a Project</span>}
             </button>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
@@ -180,7 +181,7 @@ export default function ProjectsPage() {
                   style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
                   {posting ? 'Posting…' : 'Post project'}
                 </button>
-                {postMsg && <span style={{ fontSize: '12.5px', color: '#F87171' }}>{postMsg}</span>}
+                {postMsg && <span style={{ fontSize: '12.5px', color: 'var(--error)' }}>{postMsg}</span>}
               </div>
             </div>
           )}
@@ -227,8 +228,8 @@ export default function ProjectsPage() {
                           </p>
                         )}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-dim)' }}>
-                          {budget && <span>💰 {budget}</span>}
-                          {p.deadline && <span>📅 {new Date(p.deadline).toLocaleDateString()}</span>}
+                          {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12} strokeWidth={1.75} />{budget}</span>}
+                          {p.deadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} strokeWidth={1.75} />{new Date(p.deadline).toLocaleDateString()}</span>}
                           {!p.is_owner && (
                             <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
                               style={{ cursor: 'pointer', color: '#60A5FA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

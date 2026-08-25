@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Mail, Eye, RefreshCw, Search, Pencil, Star, Trash2, Check, X, Sparkles, PartyPopper, Sun } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -15,9 +16,9 @@ const TASK_COLORS: Record<string, { border: string; bg: string }> = {
   personal: { border: 'rgba(236,72,153,0.2)',  bg: 'rgba(236,72,153,0.05)' },
 }
 
-const TASK_ICONS: Record<string, string> = {
-  email: '✉', review: '👁', followup: '🔄',
-  research: '🔍', update: '✏', personal: '⭐',
+const TASK_ICONS: Record<string, React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>> = {
+  email: Mail, review: Eye, followup: RefreshCw,
+  research: Search, update: Pencil, personal: Star,
 }
 
 interface Task {
@@ -113,7 +114,7 @@ export default function TasksPage() {
           <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', width: '320px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <span style={{ fontSize: '24px' }}>🗑</span>
+                <Trash2 size={22} strokeWidth={1.75} color="#F87171" />
               </div>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Delete this task?</p>
               <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0' }}>This action cannot be undone.</p>
@@ -154,8 +155,8 @@ export default function TasksPage() {
               + Add Task
             </button>
             {alreadyGenerated && (
-              <span style={{ fontSize: '12px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', padding: '6px 12px', borderRadius: '8px' }}>
-                ✅ Generated
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', padding: '6px 12px', borderRadius: '8px' }}>
+                <Check size={13} strokeWidth={2} color="#34D399" /> Generated
               </span>
             )}
           </div>
@@ -166,7 +167,7 @@ export default function TasksPage() {
           {/* ADD TASK */}
           {showAddTask && (
             <div style={{ borderRadius: '12px', border: '1px solid rgba(236,72,153,0.2)', background: 'rgba(236,72,153,0.04)', padding: '16px', marginBottom: '16px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '12px', marginTop: 0 }}>⭐ New Personal Task</p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '12px', marginTop: 0 }}><Star size={14} strokeWidth={1.75} color="var(--text-muted)" /> New Personal Task</p>
               <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
                 placeholder="Task title *"
                 style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '14px', color: 'var(--text)', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
@@ -196,7 +197,7 @@ export default function TasksPage() {
               <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
                 <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? '#34D399' : progress >= 60 ? '#3D4FE0' : '#FBBF24' }} />
               </div>
-              {progress === 100 && <p style={{ fontSize: '12px', color: '#34D399', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}>🎉 All done!</p>}
+              {progress === 100 && <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '12px', color: '#34D399', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}><PartyPopper size={13} strokeWidth={1.75} color="#34D399" /> All done!</p>}
             </div>
           )}
 
@@ -205,7 +206,7 @@ export default function TasksPage() {
             <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-dim)' }}>Loading...</div>
           ) : tasks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <p style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.2 }}>☀️</p>
+              <p style={{ marginBottom: '12px', opacity: 0.2, display: 'flex', justifyContent: 'center' }}><Sun size={32} strokeWidth={1.5} color="var(--text-dim)" /></p>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>No tasks for today</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
                 {(['en', 'fa'] as const).map(l => (
@@ -223,16 +224,17 @@ export default function TasksPage() {
               </div>
               <button onClick={generateTasks} disabled={generating}
                 style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', opacity: generating ? 0.4 : 1 }}>
-                {generating ? '⏳ Generating...' : '✦ Generate Tasks'}
+                {generating ? 'Generating...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Sparkles size={14} strokeWidth={1.75} color="white" /> Generate Tasks</span>}
               </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {aiTasks.length > 0 && (
                 <>
-                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginBottom: '8px', marginTop: 0 }}>✦ AI Generated</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginBottom: '8px', marginTop: 0 }}><Sparkles size={11} strokeWidth={1.75} color="var(--text-dim)" /> AI Generated</p>
                   {aiTasks.map((task, i) => {
                     const colors = TASK_COLORS[task.task_type] || TASK_COLORS.update
+                    const TaskIcon = TASK_ICONS[task.task_type]
                     return (
                       <div key={task.id} style={{
                         borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : colors.border}`,
@@ -246,11 +248,11 @@ export default function TasksPage() {
                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
                               background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
                             }}>
-                            {task.is_done && <span style={{ fontSize: '10px', color: 'white' }}>✓</span>}
+                            {task.is_done && <Check size={11} strokeWidth={2.5} color="white" />}
                           </button>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '12px', opacity: 0.4 }}>{TASK_ICONS[task.task_type]}</span>
+                              <span style={{ opacity: 0.4, display: 'flex' }}>{TaskIcon && <TaskIcon size={12} strokeWidth={1.75} color="var(--text-muted)" />}</span>
                               <p style={{ fontSize: '14px', fontWeight: 500, flex: 1, margin: 0, color: task.is_done ? 'var(--text-dim)' : 'var(--text)', textDecoration: task.is_done ? 'line-through' : 'none' }}>
                                 {getTitle(task)}
                               </p>
@@ -266,7 +268,7 @@ export default function TasksPage() {
                             style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', flexShrink: 0, padding: '4px', transition: 'color 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
-                            ✕
+                            <X size={13} strokeWidth={2} />
                           </button>
                         </div>
                       </div>
@@ -277,7 +279,7 @@ export default function TasksPage() {
 
               {personalTasks.length > 0 && (
                 <>
-                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginTop: '16px', marginBottom: '8px' }}>⭐ Personal</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginTop: '16px', marginBottom: '8px' }}><Star size={11} strokeWidth={1.75} color="var(--text-dim)" /> Personal</p>
                   {personalTasks.map(task => (
                     <div key={task.id} style={{
                       borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : 'rgba(236,72,153,0.2)'}`,
@@ -291,7 +293,7 @@ export default function TasksPage() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
                             background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
                           }}>
-                          {task.is_done && <span style={{ fontSize: '10px', color: 'white' }}>✓</span>}
+                          {task.is_done && <Check size={11} strokeWidth={2.5} color="white" />}
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: '14px', fontWeight: 500, margin: 0, color: task.is_done ? 'var(--text-dim)' : 'var(--text)', textDecoration: task.is_done ? 'line-through' : 'none' }}>
@@ -303,7 +305,7 @@ export default function TasksPage() {
                           style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '4px', transition: 'color 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
-                          ✕
+                          <X size={13} strokeWidth={2} />
                         </button>
                       </div>
                     </div>
@@ -329,7 +331,7 @@ export default function TasksPage() {
                   </div>
                   <button onClick={generateTasks} disabled={generating}
                     style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', opacity: generating ? 0.4 : 1 }}>
-                    {generating ? '⏳...' : '✦ Generate AI Tasks'}
+                    {generating ? 'Generating...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Sparkles size={13} strokeWidth={1.75} color="white" /> Generate AI Tasks</span>}
                   </button>
                 </div>
               )}

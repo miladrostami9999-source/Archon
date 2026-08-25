@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Building2, Zap, MessageCircle, Trophy, Mail as MailIcon, Target, Hourglass, Handshake } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -94,14 +95,14 @@ export default function Analytics() {
           {/* KPI CARDS */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px' }}>
             {[
-              { label: 'Total Companies', value: data.total_companies, icon: '🏢', color: '#3D4FE0', sub: `${data.favorites} favorites` },
-              { label: 'Active Pipeline', value: activeCompanies, icon: '⚡', color: '#F59E0B', sub: 'in progress' },
-              { label: 'Reply Rate', value: `${replyRate}%`, icon: '💬', color: '#34D399', sub: `${data.emails.replied} of ${data.emails.sent} sent` },
-              { label: 'Clients Won', value: data.status_counts.client || 0, icon: '🏆', color: '#A78BFA', sub: `${conversionRate}% conversion` },
+              { label: 'Total Companies', value: data.total_companies, icon: Building2, color: '#3D4FE0', sub: `${data.favorites} favorites` },
+              { label: 'Active Pipeline', value: activeCompanies, icon: Zap, color: '#F59E0B', sub: 'in progress' },
+              { label: 'Reply Rate', value: `${replyRate}%`, icon: MessageCircle, color: '#34D399', sub: `${data.emails.replied} of ${data.emails.sent} sent` },
+              { label: 'Clients Won', value: data.status_counts.client || 0, icon: Trophy, color: '#A78BFA', sub: `${conversionRate}% conversion` },
             ].map(s => (
               <div key={s.label} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: 0, right: 0, width: '64px', height: '64px', borderRadius: '50%', background: s.color, opacity: 0.1, transform: 'translate(30%, -30%)' }} />
-                <p style={{ fontSize: '20px', margin: '0 0 8px' }}>{s.icon}</p>
+                <p style={{ margin: '0 0 8px' }}><s.icon size={20} strokeWidth={1.5} color={s.color} /></p>
                 <p style={{ fontSize: '24px', fontWeight: 700, color: s.color, margin: 0 }}>{s.value}</p>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0', fontWeight: 500 }}>{s.label}</p>
                 <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{s.sub}</p>
@@ -220,13 +221,13 @@ export default function Analytics() {
               <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Quick Insights</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {[
-                  { icon: '📬', label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
-                  { icon: '🎯', label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
-                  { icon: '⏳', label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
-                  { icon: '🤝', label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
+                  { icon: MailIcon, label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
+                  { icon: Target, label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
+                  { icon: Hourglass, label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
+                  { icon: Handshake, label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
                 ].map(item => (
                   <div key={item.label} style={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '12px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '20px', margin: '0 0 4px' }}>{item.icon}</p>
+                    <p style={{ margin: '0 0 4px', display: 'flex', justifyContent: 'center' }}><item.icon size={18} strokeWidth={1.5} color="var(--text-muted)" /></p>
                     <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{item.value}</p>
                     <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{item.label}</p>
                     <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{item.desc}</p>

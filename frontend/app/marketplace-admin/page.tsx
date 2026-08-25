@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Paperclip, Coins, CreditCard, Landmark, AlertTriangle, Check, X } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -285,7 +286,7 @@ export default function MarketplaceAdminPage() {
                               {p.reference ? <> · ref <strong>{p.reference}</strong></> : ''}
                             </div>
                             {p.receipt_url && (
-                              <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>📎 View receipt</a>
+                              <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}><Paperclip size={12} strokeWidth={1.75} /> View receipt</a>
                             )}
                             {p.note && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic' }}>"{p.note}"</div>}
                           </div>
@@ -358,7 +359,7 @@ export default function MarketplaceAdminPage() {
                     </div>
                     {v.id_document_url && (
                       <a href={v.id_document_url} target="_blank" rel="noreferrer"
-                        style={{ display: 'inline-block', marginTop: '8px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}>📎 View ID document</a>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '8px', fontSize: '12.5px', color: '#60A5FA', textDecoration: 'none' }}><Paperclip size={12} strokeWidth={1.75} /> View ID document</a>
                     )}
                     {rejectVerifyId === v.user_id && (
                       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
@@ -399,7 +400,7 @@ export default function MarketplaceAdminPage() {
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', borderRadius: '12px', border: `1px solid ${due ? 'rgba(52,211,153,0.35)' : 'var(--border)'}`, background: due ? 'rgba(52,211,153,0.06)' : 'var(--bg-card)', padding: '12px 16px', cursor: 'pointer', flexWrap: 'wrap', gap: '6px' }}>
                       <span style={{ fontSize: '13.5px', color: 'var(--text)' }}>
                         {c.project_title || `Contract #${c.id}`} — {c.client_name}{c.client_verified && <VerifiedBadge size={11} />} → {c.freelancer_name}{c.freelancer_verified && <VerifiedBadge size={11} />}
-                        {due > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.14)', padding: '2px 8px', borderRadius: '999px' }}>💰 payout due</span>}
+                        {due > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#34D399', background: 'rgba(52,211,153,0.14)', padding: '2px 8px', borderRadius: '999px' }}><Coins size={11} strokeWidth={1.75} /> payout due</span>}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{c.total_amount?.toLocaleString('en-US')} {c.currency} · {c.status}</span>
                     </button>
@@ -533,7 +534,7 @@ export default function MarketplaceAdminPage() {
                       </p>
                     </div>
                     <button onClick={() => setDetail(null)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '16px', padding: '2px' }}>✕</button>
+                      style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '2px' }}><X size={16} strokeWidth={1.75} /></button>
                   </div>
 
                   <div style={{ padding: '18px 20px' }}>
@@ -556,18 +557,18 @@ export default function MarketplaceAdminPage() {
 
                             {/* What the admin is being asked to do, if anything */}
                             {pending && (
-                              <p style={{ fontSize: '12px', color: '#FBBF24', margin: '8px 0 0' }}>
-                                💳 Client says they paid {pending.amount?.toLocaleString('en-US')} {pending.currency}
+                              <p style={{ fontSize: '12px', color: '#FBBF24', margin: '8px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <CreditCard size={13} strokeWidth={1.75} /> Client says they paid {pending.amount?.toLocaleString('en-US')} {pending.currency}
                                 {pending.reference ? ` · ref ${pending.reference}` : ''} — confirm it in the Pending Payments tab.
                               </p>
                             )}
                             {m.deliverable_url && (
                               <a href={m.deliverable_url} target="_blank" rel="noreferrer"
-                                style={{ display: 'inline-block', marginTop: '6px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>📎 Delivered work</a>
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}><Paperclip size={12} strokeWidth={1.75} /> Delivered work</a>
                             )}
                             {m.payouts.length > 0 && (
-                              <p style={{ fontSize: '12px', color: '#A78BFA', margin: '6px 0 0' }}>
-                                🏦 Paid out {m.payouts[0].amount?.toLocaleString('en-US')}
+                              <p style={{ fontSize: '12px', color: '#A78BFA', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Landmark size={13} strokeWidth={1.75} /> Paid out {m.payouts[0].amount?.toLocaleString('en-US')}
                                 {m.payouts[0].reference ? ` · ref ${m.payouts[0].reference}` : ''}
                               </p>
                             )}
@@ -587,8 +588,8 @@ export default function MarketplaceAdminPage() {
                       <>
                         <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>Send it here</p>
                         {detail.freelancer.verification_status !== 'verified' && (
-                          <div style={{ borderRadius: '10px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.07)', padding: '10px 12px', marginBottom: '10px', fontSize: '12px', color: '#FBBF24', lineHeight: 1.6 }}>
-                            ⚠ This freelancer is <strong>{detail.freelancer.verification_status}</strong> — their details haven&apos;t been checked. Verify them before transferring.
+                          <div style={{ borderRadius: '10px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.07)', padding: '10px 12px', marginBottom: '10px', fontSize: '12px', color: '#FBBF24', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                            <AlertTriangle size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} /> <span>This freelancer is <strong>{detail.freelancer.verification_status}</strong> — their details haven&apos;t been checked. Verify them before transferring.</span>
                           </div>
                         )}
                         <div style={{ borderRadius: '11px', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '14px 16px', marginBottom: '8px' }}>
@@ -606,8 +607,8 @@ export default function MarketplaceAdminPage() {
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-all' }}>{val}</div>
                               </div>
                               <button onClick={() => copy(name, val)}
-                                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', color: copied === name ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === name ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
-                                {copied === name ? '✓' : 'Copy'}
+                                style={{ display: 'flex', alignItems: 'center', flexShrink: 0, fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', color: copied === name ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === name ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
+                                {copied === name ? <Check size={12} strokeWidth={2} /> : 'Copy'}
                               </button>
                             </div>
                           ))}

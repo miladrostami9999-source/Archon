@@ -6,6 +6,7 @@ import Sidebar from '../../components/Sidebar'
 import MarketplaceBeta from '../../components/MarketplaceBeta'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -94,7 +95,7 @@ export default function ProjectDetailPage() {
   }
 
   const saveEdit = async () => {
-    if (!editForm.title.trim()) { setMsg('✗ Title is required'); return }
+    if (!editForm.title.trim()) { setMsg('Title is required'); return }
     setBusy('submit'); setMsg('')
     try {
       await axios.patch(`${API}/marketplace/projects/${id}`, {
@@ -107,9 +108,9 @@ export default function ProjectDetailPage() {
         deadline: editForm.deadline || null,
       })
       setEditing(false)
-      setMsg('✓ Project updated')
+      setMsg('Project updated')
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not save'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not save') }
     setBusy(null)
   }
 
@@ -120,7 +121,7 @@ export default function ProjectDetailPage() {
       await axios.delete(`${API}/marketplace/projects/${id}`)
       window.location.href = '/projects'
     } catch (e: any) {
-      setMsg(`✗ ${e.response?.data?.detail || 'Could not delete'}`)
+      setMsg(e.response?.data?.detail || 'Could not delete')
       setBusy(null)
     }
   }
@@ -133,7 +134,7 @@ export default function ProjectDetailPage() {
       const r = await axios.post(`${API}/auth/upload/receipt`, fd)
       setSample({ url: r.data.url, name: file.name })
     } catch (e: any) {
-      setMsg(`✗ ${e.response?.data?.detail || 'Could not upload the file'}`)
+      setMsg(e.response?.data?.detail || 'Could not upload the file')
     }
     setUploading(false)
   }
@@ -163,7 +164,7 @@ export default function ProjectDetailPage() {
   }, [id])
 
   const submitProposal = async () => {
-    if (!form.proposed_amount) { setMsg('✗ Proposed amount is required'); return }
+    if (!form.proposed_amount) { setMsg('Proposed amount is required'); return }
     setBusy('submit'); setMsg('')
     try {
       await axios.post(`${API}/marketplace/projects/${id}/proposals`, {
@@ -172,9 +173,9 @@ export default function ProjectDetailPage() {
         proposed_days: form.proposed_days ? Number(form.proposed_days) : null,
         attachment_url: sample?.url || null,
       })
-      setMsg('✓ Proposal submitted')
+      setMsg('Proposal submitted')
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not submit proposal'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not submit proposal') }
     setBusy(null)
   }
 
@@ -183,9 +184,9 @@ export default function ProjectDetailPage() {
     setBusy(proposalId); setMsg('')
     try {
       await axios.post(`${API}/marketplace/proposals/${proposalId}/accept`, {})
-      setMsg('✓ Proposal accepted — contract created')
+      setMsg('Proposal accepted — contract created')
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not accept'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not accept') }
     setBusy(null)
   }
 
@@ -194,7 +195,7 @@ export default function ProjectDetailPage() {
     try {
       await axios.post(`${API}/marketplace/proposals/${proposalId}/reject`)
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not reject'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not reject') }
     setBusy(null)
   }
 
@@ -203,7 +204,7 @@ export default function ProjectDetailPage() {
     try {
       await axios.post(`${API}/marketplace/proposals/${proposalId}/withdraw`)
       load()
-    } catch (e: any) { setMsg(`✗ ${e.response?.data?.detail || 'Could not withdraw'}`) }
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not withdraw') }
     setBusy(null)
   }
 
@@ -225,7 +226,7 @@ export default function ProjectDetailPage() {
       <Sidebar />
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-          <a href="/projects" style={{ fontSize: '12.5px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: '14px' }}>← Back to projects</a>
+          <a href="/projects" style={{ fontSize: '12.5px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '14px' }}><ArrowLeft size={13} strokeWidth={1.75} />Back to projects</a>
 
           <MarketplaceBeta />
 
@@ -283,7 +284,7 @@ export default function ProjectDetailPage() {
                   style={{ padding: '9px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
                   Cancel
                 </button>
-                {msg && <span style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171' }}>{msg}</span>}
+                {msg && <span style={{ fontSize: '12.5px', color: /updated|success/i.test(msg) ? 'var(--success)' : 'var(--error)' }}>{msg}</span>}
               </div>
             </div>
           ) : (
@@ -310,15 +311,15 @@ export default function ProjectDetailPage() {
                 </div>
                 {project.description && <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 12px', whiteSpace: 'pre-wrap' }}>{project.description}</p>}
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
-                  {budget && <span>💰 {budget}</span>}
-                  {project.deadline && <span>📅 Due {new Date(project.deadline).toLocaleDateString()}</span>}
+                  {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={13} strokeWidth={1.75} />{budget}</span>}
+                  {project.deadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={13} strokeWidth={1.75} />Due {new Date(project.deadline).toLocaleDateString()}</span>}
                   {!project.is_owner && (
                     <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={11} />}</a></span>
                   )}
                 </div>
               </div>
 
-              {msg && <p style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171', marginBottom: '14px' }}>{msg}</p>}
+              {msg && <p style={{ fontSize: '12.5px', color: /accepted|submitted/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
 
               {project.is_owner ? (
                 <>
@@ -363,12 +364,12 @@ export default function ProjectDetailPage() {
                                   {/* Track record — what the hiring decision rests on */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--text-dim)', marginBottom: '6px' }}>
                                     {p.freelancer_review_count > 0 ? (
-                                      <span style={{ color: '#FBBF24' }}>★ {p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--warning)' }}><Star size={12} strokeWidth={1.75} fill="currentColor" />{p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
                                     ) : (
                                       <span>No reviews yet</span>
                                     )}
                                     {p.freelancer_completed_contracts > 0 && (
-                                      <span>✓ {p.freelancer_completed_contracts} completed</span>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={12} strokeWidth={1.75} />{p.freelancer_completed_contracts} completed</span>
                                     )}
                                     {p.freelancer_headline && <span>· {p.freelancer_headline}</span>}
                                   </div>
@@ -380,7 +381,7 @@ export default function ProjectDetailPage() {
                                   {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
                                   {p.attachment_url && (
                                     <a href={p.attachment_url} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>📎 Work sample</a>
+                                      style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
                                   )}
                                 </div>
                               </div>
@@ -445,12 +446,12 @@ export default function ProjectDetailPage() {
                     <label style={label}>Work sample <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
                     {sample ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <a href={sample.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: '#34D399', textDecoration: 'none' }}>📎 {sample.name}</a>
+                        <a href={sample.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{sample.name}</a>
                         <button onClick={() => setSample(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
                       </div>
                     ) : (
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        📎 {uploading ? 'Uploading…' : 'Attach an image or PDF'}
+                        <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach an image or PDF'}
                         <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadSample(f); e.target.value = '' }} />
                       </label>

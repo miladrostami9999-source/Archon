@@ -3,17 +3,17 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import VerifiedBadge from './VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Download, Plus } from 'lucide-react'
+import { Download, Plus, Hourglass, Gem, Star, Trophy, Trash2, X, Briefcase, Palette, ShieldCheck, Crown, Lock, ShoppingCart } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
 const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
 const PLAN_META = {
-  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', icon: '⏳' },
-  basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', icon: '◈' },
-  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  icon: '⭐' },
-  agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', icon: '🏆' },
+  trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', Icon: Hourglass },
+  basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', Icon: Gem },
+  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  Icon: Star },
+  agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', Icon: Trophy },
 } as const
 
 interface User {
@@ -216,7 +216,7 @@ export default function AdminUsersPanel() {
       {deleteConfirm !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '32px 28px', maxWidth: '320px', width: 'calc(100% - 32px)', textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🗑</div>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><Trash2 size={22} strokeWidth={1.75} color="#F87171" /></div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>Delete User?</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>This action is permanent and cannot be undone.</p>
             {deleteError && <p style={{ fontSize: '12px', color: '#F87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '8px 10px', margin: '0 0 16px', lineHeight: 1.5 }}>{deleteError}</p>}
@@ -249,7 +249,7 @@ export default function AdminUsersPanel() {
             <div key={plan} onClick={() => setFilterPlan(isActive ? '' : plan)}
               style={{ borderRadius: 'var(--radius-lg)', border: `1px solid ${isActive ? pm.color : 'var(--border)'}`, background: isActive ? pm.bg : 'var(--bg-card)', padding: isMobile ? '12px' : '14px 16px', cursor: 'pointer' }}>
               <p style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 800, color: pm.color, margin: 0 }}>{count}</p>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', margin: '4px 0 0', textTransform: 'capitalize' }}>{pm.icon} {plan}</p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', margin: '4px 0 0', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '4px' }}><pm.Icon size={12} strokeWidth={1.75} /> {plan}</p>
             </div>
           )
         })}
@@ -337,26 +337,27 @@ export default function AdminUsersPanel() {
                           <option value="trial">Trial</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option>
                         </select>
                       ) : (
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize' }}>
-                          {pm.icon} {u.plan}
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <pm.Icon size={10} strokeWidth={1.75} /> {u.plan}
                         </span>
                       )}
 
                       {!isEditing && u.role !== 'admin' && (
-                        <span title="Marketplace mode" style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
-                          {u.account_mode === 'client' ? '💼 hires' : '🎨 takes work'}
+                        <span title="Marketplace mode" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-dim)' }}>
+                          {u.account_mode === 'client' ? <Briefcase size={10} strokeWidth={1.75} /> : <Palette size={10} strokeWidth={1.75} />}
+                          {u.account_mode === 'client' ? 'hires' : 'takes work'}
                         </span>
                       )}
 
                       {u.is_founder ? (
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', padding: '2px 8px', borderRadius: '999px' }}>🛡 Founder</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', padding: '2px 8px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ShieldCheck size={10} strokeWidth={1.75} /> Founder</span>
                       ) : isEditing ? (
                         <select value={editUser.role} onChange={e => setEditUser({ ...editUser, role: e.target.value })}
                           style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
                           <option value="member">Member</option><option value="admin">Admin</option>
                         </select>
                       ) : u.role === 'admin' ? (
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', padding: '2px 8px', borderRadius: '999px' }}>👑 Admin</span>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', padding: '2px 8px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Crown size={10} strokeWidth={1.75} /> Admin</span>
                       ) : null}
 
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, color: u.is_active ? '#34D399' : '#F87171' }}>
@@ -376,14 +377,14 @@ export default function AdminUsersPanel() {
                       <>
                         <button onClick={() => openDetail(u.id)}
                           style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#A78BFA', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', fontWeight: 600 }}>View</button>
-                        <span title="The founder account cannot be edited, disabled or deleted by anyone." style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-dim)', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>🔒 Locked</span>
+                        <span title="The founder account cannot be edited, disabled or deleted by anyone." style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-dim)', background: 'var(--bg-input)', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Lock size={11} strokeWidth={1.75} /> Locked</span>
                       </>
                     ) : isEditing ? (
                       <>
                         <button onClick={() => updateUser(u.id, { plan: editUser.plan, role: editUser.role })}
                           style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#34D399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', cursor: 'pointer', fontWeight: 700 }}>Save</button>
                         <button onClick={() => setEditUser(null)}
-                          style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>✕</button>
+                          style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer', display: 'flex' }}><X size={13} strokeWidth={1.75} /></button>
                       </>
                     ) : (
                       <>
@@ -407,12 +408,12 @@ export default function AdminUsersPanel() {
                               color: u.marketplace_beta_enabled === false ? 'var(--text-dim)' : '#A78BFA',
                               background: u.marketplace_beta_enabled === false ? 'var(--bg-input)' : 'rgba(139,92,246,0.1)',
                               border: `1px solid ${u.marketplace_beta_enabled === false ? 'var(--border)' : 'rgba(139,92,246,0.2)'}` }}>
-                            {u.marketplace_beta_enabled === false ? '🛒 Off' : '🛒 On'}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ShoppingCart size={11} strokeWidth={1.75} /> {u.marketplace_beta_enabled === false ? 'Off' : 'On'}</span>
                           </button>
                         )}
                         {u.role !== 'admin' && (
                           <button onClick={() => setDeleteConfirm(u.id)}
-                            style={{ fontSize: '14px', padding: '5px 8px', borderRadius: '8px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>🗑</button>
+                            style={{ padding: '5px 8px', borderRadius: '8px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={13} strokeWidth={1.75} /></button>
                         )}
                       </>
                     )}
