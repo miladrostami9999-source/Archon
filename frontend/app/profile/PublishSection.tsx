@@ -38,7 +38,7 @@ interface Props {
     avatar?: string
     portfolio?: any[]
   }
-  onPublicChange?: (isPublic: boolean) => void
+  onPublicChange?: (isPublic: boolean, username: string | null) => void
 }
 
 export default function PublishSection({ profile, onPublicChange }: Props) {
@@ -54,7 +54,7 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
     axios.get(`${API}/auth/profile/me`, { headers: headers() })
       .then(res => {
         setIsPublic(!!res.data.is_public)
-        onPublicChange?.(!!res.data.is_public)
+        onPublicChange?.(!!res.data.is_public, res.data.username || null)
         setUsername(res.data.username || '')
         if (res.data.is_public && res.data.username) {
           setPublicUrl(`${window.location.origin}/u/${res.data.username}`)
@@ -81,7 +81,7 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
       }, { headers: headers() })
 
       setIsPublic(res.data.is_public)
-      onPublicChange?.(!!res.data.is_public)
+      onPublicChange?.(!!res.data.is_public, res.data.username || null)
       setUsername(res.data.username)
       setPublicUrl(res.data.public_url ? `${window.location.origin}${res.data.public_url}` : null)
     } catch (e: any) {

@@ -108,7 +108,7 @@ export default function ProfilePage() {
   const [postsLoaded, setPostsLoaded] = useState(false)
   const [editingPostId, setEditingPostId] = useState<number | null>(null)
   const [editPostText, setEditPostText] = useState('')
-  const [completionExtra, setCompletionExtra] = useState({ isVerified: false, hasPost: false, hasSentEmail: false, isPublic: false })
+  const [completionExtra, setCompletionExtra] = useState({ isVerified: false, hasPost: false, hasSentEmail: false, isPublic: false, username: null as string | null })
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -147,6 +147,7 @@ export default function ProfilePage() {
         localStorage.setItem('archon-profile', JSON.stringify(fromServer))
         setCompletionExtra({
           isVerified: !!d.is_verified, hasPost: !!d.has_post, hasSentEmail: !!d.has_sent_email, isPublic: !!d.is_public,
+          username: d.username || null,
         })
       })
       .catch(() => {})
@@ -535,66 +536,88 @@ export default function ProfilePage() {
       )}
 
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px' }}>
+        <div style={{ maxWidth: '1120px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
 
-          {/* PROFILE HERO */}
-          <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '28px', marginBottom: '20px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
-
+          {/* ── IDENTITY SIDEBAR ── */}
+          <aside style={{ width: isMobile ? '100%' : '280px', flexShrink: 0, position: isMobile ? 'static' : 'sticky', top: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', textAlign: 'center' }}>
               {/* AVATAR */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '14px' }}>
                 <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
                 <div onClick={() => avatarRef.current?.click()}
-                  style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', flexShrink: 0, background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: '88px', height: '88px', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
                   title="Click to upload photo">
                   {profile.avatar ? (
                     <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ fontSize: '28px', fontWeight: 800, color: 'white' }}>{initials}</span>
+                    <span style={{ fontSize: '30px', fontWeight: 800, color: 'white' }}>{initials}</span>
                   )}
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
                     onMouseLeave={e => { e.currentTarget.style.opacity = '0' }}>
-                    <span style={{ fontSize: '24px' }}>📷</span>
+                    <span style={{ fontSize: '22px' }}>📷</span>
                   </div>
                 </div>
-                <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: '#3D4FE0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}>✏</div>
+                <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: '#3D4FE0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}>✏</div>
               </div>
 
-              {/* INFO */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {user?.name || '—'}{user?.is_verified && <VerifiedBadge size={18} />}
-                </h1>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 8px' }}>{user?.email}</p>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {plan && <span style={{ fontSize: '11px', fontWeight: 700, color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase' }}>{plan.label}</span>}
-                  {user?.role === 'admin' && <span style={{ fontSize: '11px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '3px 10px', borderRadius: '999px' }}>👑 Admin</span>}
+              <h1 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {user?.name || '—'}{user?.is_verified && <VerifiedBadge size={16} />}
+              </h1>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px' }}>{user?.email}</p>
+
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '10px' }}>
+                {plan && <span style={{ fontSize: '10.5px', fontWeight: 700, color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase' }}>{plan.label}</span>}
+                {user?.role === 'admin' && <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#FBBF24', background: 'rgba(251,191,36,0.1)', padding: '3px 10px', borderRadius: '999px' }}>👑 Admin</span>}
+              </div>
+
+              {(profile.location || profile.company) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center', marginBottom: '10px' }}>
                   {profile.location && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>📍 {profile.location}</span>}
                   {profile.company && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>🏢 {profile.company}</span>}
                 </div>
-                {allSkills.length > 0 && (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-                    {allSkills.slice(0, 5).map(s => (
-                      <span key={s} style={{ fontSize: '10px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.15)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>
-                    ))}
-                    {allSkills.length > 5 && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>+{allSkills.length - 5}</span>}
-                  </div>
-                )}
-                {profile.bio && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '10px 0 0', lineHeight: 1.6 }}>{profile.bio}</p>}
-              </div>
+              )}
 
-              {/* PLAN CARD */}
-              {plan && (
-                <div style={{ borderRadius: '12px', border: `1px solid ${plan.color}30`, background: plan.bg, padding: '12px 16px', textAlign: 'right', flexShrink: 0 }}>
-                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Plan</p>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: plan.color, margin: '0 0 2px' }}>{plan.label}</p>
-                  <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: 0 }}>{plan.desc}</p>
+              {profile.bio && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.6, textAlign: 'left' }}>{profile.bio}</p>}
+
+              {allSkills.length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {allSkills.slice(0, 6).map(s => (
+                    <span key={s} style={{ fontSize: '10px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.15)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>
+                  ))}
+                  {allSkills.length > 6 && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>+{allSkills.length - 6}</span>}
                 </div>
               )}
+
+              {user?.created_at && (
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '14px 0 0', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                  Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </p>
+              )}
+
+              {completionExtra.isPublic && completionExtra.username && (
+                <a href={`/u/${completionExtra.username}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'block', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+                  View public profile ↗
+                </a>
+              )}
             </div>
-          </div>
+
+            <ProfileCompletion
+              signals={{
+                isVerified: completionExtra.isVerified,
+                hasPost: completionExtra.hasPost,
+                hasSentEmail: completionExtra.hasSentEmail,
+                isPublic: completionExtra.isPublic,
+                hasPortfolio: profile.portfolio.length > 0,
+                hasAvatar: !!profile.avatar,
+              }}
+              onNavigateTab={setActiveTab}
+            />
+          </aside>
+
+          {/* ── MAIN COLUMN ── */}
+          <main style={{ flex: 1, minWidth: 0 }}>
 
           {/* TABS */}
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', marginBottom: '20px' }}>
@@ -609,17 +632,6 @@ export default function ProfilePage() {
           {/* ── TAB: INFO ── */}
           {activeTab === 'info' && (
             <>
-            <ProfileCompletion
-              signals={{
-                isVerified: completionExtra.isVerified,
-                hasPost: completionExtra.hasPost,
-                hasSentEmail: completionExtra.hasSentEmail,
-                isPublic: completionExtra.isPublic,
-                hasPortfolio: profile.portfolio.length > 0,
-                hasAvatar: !!profile.avatar,
-              }}
-              onNavigateTab={setActiveTab}
-            />
             {/* Marketplace mode — a view preference, not a permission. Both
                 modes can post work and take work; this decides which one the
                 Projects page leads with. */}
@@ -918,7 +930,7 @@ export default function ProfilePage() {
           {activeTab === 'security' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-              <PublishSection profile={profile} onPublicChange={isPublic => setCompletionExtra(c => ({ ...c, isPublic }))} />
+              <PublishSection profile={profile} onPublicChange={(isPublic, username) => setCompletionExtra(c => ({ ...c, isPublic, username }))} />
 
               <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔐 Change Password</h2>
@@ -1042,6 +1054,7 @@ export default function ProfilePage() {
               )}
             </div>
           )}
+          </main>
         </div>
       </div>
     </div>
