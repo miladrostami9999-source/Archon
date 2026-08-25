@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { LayoutGrid, StickyNote, History as HistoryIcon, Mail, Pencil } from 'lucide-react'
 import { LockedField, UnlockButton } from '../../components/AccessLock'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -46,7 +47,7 @@ interface EmailDraft { subject: string; body: string }
 interface Campaign { id: number; subject: string; body: string; tone: string; status: string; sent_at: string | null; replied_at: string | null; created_at: string }
 
 const card: React.CSSProperties = {
-  borderRadius: '12px', border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
   background: 'var(--bg-card)', padding: '16px',
   transition: 'background 0.25s, border-color 0.25s',
 }
@@ -312,14 +313,14 @@ export default function CompanyDetail() {
               <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Send To</p>
 
               {contacts.filter(c => c.email).length === 0 && !company?.email ? (
-                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', fontSize: '13px', color: '#F87171' }}>
+                <div style={{ padding: '12px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', fontSize: '13px', color: '#F87171' }}>
                   No email address available for this company or its contacts.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {/* Company general email */}
                   {company?.email && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${selectedRecipient === company.email ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`, background: selectedRecipient === company.email ? 'rgba(61,79,224,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: `1px solid ${selectedRecipient === company.email ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`, background: selectedRecipient === company.email ? 'rgba(61,79,224,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
                       <input type="radio" name="recipient" checked={selectedRecipient === company.email} onChange={() => setSelectedRecipient(company.email)} style={{ accentColor: '#3D4FE0' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>General / Company</p>
@@ -330,7 +331,7 @@ export default function CompanyDetail() {
 
                   {/* Individual contacts */}
                   {contacts.filter(c => c.email).map(c => (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${selectedRecipient === c.email ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`, background: selectedRecipient === c.email ? 'rgba(61,79,224,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: `1px solid ${selectedRecipient === c.email ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`, background: selectedRecipient === c.email ? 'rgba(61,79,224,0.08)' : 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}>
                       <input type="radio" name="recipient" checked={selectedRecipient === c.email} onChange={() => setSelectedRecipient(c.email)} style={{ accentColor: '#3D4FE0' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -351,7 +352,7 @@ export default function CompanyDetail() {
             <div style={{ marginBottom: '12px' }}>
               <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Subject</p>
               <input value={editSubject} onChange={e => setEditSubject(e.target.value)}
-                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '9px 12px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '9px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none' }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
@@ -360,7 +361,7 @@ export default function CompanyDetail() {
             <div style={{ marginBottom: '14px' }}>
               <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Message — edit before sending</p>
               <textarea value={editBody} onChange={e => setEditBody(e.target.value)} rows={8}
-                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none', resize: 'vertical' as const, lineHeight: 1.6, fontFamily: 'inherit' }}
+                style={{ width: '100%', boxSizing: 'border-box' as const, padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '13px', outline: 'none', resize: 'vertical' as const, lineHeight: 1.6, fontFamily: 'inherit' }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
@@ -370,13 +371,13 @@ export default function CompanyDetail() {
               <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Attachments</p>
               <input id="attach-input" type="file" multiple style={{ display: 'none' }} onChange={handleAttachmentUpload} accept=".pdf,.jpg,.jpeg,.png,.zip,.doc,.docx" />
               <button onClick={() => document.getElementById('attach-input')?.click()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: 'var(--radius-md)', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
                 📎 Add Portfolio / Files
               </button>
               {attachments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
                   {attachments.map(a => (
-                    <div key={a.filename} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
+                    <div key={a.filename} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                         <span style={{ fontSize: '14px' }}>📄</span>
                         <span style={{ fontSize: '12px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{a.filename}</span>
@@ -393,7 +394,7 @@ export default function CompanyDetail() {
             </div>
 
             {sendResult && (
-              <div style={{ padding: '10px 12px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+              <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: '14px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
                 {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
               </div>
             )}
@@ -424,7 +425,7 @@ export default function CompanyDetail() {
           backdropFilter: 'blur(12px)', transition: 'background 0.25s, border-color 0.25s',
         }}>
           <button onClick={() => window.location.href = '/dashboard'}
-            style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', padding: '4px 8px', borderRadius: '6px' }}
+            style={{ fontSize: '14px', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}
             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}>
             ← Back
@@ -441,8 +442,9 @@ export default function CompanyDetail() {
             ))}
           </select>
           <button onClick={() => setActiveTab('email')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
-            {isMobile ? '✉' : '✉ Generate Email'}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
+            <Mail size={15} strokeWidth={1.5} />
+            {!isMobile && 'Generate Email'}
           </button>
         </div>
 
@@ -486,7 +488,7 @@ export default function CompanyDetail() {
                   </div>
                 ) : (
                   <button onClick={generateSummary} disabled={generatingSummary}
-                    style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', opacity: generatingSummary ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', borderRadius: 'var(--radius-md)', padding: '7px 14px', cursor: 'pointer', opacity: generatingSummary ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                     {generatingSummary ? <><div className="spinner-sm" /> Researching with AI...</> : '✨ Research with AI — get score & summary'}
                   </button>
                 )}
@@ -494,22 +496,16 @@ export default function CompanyDetail() {
 
               {/* SCORE + EDIT */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <div style={{ position: 'relative', width: isMobile ? '42px' : '56px', height: isMobile ? '42px' : '56px' }}>
-                  <svg width={isMobile ? 42 : 56} height={isMobile ? 42 : 56} viewBox="0 0 56 56" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" strokeWidth="4"/>
-                    <circle cx="28" cy="28" r="22" fill="none" stroke={getScoreColor(company.opportunity_score)} strokeWidth="4"
-                      strokeDasharray={`${company.opportunity_score * 1.382} 999`} strokeLinecap="round"
-                      style={{ filter: `drop-shadow(0 0 6px ${getScoreColor(company.opportunity_score)}60)` }}/>
-                  </svg>
-                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: getScoreColor(company.opportunity_score) }}>
+                <div style={{ width: isMobile ? '42px' : '56px', textAlign: 'center' }} title="Opportunity score">
+                  <span className="mono" style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 600, color: getScoreColor(company.opportunity_score) }}>
                     {Math.round(company.opportunity_score)}
                   </span>
                 </div>
                 <button onClick={() => window.location.href = `/edit?id=${id}`}
-                  style={{ fontSize: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: isMobile ? '3px 8px' : '4px 10px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: isMobile ? '3px 8px' : '4px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', cursor: 'pointer', transition: 'all 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)' }}
                   onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
-                  ✏️ Edit
+                  <Pencil size={12} strokeWidth={1.5} /> Edit
                 </button>
               </div>
             </div>
@@ -612,35 +608,41 @@ export default function CompanyDetail() {
           {/* ACTIONS — same placement on mobile and desktop */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => setShowDeleteModal(true)}
-              style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
+              style={{ flex: 1, fontSize: '12px', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', cursor: 'pointer' }}>
               🗑 Delete
             </button>
             <button onClick={() => window.location.href = `/edit?id=${id}`}
-              style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.2)', padding: '8px', borderRadius: '8px', background: 'rgba(61,79,224,0.08)', cursor: 'pointer' }}>
+              style={{ flex: 1, fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.2)', padding: '8px', borderRadius: 'var(--radius-md)', background: 'rgba(61,79,224,0.08)', cursor: 'pointer' }}>
               ✏️ Edit
             </button>
           </div>
 
           {/* TABS */}
-          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', flexShrink: 0, width: '100%', boxSizing: 'border-box' as const }}>
-            {(['overview', 'notes', 'history', 'email', 'emails'] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                style={{
-                  flex: '1 1 0', minWidth: 0, padding: isMobile ? '8px 4px' : '8px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500,
-                  borderRadius: '8px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                  background: activeTab === tab ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent',
-                  color: activeTab === tab ? 'white' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text)' }}
-                onMouseLeave={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text-muted)' }}>
-                {isMobile ? (tab === 'overview' ? '📋' : tab === 'notes' ? '📝' : tab === 'history' ? '📅' : tab === 'email' ? '✉' : '📧') : (tab === 'overview' ? '📋 Overview'
-                  : tab === 'notes' ? `📝 Notes${notes.length > 0 ? ` (${notes.length})` : ''}`
-                  : tab === 'history' ? '📅 History'
-                  : tab === 'email' ? '✉ Generate'
-                  : `📧 Emails (${campaigns.length})`)}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '4px', flexShrink: 0, width: '100%', boxSizing: 'border-box' as const }}>
+            {(['overview', 'notes', 'history', 'email', 'emails'] as const).map(tab => {
+              const TAB_ICON = { overview: LayoutGrid, notes: StickyNote, history: HistoryIcon, email: Mail, emails: Mail } as const
+              const TAB_LABEL = {
+                overview: 'Overview', notes: `Notes${notes.length > 0 ? ` (${notes.length})` : ''}`,
+                history: 'History', email: 'Generate', emails: `Emails (${campaigns.length})`,
+              } as const
+              const Icon = TAB_ICON[tab]
+              return (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  style={{
+                    flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    padding: isMobile ? '8px 4px' : '8px', fontSize: '12px', fontWeight: 500,
+                    borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                    background: activeTab === tab ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent',
+                    color: activeTab === tab ? 'white' : 'var(--text-muted)',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text)' }}
+                  onMouseLeave={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text-muted)' }}>
+                  <Icon size={14} strokeWidth={1.5} />
+                  {!isMobile && TAB_LABEL[tab]}
+                </button>
+              )
+            })}
           </div>
 
           {/* OVERVIEW */}
@@ -649,7 +651,7 @@ export default function CompanyDetail() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h2 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Key Contacts</h2>
                 <button onClick={() => setShowAddContact(!showAddContact)}
-                  style={{ fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.25)', padding: '6px 12px', borderRadius: '8px', background: 'rgba(61,79,224,0.08)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                  style={{ fontSize: '12px', color: '#60A5FA', border: '1px solid rgba(61,79,224,0.25)', padding: '6px 12px', borderRadius: 'var(--radius-md)', background: 'rgba(61,79,224,0.08)', cursor: 'pointer', transition: 'all 0.15s' }}>
                   + Add Contact
                 </button>
               </div>
@@ -659,16 +661,16 @@ export default function CompanyDetail() {
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <input placeholder="Full Name *" value={newContact.full_name}
                       onChange={e => setNewContact({ ...newContact, full_name: e.target.value })}
-                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
                     <input placeholder="Role (CEO, Founder...)" value={newContact.role}
                       onChange={e => setNewContact({ ...newContact, role: e.target.value })}
-                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
                     <input placeholder="Email" value={newContact.email}
                       onChange={e => setNewContact({ ...newContact, email: e.target.value })}
-                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
                     <input placeholder="LinkedIn URL" value={newContact.linkedin}
                       onChange={e => setNewContact({ ...newContact, linkedin: e.target.value })}
-                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: '13px', color: 'var(--text)', outline: 'none' }} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>
@@ -678,11 +680,11 @@ export default function CompanyDetail() {
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => setShowAddContact(false)}
-                        style={{ fontSize: '12px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', background: 'var(--bg-card)', cursor: 'pointer' }}>
+                        style={{ fontSize: '12px', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', background: 'var(--bg-card)', cursor: 'pointer' }}>
                         Cancel
                       </button>
                       <button onClick={saveContact} disabled={savingContact || !newContact.full_name.trim()}
-                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'white', background: '#3D4FE0', border: 'none', cursor: 'pointer', opacity: (savingContact || !newContact.full_name.trim()) ? 0.4 : 1 }}>
+                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: 'var(--radius-md)', color: 'white', background: '#3D4FE0', border: 'none', cursor: 'pointer', opacity: (savingContact || !newContact.full_name.trim()) ? 0.4 : 1 }}>
                         {savingContact ? 'Saving...' : 'Save'}
                       </button>
                     </div>
@@ -708,7 +710,7 @@ export default function CompanyDetail() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{contact.full_name}</p>
-                            {contact.is_primary && <span style={{ fontSize: '10px', background: 'rgba(61,79,224,0.15)', color: '#60A5FA', padding: '2px 6px', borderRadius: '4px' }}>Primary</span>}
+                            {contact.is_primary && <span style={{ fontSize: '10px', background: 'rgba(61,79,224,0.15)', color: '#60A5FA', padding: '2px 6px', borderRadius: 'var(--radius-xs)' }}>Primary</span>}
                           </div>
                           <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{contact.role}</p>
                         </div>
@@ -737,12 +739,12 @@ export default function CompanyDetail() {
                   style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text)', resize: 'none', boxSizing: 'border-box' }} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                   <select value={noteLang} onChange={e => setNoteLang(e.target.value)}
-                    style={{ fontSize: '12px', border: '1px solid var(--border)', borderRadius: '8px', padding: '4px 8px', background: 'var(--bg-input)', color: 'var(--text)', outline: 'none' }}>
+                    style={{ fontSize: '12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '4px 8px', background: 'var(--bg-input)', color: 'var(--text)', outline: 'none' }}>
                     <option value="en">English</option>
                     <option value="fa">فارسی</option>
                   </select>
                   <button onClick={saveNote} disabled={savingNote || !newNote.trim()}
-                    style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'white', background: '#3D4FE0', border: 'none', cursor: 'pointer', opacity: (savingNote || !newNote.trim()) ? 0.4 : 1 }}>
+                    style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'white', background: '#3D4FE0', border: 'none', cursor: 'pointer', opacity: (savingNote || !newNote.trim()) ? 0.4 : 1 }}>
                     {savingNote ? 'Saving...' : 'Save Note'}
                   </button>
                 </div>
@@ -804,7 +806,7 @@ export default function CompanyDetail() {
                   {['friendly', 'formal', 'brief', 'storytelling'].map(tone => (
                     <button key={tone} onClick={() => setEmailTone(tone)}
                       style={{
-                        fontSize: '12px', padding: '8px 16px', borderRadius: '8px', fontWeight: 500,
+                        fontSize: '12px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontWeight: 500,
                         border: emailTone === tone ? 'none' : '1px solid var(--border)',
                         background: emailTone === tone ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)',
                         color: emailTone === tone ? 'white' : 'var(--text-muted)',
@@ -815,7 +817,7 @@ export default function CompanyDetail() {
                   ))}
                 </div>
                 <button onClick={generateEmail} disabled={generatingEmail}
-                  style={{ width: '100%', marginTop: '16px', padding: '10px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: generatingEmail ? 0.5 : 1 }}>
+                  style={{ width: '100%', marginTop: '16px', padding: '10px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: generatingEmail ? 0.5 : 1 }}>
                   {generatingEmail ? '⏳ Generating...' : '✨ Generate Email'}
                 </button>
               </div>
@@ -825,30 +827,30 @@ export default function CompanyDetail() {
                   <div style={{ marginBottom: '12px' }}>
                     <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Subject</p>
                     <input value={emailDraft.subject} onChange={e => setEmailDraft({ ...emailDraft, subject: e.target.value })}
-                      style={{ width: '100%', fontSize: '14px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', fontSize: '14px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Body</p>
                     <textarea value={emailDraft.body} onChange={e => setEmailDraft({ ...emailDraft, body: e.target.value })}
-                      rows={10} style={{ width: '100%', fontSize: '14px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', outline: 'none', resize: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
+                      rows={10} style={{ width: '100%', fontSize: '14px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', resize: 'none', boxSizing: 'border-box', lineHeight: 1.6 }} />
                   </div>
                   {sendResult && (
-                    <div style={{ padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171', border: `1px solid ${sendResult.ok ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                    <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', marginBottom: '12px', fontSize: '13px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171', border: `1px solid ${sendResult.ok ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                       {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button onClick={generateEmail} disabled={generatingEmail}
-                      style={{ flex: isMobile ? '1 1 100%' : 1, padding: '9px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', borderRadius: '8px', background: 'var(--bg-input)', cursor: 'pointer' }}>
+                      style={{ flex: isMobile ? '1 1 100%' : 1, padding: '9px', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '13px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', cursor: 'pointer' }}>
                       🔄 Regenerate
                     </button>
                     <button onClick={copyAndOpenGmail}
-                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer' }}>
+                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
                       {copied ? '✅ Copied!' : '📋 Copy'}
                     </button>
                     <button onClick={() => emailDraft && openSendModal(emailDraft.subject, emailDraft.body)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
                       title={(!company?.email && contacts.filter(c => c.email).length === 0) ? 'No email address available' : ''}
-                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: '8px', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                      style={{ flex: 1, padding: '9px', fontSize: '13px', fontWeight: 700, color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: 'var(--radius-md)', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
                       📨 Send Now
                     </button>
                   </div>
@@ -916,24 +918,24 @@ export default function CompanyDetail() {
                           <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Body</p>
                           <p style={{ fontSize: '14px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap', lineHeight: 1.6, margin: '0 0 12px' }}>{campaign.body}</p>
                           {sendResult && (
-                            <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '10px', fontSize: '12px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
+                            <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-md)', marginBottom: '10px', fontSize: '12px', background: sendResult.ok ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)', color: sendResult.ok ? '#34D399' : '#F87171' }}>
                               {sendResult.ok ? '✅' : '⚠️'} {sendResult.msg}
                             </div>
                           )}
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             <button onClick={() => { navigator.clipboard.writeText(`Subject: ${campaign.subject}\n\n${campaign.body}`); window.open('https://mail.google.com/mail/u/0/#compose', '_blank') }}
-                              style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                              style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                               📋 Copy
                             </button>
                             {campaign.status === 'draft' && (
                               <button onClick={() => sendCampaignDirectly(campaign)} disabled={!company?.email && contacts.filter(c => c.email).length === 0}
-                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
+                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', color: 'white', background: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'rgba(61,79,224,0.4)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: (!company?.email && contacts.filter(c => c.email).length === 0) ? 'not-allowed' : 'pointer' }}>
                                 📨 Send Now
                               </button>
                             )}
                             {campaign.status === 'sent' && (
                               <button onClick={() => markAsReplied(campaign.id)}
-                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: '8px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #34D399, #10B981)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                style={{ fontSize: '12px', padding: '6px 16px', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #34D399, #10B981)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 ✅ Mark as Replied
                               </button>
                             )}
