@@ -133,11 +133,11 @@ export default function Analytics() {
           {/* JUMP-TO-SECTION NAV — sticky, mirrors AdminSideNav's role but for
               in-page anchors instead of separate routes */}
           {!isMobile && (
-            <aside style={{ width: '176px', flexShrink: 0, position: 'sticky', top: '90px', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <aside style={{ width: '200px', flexShrink: 0, position: 'sticky', top: '90px', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
               {SECTIONS.map(s => (
                 <button key={s.id} onClick={() => scroll(s.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', borderRadius: 'var(--radius-md)', border: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
-                  <s.Icon size={14} strokeWidth={1.75} />
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px', borderRadius: 'var(--radius-md)', border: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                  <s.Icon size={16} strokeWidth={1.5} />
                   {s.label}
                 </button>
               ))}
