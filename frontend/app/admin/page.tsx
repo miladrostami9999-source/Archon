@@ -4,8 +4,9 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import AdminSideNav from '../components/AdminSideNav'
 import GrowthChart from '../components/GrowthChart'
+import AdminUsersPanel from '../components/AdminUsersPanel'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Upload, Download, RefreshCw, Flame, BookOpen, AlertTriangle } from 'lucide-react'
+import { Upload, Download, RefreshCw, Flame, BookOpen, AlertTriangle, Users as UsersIcon } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -31,6 +32,13 @@ export default function AdminPanel() {
   const [userCount, setUserCount] = useState(0)
   const [revenue, setRevenue] = useState<{ all_time_usd: number; this_week_usd: number; this_month_usd: number; mrr_usd: number } | null>(null)
   const [atRisk, setAtRisk] = useState<AtRiskUser[]>([])
+  const [view, setView] = useState<'overview' | 'users'>('overview')
+
+  // Deep-link support for the embedded Users view (e.g. from the command palette)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'users') setView('users')
+  }, [])
 
   // Admin-only page — members who navigate here directly get sent back
   useEffect(() => {
@@ -64,6 +72,18 @@ export default function AdminPanel() {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url; a.download = `archon_export_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Export failed')
+    }
+  }
+
+  const exportUsers = async () => {
+    try {
+      const res = await axios.get(`${API}/auth/users/export`, { headers: headers(), responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = `archon_users_${new Date().toISOString().slice(0, 10)}.csv`; a.click()
       URL.revokeObjectURL(url)
     } catch {
       alert('Export failed')
@@ -104,6 +124,7 @@ export default function AdminPanel() {
     { Icon: RefreshCw, title: 'Recalculate Scores', desc: 'Re-score every company with the current weights.', action: recalcScores, label: recalculating ? 'Recalculating...' : 'Recalculate All', msg: recalcMsg, disabled: recalculating },
     { Icon: Flame, title: 'Recalculate Heat', desc: 'Refresh hot / warm / cold across your pipeline.', action: recalcHeat, label: recalcHeating ? 'Recalculating...' : 'Recalculate Heat', msg: heatMsg, disabled: recalcHeating },
     { Icon: BookOpen, title: 'API Documentation', desc: 'FastAPI Swagger UI for developers', action: () => window.open(`${API}/docs`, '_blank'), label: 'Open Docs' },
+    { Icon: UsersIcon, title: 'Export Users', desc: 'Download every user (plan, activity, signup) as a spreadsheet', action: exportUsers, label: 'Download Excel/CSV' },
   ]
 
   return (
@@ -113,14 +134,19 @@ export default function AdminPanel() {
 
         <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
           <div>
-            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Admin Panel</h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>Platform management and system tools</p>
+            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{view === 'users' ? 'Users' : 'Admin Panel'}</h1>
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{view === 'users' ? 'Manage every account on the platform' : 'Platform management and system tools'}</p>
           </div>
         </div>
 
         <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
-          {!isMobile && <AdminSideNav active="/admin" />}
+          {!isMobile && <AdminSideNav active="/admin" usersView={view === 'users'} onUsersClick={() => setView('users')} />}
 
+          {view === 'users' ? (
+            <main style={{ flex: 1, minWidth: 0 }}>
+              <AdminUsersPanel />
+            </main>
+          ) : (
           <main style={{ flex: 1, minWidth: 0 }}>
             {/* KPI CARDS */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '16px', marginBottom: '20px' }}>
@@ -167,10 +193,10 @@ export default function AdminPanel() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '200px' }}>
                     {atRisk.slice(0, 8).map(u => (
-                      <a key={u.id} href={`/users`} style={{ display: 'block', padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', textDecoration: 'none' }}>
+                      <button key={u.id} onClick={() => setView('users')} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: 'none', cursor: 'pointer' }}>
                         <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{u.name} <span style={{ fontWeight: 400, color: 'var(--text-dim)' }}>· {u.plan}</span></p>
                         <p style={{ fontSize: '11px', color: 'var(--warning)', margin: '2px 0 0' }}>{u.reasons.join(', ')}</p>
-                      </a>
+                      </button>
                     ))}
                     {atRisk.length > 8 && <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>+{atRisk.length - 8} more</p>}
                   </div>
@@ -203,6 +229,7 @@ export default function AdminPanel() {
               ))}
             </div>
           </main>
+          )}
         </div>
       </div>
     </div>

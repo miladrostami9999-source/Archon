@@ -222,7 +222,6 @@ export default function Sidebar() {
   const adminItems = isAdmin ? [
     { label: 'Lead Hunter', iconKey: 'hunt',     href: '/discovery' },
     { label: 'Admin Panel', iconKey: 'admin',    href: '/admin' },
-    { label: 'Users',       iconKey: 'users',    href: '/users' },
     { label: 'Waitlist',    iconKey: 'waitlist', href: '/waitlist', badge: waitlistCount },
     { label: 'Payments',    iconKey: 'payments', href: '/payments', badge: paymentCount },
     { label: 'Marketplace Admin', iconKey: 'contracts', href: '/marketplace-admin', badge: mpPaymentCount + pendingVerifications },

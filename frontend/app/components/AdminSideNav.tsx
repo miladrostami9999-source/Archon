@@ -4,14 +4,20 @@ import { LayoutDashboard, Users, DollarSign, HeartPulse, Settings, Search } from
 import AdminCommandPalette from './AdminCommandPalette'
 
 const NAV_ITEMS = [
-  { href: '/admin', label: 'Overview', Icon: LayoutDashboard },
-  { href: '/users', label: 'Users', Icon: Users },
-  { href: '/admin/revenue', label: 'Revenue', Icon: DollarSign },
-  { href: '/admin/system-health', label: 'System Health', Icon: HeartPulse },
-  { href: '/admin/settings', label: 'Settings', Icon: Settings },
+  { key: 'overview', href: '/admin', label: 'Overview', Icon: LayoutDashboard },
+  { key: 'users', href: '/admin', label: 'Users', Icon: Users },
+  { key: 'revenue', href: '/admin/revenue', label: 'Revenue', Icon: DollarSign },
+  { key: 'health', href: '/admin/system-health', label: 'System Health', Icon: HeartPulse },
+  { key: 'settings', href: '/admin/settings', label: 'Settings', Icon: Settings },
 ]
 
-export default function AdminSideNav({ active }: { active: string }) {
+export default function AdminSideNav({ active, usersView, onUsersClick }: {
+  active: string
+  /** True when the /admin page is currently showing the embedded Users view instead of Overview. */
+  usersView?: boolean
+  /** Present only on the /admin page itself — switches the Users view in place instead of navigating. */
+  onUsersClick?: () => void
+}) {
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
@@ -31,10 +37,31 @@ export default function AdminSideNav({ active }: { active: string }) {
         <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px 8px' }}>
           Admin
         </p>
-        {NAV_ITEMS.map(({ href, label, Icon }) => {
-          const isActive = active === href
+        {NAV_ITEMS.map(({ key, href, label, Icon }) => {
+          if (key === 'users') {
+            const isActive = !!usersView
+            const itemStyle: React.CSSProperties = {
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px', width: '100%',
+              borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: '13.5px', fontWeight: 600,
+              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+              background: isActive ? 'var(--accent-dim)' : 'transparent',
+              border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+            }
+            return onUsersClick ? (
+              <button key={key} onClick={onUsersClick} style={itemStyle}>
+                <Icon size={16} strokeWidth={1.5} />
+                {label}
+              </button>
+            ) : (
+              <a key={key} href={href} style={itemStyle}>
+                <Icon size={16} strokeWidth={1.5} />
+                {label}
+              </a>
+            )
+          }
+          const isActive = active === href && !(key === 'overview' && usersView)
           return (
-            <a key={href} href={href} style={{
+            <a key={key} href={href} style={{
               display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 10px',
               borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: '13.5px', fontWeight: 600,
               color: isActive ? 'var(--accent)' : 'var(--text-muted)',

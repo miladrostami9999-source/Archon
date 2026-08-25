@@ -11,7 +11,7 @@ function buildItems(close: () => void): Item[] {
   const go = (href: string) => () => { window.location.href = href }
   return [
     { label: 'Overview', hint: 'Admin', Icon: LayoutDashboard, action: go('/admin') },
-    { label: 'Users', hint: 'Admin', Icon: Users, action: go('/users') },
+    { label: 'Users', hint: 'Admin', Icon: Users, action: go('/admin?tab=users') },
     { label: 'Revenue', hint: 'Admin', Icon: DollarSign, action: go('/admin/revenue') },
     { label: 'System Health', hint: 'Admin', Icon: HeartPulse, action: go('/admin/system-health') },
     { label: 'Settings', hint: 'Admin', Icon: Settings, action: go('/admin/settings') },
