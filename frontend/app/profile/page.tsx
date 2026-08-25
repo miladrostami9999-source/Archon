@@ -6,6 +6,7 @@ import { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 import PublishSection from './PublishSection'
+import PortfolioGrid from '../components/PortfolioGrid'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -93,7 +94,6 @@ export default function ProfilePage() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const avatarRef = useRef<HTMLInputElement>(null)
   const portfolioImgRef = useRef<HTMLInputElement>(null)
-  const [addingImagesTo, setAddingImagesTo] = useState<string | null>(null)
   const [accountMode, setAccountMode] = useState<'freelancer' | 'client'>('freelancer')
   const [modeSaving, setModeSaving] = useState(false)
   const [dangerMode, setDangerMode] = useState<'' | 'deactivate' | 'delete'>('')
@@ -512,7 +512,7 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <input ref={portfolioImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
                   onChange={e => { handlePortfolioImages(e, selectedProject.id); setSelectedProject(prev => prev ? { ...profile.portfolio.find(p => p.id === selectedProject.id)! } : null) }} />
-                <button onClick={() => { setAddingImagesTo(selectedProject.id); portfolioImgRef.current?.click() }}
+                <button onClick={() => portfolioImgRef.current?.click()}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)'; e.currentTarget.style.color = 'var(--text)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
@@ -830,62 +830,16 @@ export default function ProfilePage() {
               </div>
 
               {/* PORTFOLIO GRID */}
-              {profile.portfolio.length === 0 ? (
-                <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '64px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.15 }}>🏛</p>
-                  <p style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-muted)', margin: '0 0 4px' }}>No projects yet</p>
-                  <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Create a project and upload your architectural visualizations</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '14px' }}>
-                  {profile.portfolio.map(item => {
-                    const cover = item.images[0]
-                    return (
-                      <div key={item.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
-                        onClick={() => setSelectedProject(item)}>
-
-                        {/* COVER */}
-                        <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {cover ? (
-                            <img src={cover.data} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <span style={{ fontSize: '48px', opacity: 0.15 }}>🏛</span>
-                          )}
-                          {/* IMAGE COUNT */}
-                          {item.images.length > 0 && (
-                            <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', borderRadius: '999px', padding: '3px 10px', fontSize: '11px', color: 'white', fontWeight: 600 }}>
-                              📷 {item.images.length} photo{item.images.length > 1 ? 's' : ''}
-                            </div>
-                          )}
-                          {/* ADD PHOTOS QUICK BUTTON */}
-                          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '6px' }}>
-                            <button onClick={e => { e.stopPropagation(); setAddingImagesTo(item.id); const input = document.getElementById(`upload-${item.id}`) as HTMLInputElement; input?.click() }}
-                              style={{ padding: '4px 8px', borderRadius: '6px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', backdropFilter: 'blur(4px)' }}>
-                              + Add Photos
-                            </button>
-                            <button onClick={e => { e.stopPropagation(); removePortfolio(item.id) }}
-                              style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(239,68,68,0.8)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                          </div>
-                          <input id={`upload-${item.id}`} type="file" accept="image/*" multiple style={{ display: 'none' }}
-                            onChange={e => handlePortfolioImages(e, item.id)} />
-                        </div>
-
-                        {/* INFO */}
-                        <div style={{ padding: '14px 16px' }}>
-                          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>{item.title}</h4>
-                          {item.desc && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.desc}</p>}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '11px', color: '#60A5FA', fontWeight: 500 }}>Click to view →</span>
-                            {item.url && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>🔗 External</span>}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <PortfolioGrid
+                items={profile.portfolio}
+                isMobile={isMobile}
+                editable
+                onSelect={setSelectedProject}
+                onAddImages={handlePortfolioImages}
+                onDeleteItem={removePortfolio}
+                emptyTitle="No projects yet"
+                emptySubtitle="Create a project and upload your architectural visualizations"
+              />
 
               {profile.portfolio.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

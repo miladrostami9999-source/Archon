@@ -5,11 +5,9 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import PortfolioGrid, { type PortfolioItem } from '../../components/PortfolioGrid'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-interface PortfolioImage { id: string; data: string; name: string; alt?: string }
-interface PortfolioItem { id: string; title: string; desc: string; url: string; images: PortfolioImage[] }
 
 interface Member {
   id: number; name: string; username: string | null; is_public: boolean
@@ -187,29 +185,11 @@ export default function MemberProfilePage() {
               )}
 
               {/* PORTFOLIO */}
-              {m.portfolio.length > 0 && (
-                <div style={{ paddingBottom: '32px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>Portfolio</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
-                    {m.portfolio.map(p => (
-                      <div key={p.id} style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden' }}>
-                        {p.images?.[0] && (
-                          <img src={p.images[0].data} alt={p.images[0].alt || p.title}
-                            style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }} />
-                        )}
-                        <div style={{ padding: '12px 14px' }}>
-                          <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: '0 0 3px' }}>{p.title}</p>
-                          {p.desc && <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>}
-                          {p.url && (
-                            <a href={p.url} target="_blank" rel="noreferrer"
-                              style={{ display: 'inline-block', marginTop: '6px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>View project ↗</a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div style={{ paddingBottom: '32px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>Portfolio</p>
+                <PortfolioGrid items={m.portfolio} isMobile={isMobile}
+                  emptyTitle="No portfolio yet" emptySubtitle="This member hasn't added any projects yet." />
+              </div>
             </>
           )}
         </div>

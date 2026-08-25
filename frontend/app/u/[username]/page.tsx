@@ -3,11 +3,10 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import VerifiedBadge from '../../components/VerifiedBadge'
+import PortfolioGrid, { type PortfolioItem } from '../../components/PortfolioGrid'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-interface PortfolioImage { id: string; data: string; name: string; alt?: string }
-interface PortfolioItem { id: string; title: string; desc: string; url: string; images: PortfolioImage[] }
 interface PublicProfile {
   name: string; username: string; is_verified: boolean; avatar: string; bio: string
   location: string; website: string; company: string
@@ -223,41 +222,8 @@ export default function PublicProfilePage() {
           Portfolio
         </p>
 
-        {(!profile.portfolio || profile.portfolio.length === 0) ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(231,234,240,0.3)' }}>
-            <p style={{ fontSize: '36px', marginBottom: '10px' }}>🏛</p>
-            <p style={{ fontSize: '14px' }}>No portfolio items yet.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
-            {profile.portfolio.map(item => {
-              const cover = item.images?.[0]
-              return (
-                <div key={item.id} onClick={() => setSelectedProject(item)}
-                  style={{ borderRadius: '14px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.transform = 'none' }}>
-                  <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                    {cover ? (
-                      <img src={cover.data} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <span style={{ fontSize: '40px', opacity: 0.15 }}>🏛</span>
-                    )}
-                    {item.images?.length > 1 && (
-                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', borderRadius: '999px', padding: '2px 9px', fontSize: '11px', fontWeight: 600 }}>
-                        +{item.images.length - 1}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ padding: '14px 16px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 4px' }}>{item.title}</h4>
-                    {item.desc && <p style={{ fontSize: '12px', color: 'rgba(231,234,240,0.5)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.desc}</p>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <PortfolioGrid items={profile.portfolio || []} variant="dark" onSelect={setSelectedProject}
+          emptyTitle="No portfolio items yet" emptySubtitle="Nothing has been shared here yet." />
       </div>
 
       {/* FOOTER */}
