@@ -164,7 +164,7 @@ export default function NotificationBell({ dark = true }: { dark?: boolean }) {
                 style={{
                   width: '100%', display: 'flex', gap: '9px', textAlign: 'left', cursor: 'pointer',
                   padding: '11px 14px', border: 'none', borderBottom: `1px solid ${border}`,
-                  background: n.read ? 'transparent' : (dark ? 'rgba(79,123,247,0.07)' : 'rgba(79,123,247,0.05)'),
+                  background: n.read ? 'transparent' : (dark ? 'rgba(61,79,224,0.07)' : 'rgba(61,79,224,0.05)'),
                 }}>
                 <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1.3 }}>{ICON[n.kind] || '🔔'}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>

@@ -52,7 +52,7 @@ export default function MarketplaceBeta({ compact = false }: { compact?: boolean
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '10px',
       borderRadius: '12px', border: '1px solid rgba(139,92,246,0.25)',
-      background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(79,123,247,0.06))',
+      background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(61,79,224,0.06))',
       padding: compact ? '10px 12px' : '13px 15px', marginBottom: '16px',
     }}>
       <span style={{ fontSize: '15px', lineHeight: 1.2, flexShrink: 0 }}>🧪</span>

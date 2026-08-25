@@ -71,17 +71,17 @@ function SignupInner() {
     fontSize: '14px', color: '#E2E8F0', outline: 'none',
     transition: 'border-color 0.15s',
   }
-  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }
+  const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }
   const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0B0E18', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: '-200px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(79,123,247,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-200px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(61,79,224,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <a href="/" style={{ textDecoration: 'none' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px', fontWeight: 800, color: 'white' }}>A</div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px', fontWeight: 800, color: 'white' }}>A</div>
           </a>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#E2E8F0', margin: '0 0 4px' }}>Archon</h1>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>by Armila Design</p>
@@ -127,8 +127,8 @@ function SignupInner() {
                         <button key={opt.key} type="button" onClick={() => setAccountMode(opt.key)}
                           style={{
                             textAlign: 'left', padding: '12px', borderRadius: '10px', cursor: 'pointer',
-                            border: `1px solid ${on ? 'rgba(79,123,247,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                            background: on ? 'rgba(79,123,247,0.14)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${on ? 'rgba(61,79,224,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                            background: on ? 'rgba(61,79,224,0.14)' : 'rgba(255,255,255,0.03)',
                             transition: 'all 0.15s',
                           }}>
                           <div style={{ fontSize: '17px', marginBottom: '4px' }}>{opt.icon}</div>
@@ -168,7 +168,7 @@ function SignupInner() {
                 </div>
 
                 <button onClick={submit} disabled={loading}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: loading ? 'rgba(79,123,247,0.5)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: loading ? 'rgba(61,79,224,0.5)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   {loading ? (<><div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> Submitting...</>) : (isTrial ? 'Create my account →' : 'Create account & pay →')}
                 </button>
               </div>

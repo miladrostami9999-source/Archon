@@ -120,7 +120,7 @@ export default function ContractChat({ contractId, conversationId, currentUserId
               <span style={{ fontSize: '10.5px', color: 'var(--text-dim)', marginBottom: '2px' }}>{mine ? 'You' : m.sender_name || 'Them'}</span>
               <div style={{
                 maxWidth: '78%', borderRadius: '12px', padding: '8px 12px', fontSize: '13px', lineHeight: 1.5,
-                background: mine ? 'linear-gradient(135deg,#4F7BF7,#7C3AED)' : 'var(--bg-input)',
+                background: mine ? 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' : 'var(--bg-input)',
                 color: mine ? 'white' : 'var(--text)',
                 borderBottomRightRadius: mine ? '3px' : '12px',
                 borderBottomLeftRadius: mine ? '12px' : '3px',
@@ -171,7 +171,7 @@ export default function ContractChat({ contractId, conversationId, currentUserId
           <button onClick={send} disabled={sending || uploading || (!text.trim() && !attachment)}
             style={{
               flexShrink: 0, padding: '9px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600,
-              color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none',
+              color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none',
               cursor: 'pointer', opacity: (sending || uploading || (!text.trim() && !attachment)) ? 0.5 : 1,
             }}>
             Send

@@ -199,11 +199,11 @@ export default function FeedPage() {
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
                 {uploading ? 'Uploading…' : '📷 Add image'}
               </button>
               <button onClick={submitPost} disabled={posting || !text.trim()}
-                style={{ marginLeft: 'auto', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (posting || !text.trim()) ? 0.5 : 1 }}>
+                style={{ marginLeft: 'auto', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (posting || !text.trim()) ? 0.5 : 1 }}>
                 {posting ? 'Posting…' : 'Post'}
               </button>
             </div>
@@ -222,7 +222,7 @@ export default function FeedPage() {
                 <div key={p.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <a href={`/members/${p.user_id}`} style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
-                      <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                      <span style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                         {p.author_avatar
                           ? <img src={p.author_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <span style={{ fontSize: '12px', fontWeight: 800, color: 'white' }}>{(p.author_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>}
@@ -247,7 +247,7 @@ export default function FeedPage() {
                     <div style={{ marginBottom: '10px' }}>
                       <textarea rows={3} value={editText} onChange={e => setEditText(e.target.value)} style={{ ...input, resize: 'vertical', marginBottom: '8px' }} />
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => saveEdit(p.id)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>Save</button>
+                        <button onClick={() => saveEdit(p.id)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>Save</button>
                         <button onClick={() => setEditingId(null)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
@@ -283,7 +283,7 @@ export default function FeedPage() {
                           onKeyDown={e => { if (e.key === 'Enter') submitComment(p.id) }}
                           placeholder="Write a comment…" style={{ ...input, flex: 1 }} />
                         <button onClick={() => submitComment(p.id)}
-                          style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer' }}>
+                          style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer' }}>
                           Send
                         </button>
                       </div>

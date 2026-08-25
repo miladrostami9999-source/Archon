@@ -54,7 +54,7 @@ interface Contract {
 }
 
 const CONTRACT_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  active:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)', label: 'Active' },
+  active:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Active' },
   completed: { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
   disputed:  { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
@@ -310,13 +310,13 @@ export default function ContractDetailPage() {
                       {/* ── ACTIONS ── */}
                       {isClient && m.status === 'pending' && !panelOpen && (
                         <button onClick={() => openFund(m)}
-                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                           Fund this milestone
                         </button>
                       )}
                       {isFreelancer && m.status === 'funded' && !panelOpen && (
                         <button onClick={() => openDeliver(m)}
-                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                          style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                           Mark as delivered
                         </button>
                       )}
@@ -341,7 +341,7 @@ export default function ContractDetailPage() {
                         <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                           {/* Send the money first, then record it here. */}
                           {pay && (pay.card_number || pay.paypal_email) ? (
-                            <div style={{ borderRadius: '10px', border: '1px solid rgba(79,123,247,0.25)', background: 'rgba(79,123,247,0.06)', padding: '12px 14px', marginBottom: '14px' }}>
+                            <div style={{ borderRadius: '10px', border: '1px solid rgba(61,79,224,0.25)', background: 'rgba(61,79,224,0.06)', padding: '12px 14px', marginBottom: '14px' }}>
                               <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#60A5FA', margin: '0 0 8px' }}>
                                 Step 1 — transfer {m.amount.toLocaleString('en-US')} {contract.currency}
                               </p>
@@ -354,7 +354,7 @@ export default function ContractDetailPage() {
                                       {pay.card_holder && <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{pay.card_holder}</div>}
                                     </div>
                                     <button onClick={() => copy('card', pay.card_number)}
-                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
                                       {copied === 'card' ? '✓ Copied' : 'Copy'}
                                     </button>
                                   </div>
@@ -366,7 +366,7 @@ export default function ContractDetailPage() {
                                       <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{pay.paypal_email}</div>
                                     </div>
                                     <button onClick={() => copy('paypal', pay.paypal_email)}
-                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
                                       {copied === 'paypal' ? '✓ Copied' : 'Copy'}
                                     </button>
                                   </div>
@@ -426,7 +426,7 @@ export default function ContractDetailPage() {
                           </div>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button onClick={() => submitFund(m.id)} disabled={busy === m.id}
-                              style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                              style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                               {busy === m.id ? 'Submitting…' : 'Submit payment'}
                             </button>
                             <button onClick={() => setOpenPanel(null)}
@@ -461,7 +461,7 @@ export default function ContractDetailPage() {
                           </div>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button onClick={() => submitDeliver(m.id)} disabled={busy === m.id}
-                              style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                              style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                               {busy === m.id ? 'Submitting…' : 'Submit delivery'}
                             </button>
                             <button onClick={() => setOpenPanel(null)}
@@ -509,7 +509,7 @@ export default function ContractDetailPage() {
                           style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px', fontSize: '13px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', resize: 'vertical', marginBottom: '10px' }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <button onClick={submitReview} disabled={reviewBusy}
-                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: reviewBusy ? 0.6 : 1 }}>
+                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: reviewBusy ? 0.6 : 1 }}>
                             {reviewBusy ? 'Submitting…' : 'Submit review'}
                           </button>
                           {reviewMsg && <span style={{ fontSize: '12px', color: '#F87171' }}>{reviewMsg}</span>}

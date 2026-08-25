@@ -89,7 +89,7 @@ export default function AddCompany() {
               <input name="name" value={form.name} onChange={handleChange}
                 placeholder="e.g. BIG - Bjarke Ingels Group"
                 style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
 
@@ -99,14 +99,14 @@ export default function AddCompany() {
                 <label style={labelStyle}>Domain</label>
                 <input name="domain" value={form.domain} onChange={handleChange} placeholder="e.g. big.dk"
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>Website</label>
                 <input name="website" value={form.website} onChange={handleChange} placeholder="https://big.dk"
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function AddCompany() {
               <label style={labelStyle}>Email</label>
               <input name="email" value={form.email} onChange={handleChange} placeholder="info@studio.com"
                 style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
 
@@ -126,14 +126,14 @@ export default function AddCompany() {
                 <label style={labelStyle}>Country</label>
                 <input name="country" value={form.country} onChange={handleChange} placeholder="e.g. Denmark"
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>City</label>
                 <input name="city" value={form.city} onChange={handleChange} placeholder="e.g. Copenhagen"
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -173,14 +173,14 @@ export default function AddCompany() {
                 <label style={labelStyle}>LinkedIn</label>
                 <input name="linkedin" value={form.linkedin} onChange={handleChange} placeholder="linkedin.com/company/..."
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>Instagram</label>
                 <input name="instagram" value={form.instagram} onChange={handleChange} placeholder="instagram.com/..."
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function AddCompany() {
                 Cancel
               </button>
               <button onClick={handleSubmit} disabled={loading}
-                style={{ flex: 1, padding: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+                style={{ flex: 1, padding: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
                 {loading ? 'Saving...' : 'Add Company'}
               </button>
             </div>

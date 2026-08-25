@@ -83,8 +83,8 @@ function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => vo
     <button type="button" onClick={onClick} title={title}
       style={{
         fontSize: '11.5px', padding: '5px 10px', borderRadius: '999px', cursor: 'pointer',
-        border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
-        background: on ? 'rgba(79,123,247,0.14)' : 'var(--bg-input)',
+        border: `1px solid ${on ? 'rgba(61,79,224,0.45)' : 'var(--border)'}`,
+        background: on ? 'rgba(61,79,224,0.14)' : 'var(--bg-input)',
         color: on ? '#60A5FA' : 'var(--text-muted)', textAlign: 'left',
       }}>{children}</button>
   )
@@ -403,7 +403,7 @@ export default function LeadHunter() {
                 style={{
                   padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
                   border: 'none', cursor: 'pointer', textTransform: 'capitalize',
-                  background: tab === t ? 'rgba(79,123,247,0.14)' : 'transparent',
+                  background: tab === t ? 'rgba(61,79,224,0.14)' : 'transparent',
                   color: tab === t ? '#60A5FA' : 'var(--text-dim)',
                 }}>{t === 'saved' ? `Saved (${hunts.length})` : t}</button>
             ))}
@@ -423,8 +423,8 @@ export default function LeadHunter() {
                     return (
                       <div key={s.key} style={{
                         flex: 1, minWidth: '150px', padding: '11px 14px', borderRadius: '11px',
-                        border: `1px solid ${active ? 'rgba(79,123,247,0.4)' : 'var(--border)'}`,
-                        background: active ? 'rgba(79,123,247,0.07)' : 'var(--bg-card)',
+                        border: `1px solid ${active ? 'rgba(61,79,224,0.4)' : 'var(--border)'}`,
+                        background: active ? 'rgba(61,79,224,0.07)' : 'var(--bg-card)',
                         opacity: done ? 0.65 : 1,
                       }}>
                         <p style={{ fontSize: '12.5px', fontWeight: 700, margin: 0, color: active ? '#60A5FA' : done ? '#34D399' : 'var(--text-dim)' }}>
@@ -482,7 +482,7 @@ export default function LeadHunter() {
 
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
                         <button onClick={runScout} disabled={scouting}
-                          style={{ padding: '12px 26px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
+                          style={{ padding: '12px 26px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: scouting ? 'wait' : 'pointer', opacity: scouting ? 0.65 : 1 }}>
                           {scouting ? 'Scouting…' : '🔍 Scout for leads'}
                         </button>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
@@ -515,8 +515,8 @@ export default function LeadHunter() {
                                 <button key={o.key} type="button" onClick={() => set('search_provider', o.key)} title={o.note}
                                   style={{
                                     textAlign: 'left', padding: '9px 12px', borderRadius: '10px', cursor: 'pointer',
-                                    border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
-                                    background: on ? 'rgba(79,123,247,0.1)' : 'var(--bg-input)',
+                                    border: `1px solid ${on ? 'rgba(61,79,224,0.45)' : 'var(--border)'}`,
+                                    background: on ? 'rgba(61,79,224,0.1)' : 'var(--bg-input)',
                                     flex: '1 1 190px',
                                   }}>
                                   <p style={{ fontSize: '12.5px', fontWeight: 600, margin: 0, color: on ? '#60A5FA' : 'var(--text)' }}>
@@ -632,7 +632,7 @@ export default function LeadHunter() {
                                       <div style={{ flex: 1, minWidth: 0 }}>
                                         <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
                                           {g.label}
-                                          {onCount > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#60A5FA', background: 'rgba(79,123,247,0.14)', padding: '2px 7px', borderRadius: '999px' }}>{onCount}</span>}
+                                          {onCount > 0 && <span style={{ marginLeft: '8px', fontSize: '10.5px', fontWeight: 700, color: '#60A5FA', background: 'rgba(61,79,224,0.14)', padding: '2px 7px', borderRadius: '999px' }}>{onCount}</span>}
                                         </p>
                                         <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0', lineHeight: 1.5 }}>{g.blurb}</p>
                                       </div>
@@ -660,11 +660,11 @@ export default function LeadHunter() {
                             ].filter(Boolean).join(' · ') || 'Any'}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '6px' }}>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={criteria.require_website} onChange={e => set('require_website', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
+                                <input type="checkbox" checked={criteria.require_website} onChange={e => set('require_website', e.target.checked)} style={{ accentColor: '#3D4FE0' }} />
                                 Skip companies with no website
                               </label>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={criteria.require_email} onChange={e => set('require_email', e.target.checked)} style={{ accentColor: '#4F7BF7' }} />
+                                <input type="checkbox" checked={criteria.require_email} onChange={e => set('require_email', e.target.checked)} style={{ accentColor: '#3D4FE0' }} />
                                 Skip companies with no published email
                               </label>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
@@ -724,10 +724,10 @@ export default function LeadHunter() {
                           <label key={i} style={{
                             display: 'flex', gap: '11px', alignItems: 'flex-start', cursor: 'pointer',
                             borderRadius: '11px', padding: '12px 14px',
-                            border: `1px solid ${on ? 'rgba(79,123,247,0.4)' : 'var(--border)'}`,
-                            background: on ? 'rgba(79,123,247,0.05)' : 'var(--bg-card)',
+                            border: `1px solid ${on ? 'rgba(61,79,224,0.4)' : 'var(--border)'}`,
+                            background: on ? 'rgba(61,79,224,0.05)' : 'var(--bg-card)',
                           }}>
-                            <input type="checkbox" checked={on} onChange={() => toggleKeep(i)} style={{ marginTop: '3px', flexShrink: 0, accentColor: '#4F7BF7' }} />
+                            <input type="checkbox" checked={on} onChange={() => toggleKeep(i)} style={{ marginTop: '3px', flexShrink: 0, accentColor: '#3D4FE0' }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{c.name}</p>
                               <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
@@ -746,7 +746,7 @@ export default function LeadHunter() {
 
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', paddingBottom: '30px' }}>
                       <button onClick={runEnrich} disabled={researching || keep.size === 0}
-                        style={{ padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: researching ? 'wait' : 'pointer', opacity: researching || keep.size === 0 ? 0.55 : 1 }}>
+                        style={{ padding: '11px 24px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: researching ? 'wait' : 'pointer', opacity: researching || keep.size === 0 ? 0.55 : 1 }}>
                         {researching ? 'Researching…' : `🔬 Research & score ${keep.size}`}
                       </button>
                       <button onClick={() => { setStage('setup'); setMsg('') }}
@@ -779,11 +779,11 @@ export default function LeadHunter() {
                         return (
                           <div key={i} style={{
                             borderRadius: '12px', padding: '14px 16px',
-                            border: `1px solid ${on ? 'rgba(79,123,247,0.4)' : 'var(--border)'}`,
-                            background: on ? 'rgba(79,123,247,0.05)' : 'var(--bg-card)',
+                            border: `1px solid ${on ? 'rgba(61,79,224,0.4)' : 'var(--border)'}`,
+                            background: on ? 'rgba(61,79,224,0.05)' : 'var(--bg-card)',
                           }}>
                             <div style={{ display: 'flex', gap: '11px', alignItems: 'flex-start' }}>
-                              <input type="checkbox" checked={on} onChange={() => toggleKeep(i)} style={{ marginTop: '5px', flexShrink: 0, accentColor: '#4F7BF7' }} />
+                              <input type="checkbox" checked={on} onChange={() => toggleKeep(i)} style={{ marginTop: '5px', flexShrink: 0, accentColor: '#3D4FE0' }} />
 
                               {/* SCORE */}
                               <div style={{ flexShrink: 0, textAlign: 'center', width: '46px' }}>
@@ -810,7 +810,7 @@ export default function LeadHunter() {
                                 </p>
 
                                 {c.evidence && (
-                                  <p style={{ fontSize: '12px', color: 'var(--text)', margin: '8px 0 0', lineHeight: 1.6, paddingLeft: '10px', borderLeft: '2px solid rgba(79,123,247,0.35)' }}>{c.evidence}</p>
+                                  <p style={{ fontSize: '12px', color: 'var(--text)', margin: '8px 0 0', lineHeight: 1.6, paddingLeft: '10px', borderLeft: '2px solid rgba(61,79,224,0.35)' }}>{c.evidence}</p>
                                 )}
                                 {c.why && <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '6px 0 0', lineHeight: 1.6 }}>{c.why}</p>}
 
@@ -825,7 +825,7 @@ export default function LeadHunter() {
                                       <div key={b.axis} style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                                         <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', width: '84px', flexShrink: 0 }}>{b.axis}</span>
                                         <div style={{ flex: 1, height: '5px', borderRadius: '999px', background: 'var(--border)', overflow: 'hidden', minWidth: '50px' }}>
-                                          <div style={{ width: `${Math.max(0, (b.points / b.max) * 100)}%`, height: '100%', background: '#4F7BF7' }} />
+                                          <div style={{ width: `${Math.max(0, (b.points / b.max) * 100)}%`, height: '100%', background: '#3D4FE0' }} />
                                         </div>
                                         <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text)', width: '40px', textAlign: 'right', flexShrink: 0 }}>{b.points}/{b.max}</span>
                                         <span style={{ fontSize: '11px', color: 'var(--text-dim)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.note}</span>
@@ -891,7 +891,7 @@ export default function LeadHunter() {
                       </p>
                     </div>
                     <button onClick={() => loadHunt(h)}
-                      style={{ padding: '8px 15px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>Load</button>
+                      style={{ padding: '8px 15px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>Load</button>
                     <button onClick={() => deleteHunt(h.id)}
                       style={{ padding: '8px 12px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', cursor: 'pointer' }}>Delete</button>
                   </div>

@@ -50,7 +50,7 @@ interface Proposal {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  open:        { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)', label: 'Open' },
+  open:        { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Open' },
   in_progress: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'In progress' },
   completed:   { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
   cancelled:   { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Cancelled' },
@@ -276,7 +276,7 @@ export default function ProjectDetailPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <button onClick={saveEdit} disabled={busy === 'submit'}
-                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                   {busy === 'submit' ? 'Saving…' : 'Save changes'}
                 </button>
                 <button onClick={() => { setEditing(false); setMsg('') }}
@@ -292,7 +292,7 @@ export default function ProjectDetailPage() {
                 {project.is_owner && (
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '10px' }}>
                     <button onClick={startEdit}
-                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer' }}>
+                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer' }}>
                       Edit
                     </button>
                     <button onClick={deleteProject} disabled={busy === 'submit'}
@@ -342,7 +342,7 @@ export default function ProjectDetailPage() {
                                 {(() => {
                                   const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
                                   const avatarEl = (
-                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(79,123,247,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(61,79,224,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                                       {p.freelancer_avatar
                                         ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>{initials}</span>}
@@ -457,7 +457,7 @@ export default function ProjectDetailPage() {
                     )}
                   </div>
                   <button onClick={submitProposal} disabled={busy === 'submit'}
-                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: busy === 'submit' ? 0.6 : 1 }}>
+                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: busy === 'submit' ? 0.6 : 1 }}>
                     {busy === 'submit' ? 'Submitting…' : 'Submit proposal'}
                   </button>
                 </div>

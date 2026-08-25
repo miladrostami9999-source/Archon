@@ -159,8 +159,8 @@ export default function UpgradePage() {
               return (
                 <div key={p.plan} style={{
                   borderRadius: '14px', padding: '18px',
-                  border: `1px solid ${isSel ? 'rgba(79,123,247,0.5)' : 'var(--border)'}`,
-                  background: isSel ? 'rgba(79,123,247,0.06)' : 'var(--bg-card)',
+                  border: `1px solid ${isSel ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`,
+                  background: isSel ? 'rgba(61,79,224,0.06)' : 'var(--bg-card)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize' }}>{p.plan}</span>
@@ -189,7 +189,7 @@ export default function UpgradePage() {
                   </ul>
                   <button onClick={() => { setSelected(p); setDone(''); setForm(f => ({ ...f, currency: 'IRR', amount: amountFor(p, 'IRR') })) }}
                     disabled={!!pending}
-                    style={{ width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.5 : 1 }}>
+                    style={{ width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.5 : 1 }}>
                     {isCurrent ? 'Renew' : 'Choose'}
                   </button>
                 </div>
@@ -208,8 +208,8 @@ export default function UpgradePage() {
                   {(['en', 'fa'] as const).map(l => (
                     <button key={l} onClick={() => setLang(l)}
                       style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer',
-                        border: '1px solid ' + (lang === l ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                        background: lang === l ? 'rgba(79,123,247,0.15)' : 'transparent',
+                        border: '1px solid ' + (lang === l ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                        background: lang === l ? 'rgba(61,79,224,0.15)' : 'transparent',
                         color: lang === l ? '#60A5FA' : 'var(--text-muted)' }}>{l}</button>
                   ))}
                 </div>
@@ -231,13 +231,13 @@ export default function UpgradePage() {
                     </div>
                   )}
                   {pay.paypal_email && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'rgba(79,123,247,0.06)', border: '1px solid rgba(79,123,247,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'rgba(61,79,224,0.06)', border: '1px solid rgba(61,79,224,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
                       <div>
                         <div style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>PayPal</div>
                         <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', direction: 'ltr' }}>{pay.paypal_email}</div>
                       </div>
                       <button onClick={() => { navigator.clipboard.writeText(pay.paypal_email); setCopied('paypal'); setTimeout(() => setCopied(''), 2000) }}
-                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(79,123,247,0.3)', background: 'rgba(79,123,247,0.1)', color: '#60A5FA', cursor: 'pointer' }}>
+                        style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '7px', border: '1px solid rgba(61,79,224,0.3)', background: 'rgba(61,79,224,0.1)', color: '#60A5FA', cursor: 'pointer' }}>
                         {copied === 'paypal' ? '✓ Copied' : 'Copy'}
                       </button>
                     </div>
@@ -259,7 +259,7 @@ export default function UpgradePage() {
                         WhatsApp {pay.support_phone}
                       </a>
                       <a href={`https://t.me/${pay.support_phone.replace(/[^0-9+]/g, '')}`} target="_blank" rel="noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(79,123,247,0.25)', background: 'rgba(79,123,247,0.08)', color: '#60A5FA', textDecoration: 'none' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(61,79,224,0.25)', background: 'rgba(61,79,224,0.08)', color: '#60A5FA', textDecoration: 'none' }}>
                         Telegram
                       </a>
                     </>
@@ -337,7 +337,7 @@ export default function UpgradePage() {
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={submit} disabled={saving}
-                  style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                  style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Submitting…' : 'I have paid — submit for review'}
                 </button>
                 <button onClick={() => { setSelected(null); setError('') }}

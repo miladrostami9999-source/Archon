@@ -236,7 +236,7 @@ export default function MapPage() {
       <div style={{ position: 'absolute', bottom: '12px', left: '12px', zIndex: 10, borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '8px 12px' }}>
         <p style={{ fontSize: '9px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>Density</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-          {['#A8C4E0', '#93B0D4', '#7C9FDB', '#6B8FE8', '#4F7BF7'].map((c, i) => (
+          {['#A8C4E0', '#93B0D4', '#7C9FDB', '#6B8FE8', '#3D4FE0'].map((c, i) => (
             <div key={i} style={{ width: '16px', height: '8px', borderRadius: '2px', background: c }} />
           ))}
           <span style={{ fontSize: '9px', color: 'var(--text-dim)', marginLeft: '4px' }}>Low→High</span>
@@ -323,7 +323,7 @@ export default function MapPage() {
                         transition: 'fill 0.15s',
                       },
                       hover: {
-                        fill: isSelected ? SELECTED_FILL : data ? '#4F7BF7' : themeColors.countryHover,
+                        fill: isSelected ? SELECTED_FILL : data ? '#3D4FE0' : themeColors.countryHover,
                         stroke: isSelected ? themeColors.labelHalo : themeColors.stroke,
                         strokeWidth: isSelected ? 1.4 / labelZoom : 0.35,
                         outline: 'none',
@@ -393,7 +393,7 @@ export default function MapPage() {
               {selected.companies.map(c => (
                 <button key={c.id} onClick={() => window.location.href = `/company/${c.id}`}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.35)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
@@ -428,7 +428,7 @@ export default function MapPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{country.name}</p>
                       <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '3px', marginTop: '4px' }}>
-                        <div style={{ height: '3px', borderRadius: '999px', background: '#4F7BF7', width: `${(country.count / maxCount) * 100}%` }} />
+                        <div style={{ height: '3px', borderRadius: '999px', background: '#3D4FE0', width: `${(country.count / maxCount) * 100}%` }} />
                       </div>
                     </div>
                     <div style={{ flexShrink: 0, textAlign: 'right' }}>
@@ -521,7 +521,7 @@ export default function MapPage() {
           </div>
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spinner { width:24px; height:24px; border:2px solid rgba(79,123,247,0.2); border-top-color:#4F7BF7; border-radius:50%; animation:spin 0.7s linear infinite; }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } .spinner { width:24px; height:24px; border:2px solid rgba(61,79,224,0.2); border-top-color:#3D4FE0; border-radius:50%; animation:spin 0.7s linear infinite; }`}</style>
     </div>
   )
 }

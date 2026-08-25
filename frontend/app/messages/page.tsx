@@ -96,8 +96,8 @@ export default function MessagesPage() {
           {(['all', 'unread'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               style={{ padding: '4px 12px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                border: '1px solid ' + (filter === f ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                background: filter === f ? 'rgba(79,123,247,0.15)' : 'transparent',
+                border: '1px solid ' + (filter === f ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                background: filter === f ? 'rgba(61,79,224,0.15)' : 'transparent',
                 color: filter === f ? '#60A5FA' : 'var(--text-muted)' }}>
               {f}{f === 'unread' && totalUnread > 0 ? ` (${totalUnread})` : ''}
             </button>
@@ -122,11 +122,11 @@ export default function MessagesPage() {
               style={{
                 width: '100%', display: 'flex', gap: '10px', alignItems: 'center', textAlign: 'left',
                 padding: '12px 16px', border: 'none', cursor: 'pointer',
-                borderLeft: `3px solid ${on ? '#4F7BF7' : 'transparent'}`,
-                background: on ? 'rgba(79,123,247,0.08)' : 'transparent',
+                borderLeft: `3px solid ${on ? '#3D4FE0' : 'transparent'}`,
+                background: on ? 'rgba(61,79,224,0.08)' : 'transparent',
                 borderBottom: '1px solid var(--border)',
               }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                 {c.other_party_avatar
                   ? <img src={c.other_party_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <span style={{ fontSize: '13px', fontWeight: 700, color: 'white' }}>{initials}</span>}

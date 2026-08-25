@@ -13,7 +13,7 @@ interface Report {
 }
 
 const SECTIONS = [
-  { key: 'summary',           icon: '📊', label: 'Executive Summary',   labelFa: 'خلاصه اجرایی',      color: '#4F7BF7', bg: 'rgba(79,123,247,0.06)' },
+  { key: 'summary',           icon: '📊', label: 'Executive Summary',   labelFa: 'خلاصه اجرایی',      color: '#3D4FE0', bg: 'rgba(61,79,224,0.06)' },
   { key: 'pipeline_insight',  icon: '🔄', label: 'Pipeline Health',     labelFa: 'سلامت پایپلاین',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.06)' },
   { key: 'top_leads',         icon: '🎯', label: 'Top Leads',           labelFa: 'بهترین لیدها',       color: '#F59E0B', bg: 'rgba(245,158,11,0.06)' },
   { key: 'follow_up_action',  icon: '⏰', label: 'Follow-up Actions',   labelFa: 'پیگیری‌ها',          color: '#F97316', bg: 'rgba(249,115,22,0.06)' },
@@ -136,7 +136,7 @@ export default function WeeklyReport() {
               <div style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
                 {(['en','fa'] as const).map(l => (
                   <button key={l} onClick={() => setLang(l)}
-                    style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: lang === l ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: lang === l ? 'white' : 'var(--text-muted)' }}>
+                    style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: lang === l ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: lang === l ? 'white' : 'var(--text-muted)' }}>
                     {l === 'en' ? 'EN' : 'FA'}
                   </button>
                 ))}
@@ -154,7 +154,7 @@ export default function WeeklyReport() {
           ) : !report ? (
             /* ── GENERATE CARD ── */
             <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '48px 32px', textAlign: 'center' }}>
-              <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(79,123,247,0.15), rgba(124,58,237,0.15))', border: '1px solid rgba(79,123,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '32px' }}>
+              <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(61,79,224,0.15), rgba(46,59,176,0.15))', border: '1px solid rgba(61,79,224,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '32px' }}>
                 📈
               </div>
               <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
@@ -175,7 +175,7 @@ export default function WeeklyReport() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
                 {(['en','fa'] as const).map(l => (
                   <button key={l} onClick={() => setLang(l)}
-                    style={{ padding: '8px 24px', borderRadius: '8px', fontSize: '13px', border: lang === l ? 'none' : '1px solid var(--border)', background: lang === l ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'var(--bg-input)', color: lang === l ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', fontWeight: lang === l ? 600 : 400 }}>
+                    style={{ padding: '8px 24px', borderRadius: '8px', fontSize: '13px', border: lang === l ? 'none' : '1px solid var(--border)', background: lang === l ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: lang === l ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', fontWeight: lang === l ? 600 : 400 }}>
                     {l === 'en' ? '🇬🇧 English' : '🇮🇷 فارسی'}
                   </button>
                 ))}
@@ -191,7 +191,7 @@ export default function WeeklyReport() {
                 </div>
               ) : (
                 <button onClick={generate} disabled={loading}
-                  style={{ padding: '10px 28px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'rgba(79,123,247,0.5)' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: loading ? 'none' : '0 4px 16px rgba(79,123,247,0.3)', transition: 'all 0.15s' }}>
+                  style={{ padding: '10px 28px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: loading ? 'rgba(61,79,224,0.5)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: loading ? 'none' : '0 4px 16px rgba(61,79,224,0.3)', transition: 'all 0.15s' }}>
                   {loading ? <><div className="spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />{isFa ? 'در حال تولید...' : 'Generating...'}</> : `✦ ${isFa ? 'تولید گزارش' : 'Generate Report'}`}
                 </button>
               )}
@@ -238,7 +238,7 @@ export default function WeeklyReport() {
               })}
 
               {report.motivation && (
-                <div style={{ borderRadius: '14px', border: '1px solid rgba(79,123,247,0.15)', background: 'linear-gradient(135deg, rgba(79,123,247,0.06), rgba(124,58,237,0.06))', padding: '20px 24px', textAlign: 'center' }}>
+                <div style={{ borderRadius: '14px', border: '1px solid rgba(61,79,224,0.15)', background: 'linear-gradient(135deg, rgba(61,79,224,0.06), rgba(46,59,176,0.06))', padding: '20px 24px', textAlign: 'center' }}>
                   <p style={{ fontSize: '16px', fontStyle: 'italic', color: 'var(--text)', margin: '0 0 8px', lineHeight: 1.7, direction: isFa ? 'rtl' : 'ltr' }}>
                     "{report.motivation}"
                   </p>
@@ -251,7 +251,7 @@ export default function WeeklyReport() {
       </div>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { width:28px; height:28px; border:2px solid rgba(79,123,247,0.2); border-top-color:#4F7BF7; border-radius:50%; animation:spin 0.8s linear infinite; }
+        .spinner { width:28px; height:28px; border:2px solid rgba(61,79,224,0.2); border-top-color:#3D4FE0; border-radius:50%; animation:spin 0.8s linear infinite; }
         .spinner-sm { width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; }
       `}</style>
     </div>

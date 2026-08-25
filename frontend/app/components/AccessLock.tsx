@@ -74,7 +74,7 @@ export function LockBanner({ access, compact = false }: { access: AccessState; c
       </div>
       <a href="/upgrade" style={{
         padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600,
-        color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)',
+        color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)',
         textDecoration: 'none', whiteSpace: 'nowrap',
       }}>
         {isExpired ? 'Renew plan' : 'Complete payment'}
@@ -89,7 +89,7 @@ export function CountryScopeNotice({ access }: { access: AccessState }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-      padding: '9px 24px', background: 'rgba(79,123,247,0.06)',
+      padding: '9px 24px', background: 'rgba(61,79,224,0.06)',
       borderBottom: '1px solid var(--border)',
     }}>
       <span style={{ fontSize: '13px' }}>🌍</span>
@@ -131,7 +131,7 @@ export function UnlockButton({ onUnlock, busy, reason, size = 'md' }: {
       style={{
         padding: size === 'sm' ? '5px 11px' : '8px 16px',
         borderRadius: '8px', fontSize: size === 'sm' ? '11.5px' : '12.5px', fontWeight: 600,
-        color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)',
+        color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)',
         border: 'none', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
         whiteSpace: 'nowrap',
       }}
@@ -152,7 +152,7 @@ export function FeatureLocked({ title, blurb }: { title: string; blurb: string }
         <a href="/upgrade" style={{
           display: 'inline-block', padding: '10px 22px', borderRadius: '9px',
           fontSize: '13px', fontWeight: 600, color: 'white',
-          background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', textDecoration: 'none',
+          background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none',
         }}>
           Upgrade plan
         </a>

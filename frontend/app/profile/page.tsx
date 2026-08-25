@@ -43,7 +43,7 @@ const SKILLS_OPTIONS = [
 const PLAN_META: Record<string, { label: string; color: string; bg: string; desc: string }> = {
   trial:  { label: 'Trial',  color: '#34D399', bg: 'rgba(52,211,153,0.1)', desc: '7-day free trial · 10 companies · 10 emails' },
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)', desc: '50 companies · 30 emails/month' },
-  pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(79,123,247,0.1)',  desc: '500 companies · 300 emails/month · AI Search' },
+  pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(61,79,224,0.1)',  desc: '500 companies · 300 emails/month · AI Search' },
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.1)', desc: 'Unlimited · All features' },
 }
 
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                     placeholder="External link (optional)" style={inputStyle} />
                   <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
                     <button onClick={saveProjectEdits} disabled={!editingProject.title.trim()}
-                      style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: editingProject.title.trim() ? 'pointer' : 'not-allowed', opacity: editingProject.title.trim() ? 1 : 0.5 }}>
+                      style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: editingProject.title.trim() ? 'pointer' : 'not-allowed', opacity: editingProject.title.trim() ? 1 : 0.5 }}>
                       Save changes
                     </button>
                     <button onClick={() => setEditingProject(null)}
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                 {!editingProject && (
                   <button onClick={() => setEditingProject({ title: selectedProject.title, desc: selectedProject.desc || '', url: selectedProject.url || '' })}
                     style={{ height: '36px', padding: '0 14px', borderRadius: '10px', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(79,123,247,0.4)' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#60A5FA'; e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                     ✏️ Edit
                   </button>
@@ -501,7 +501,7 @@ export default function ProfilePage() {
                         onChange={e => setSelectedProject(prev => prev ? { ...prev, images: prev.images.map(i => i.id === img.id ? { ...i, alt: e.target.value } : i) } : null)}
                         onBlur={e => updateImageAlt(selectedProject.id, img.id, e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', marginTop: '6px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', fontSize: '12px', color: 'var(--text)', outline: 'none' }}
-                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       />
                     </div>
                   ))}
@@ -514,12 +514,12 @@ export default function ProfilePage() {
                   onChange={e => { handlePortfolioImages(e, selectedProject.id); setSelectedProject(prev => prev ? { ...profile.portfolio.find(p => p.id === selectedProject.id)! } : null) }} />
                 <button onClick={() => { setAddingImagesTo(selectedProject.id); portfolioImgRef.current?.click() }}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.4)'; e.currentTarget.style.color = 'var(--text)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.4)'; e.currentTarget.style.color = 'var(--text)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
                   📷 Add Images
                 </button>
                 {selectedProject.url && (
-                  <a href={selectedProject.url} target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid rgba(79,123,247,0.2)', background: 'rgba(79,123,247,0.08)', color: '#60A5FA', fontSize: '13px', textDecoration: 'none' }}>
+                  <a href={selectedProject.url} target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '10px', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.08)', color: '#60A5FA', fontSize: '13px', textDecoration: 'none' }}>
                     🔗 View External Link
                   </a>
                 )}
@@ -534,14 +534,14 @@ export default function ProfilePage() {
 
           {/* PROFILE HERO */}
           <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '28px', marginBottom: '20px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(135deg, rgba(79,123,247,0.08), rgba(124,58,237,0.08))', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '80px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', pointerEvents: 'none' }} />
             <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
 
               {/* AVATAR */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
                 <div onClick={() => avatarRef.current?.click()}
-                  style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', flexShrink: 0, background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', flexShrink: 0, background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   title="Click to upload photo">
                   {profile.avatar ? (
                     <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -554,7 +554,7 @@ export default function ProfilePage() {
                     <span style={{ fontSize: '24px' }}>📷</span>
                   </div>
                 </div>
-                <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: '#4F7BF7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}>✏</div>
+                <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: '#3D4FE0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', border: '2px solid var(--bg-main)', pointerEvents: 'none' }}>✏</div>
               </div>
 
               {/* INFO */}
@@ -572,7 +572,7 @@ export default function ProfilePage() {
                 {allSkills.length > 0 && (
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
                     {allSkills.slice(0, 5).map(s => (
-                      <span key={s} style={{ fontSize: '10px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.15)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>
+                      <span key={s} style={{ fontSize: '10px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.15)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>
                     ))}
                     {allSkills.length > 5 && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>+{allSkills.length - 5}</span>}
                   </div>
@@ -595,7 +595,7 @@ export default function ProfilePage() {
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', marginBottom: '20px' }}>
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ flex: 1, padding: '9px', fontSize: isMobile ? '11px' : '13px', fontWeight: 500, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? '4px' : '6px', transition: 'all 0.15s', background: activeTab === tab.id ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--text-muted)' }}>
+                style={{ flex: 1, padding: '9px', fontSize: isMobile ? '11px' : '13px', fontWeight: 500, borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? '4px' : '6px', transition: 'all 0.15s', background: activeTab === tab.id ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--text-muted)' }}>
                 <span>{tab.icon}</span> {tab.label}
               </button>
             ))}
@@ -626,8 +626,8 @@ export default function ProfilePage() {
                     <button key={opt.key} type="button" onClick={() => switchAccountMode(opt.key)} disabled={modeSaving}
                       style={{
                         textAlign: 'left', padding: '14px', borderRadius: '12px', cursor: modeSaving ? 'wait' : 'pointer',
-                        border: `1px solid ${on ? 'rgba(79,123,247,0.5)' : 'var(--border)'}`,
-                        background: on ? 'rgba(79,123,247,0.1)' : 'var(--bg-input)',
+                        border: `1px solid ${on ? 'rgba(61,79,224,0.5)' : 'var(--border)'}`,
+                        background: on ? 'rgba(61,79,224,0.1)' : 'var(--bg-input)',
                         transition: 'all 0.15s',
                       }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -688,7 +688,7 @@ export default function ProfilePage() {
                     <label style={labelStyle}>{f.label}</label>
                     <input value={(profile as any)[f.key]} onChange={e => setProfile(p => ({ ...p, [f.key]: e.target.value }))}
                       placeholder={f.placeholder} style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
                 ))}
@@ -697,13 +697,13 @@ export default function ProfilePage() {
                   <textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
                     placeholder="Tell us about your studio and expertise..." rows={3}
                     style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button onClick={() => saveProfile()} disabled={saving}
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
                   {saved ? '✓ Saved!' : saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -725,7 +725,7 @@ export default function ProfilePage() {
                     const selected = profile.skills.includes(skill)
                     return (
                       <button key={skill} onClick={() => toggleSkill(skill)}
-                        style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', background: selected ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(79,123,247,0.3)' : 'none' }}>
+                        style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', background: selected ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(61,79,224,0.3)' : 'none' }}>
                         {selected ? '✓ ' : ''}{skill}
                       </button>
                     )
@@ -741,10 +741,10 @@ export default function ProfilePage() {
                     onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
                     placeholder="e.g. Rhino, Grasshopper, Midjourney..."
                     style={{ ...inputStyle, flex: 1 }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   <button onClick={addCustomSkill} disabled={!newSkill.trim()}
-                    style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', opacity: !newSkill.trim() ? 0.4 : 1 }}>
+                    style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newSkill.trim() ? 0.4 : 1 }}>
                     + Add
                   </button>
                 </div>
@@ -762,7 +762,7 @@ export default function ProfilePage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button onClick={() => saveProfile()}
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
                   {saved ? '✓ Saved!' : 'Save Skills'}
                 </button>
               </div>
@@ -774,7 +774,7 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
               {/* ADD PROJECT */}
-              <div style={{ borderRadius: '16px', border: '1px solid rgba(79,123,247,0.2)', background: 'rgba(79,123,247,0.03)', padding: '20px' }}>
+              <div style={{ borderRadius: '16px', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.03)', padding: '20px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   🖼 Add New Project
                 </h3>
@@ -783,21 +783,21 @@ export default function ProfilePage() {
                     <label style={labelStyle}>Project Title *</label>
                     <input value={newPortfolio.title} onChange={e => setNewPortfolio(p => ({ ...p, title: e.target.value }))}
                       placeholder="Modern Villa, Dubai" style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
                   <div>
                     <label style={labelStyle}>External Link (optional)</label>
                     <input value={newPortfolio.url} onChange={e => setNewPortfolio(p => ({ ...p, url: e.target.value }))}
                       placeholder="https://behance.net/..." style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={labelStyle}>Description</label>
                     <input value={newPortfolio.desc} onChange={e => setNewPortfolio(p => ({ ...p, desc: e.target.value }))}
                       placeholder="3D visualization for a luxury residential project..." style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
                 </div>
@@ -806,10 +806,10 @@ export default function ProfilePage() {
                   <label style={labelStyle}>Photos (optional)</label>
                   <input ref={newProjectImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleNewProjectImages} />
                   <button onClick={() => newProjectImgRef.current?.click()}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(79,123,247,0.4)', background: 'rgba(79,123,247,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s', width: '100%', justifyContent: 'center' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(79,123,247,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(79,123,247,0.04)' }}>
-                    📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#4F7BF7', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s', width: '100%', justifyContent: 'center' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,79,224,0.08)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(61,79,224,0.04)' }}>
+                    📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#3D4FE0', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
                   </button>
                   {newPortfolioImages.length > 0 && (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
@@ -824,7 +824,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <button onClick={addPortfolio} disabled={!newPortfolio.title}
-                  style={{ padding: '9px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer', opacity: !newPortfolio.title ? 0.4 : 1 }}>
+                  style={{ padding: '9px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newPortfolio.title ? 0.4 : 1 }}>
                   + Create Project
                 </button>
               </div>
@@ -842,12 +842,12 @@ export default function ProfilePage() {
                     const cover = item.images[0]
                     return (
                       <div key={item.id} style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
                         onClick={() => setSelectedProject(item)}>
 
                         {/* COVER */}
-                        <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(79,123,247,0.08), rgba(124,58,237,0.08))', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {cover ? (
                             <img src={cover.data} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
@@ -890,7 +890,7 @@ export default function ProfilePage() {
               {profile.portfolio.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button onClick={() => saveProfile()}
-                    style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
                     {saved ? '✓ Saved!' : 'Save Portfolio'}
                   </button>
                 </div>
@@ -925,7 +925,7 @@ export default function ProfilePage() {
                           <textarea rows={3} value={editPostText} onChange={e => setEditPostText(e.target.value)}
                             style={{ ...inputStyle, resize: 'vertical', marginBottom: '8px' }} />
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => saveEditPost(p.id)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>Save</button>
+                            <button onClick={() => saveEditPost(p.id)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>Save</button>
                             <button onClick={() => setEditingPostId(null)} style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
                           </div>
                         </div>
@@ -965,12 +965,12 @@ export default function ProfilePage() {
                       <input type="password" value={(pwdForm as any)[f.key]}
                         onChange={e => setPwdForm(p => ({ ...p, [f.key]: e.target.value }))}
                         placeholder={f.ph} style={inputStyle}
-                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                         onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                     </div>
                   ))}
                   <button onClick={changePassword}
-                    style={{ padding: '11px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    style={{ padding: '11px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
                     Update Password
                   </button>
                 </div>
@@ -990,7 +990,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <button onClick={connectGmail} disabled={gmailConnecting}
-                    style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
+                    style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
                     {gmailConnecting ? 'Redirecting…' : 'Connect Gmail'}
                   </button>
                 )}

@@ -7,7 +7,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const TASK_COLORS: Record<string, { border: string; bg: string }> = {
-  email:    { border: 'rgba(79,123,247,0.2)',  bg: 'rgba(79,123,247,0.05)' },
+  email:    { border: 'rgba(61,79,224,0.2)',  bg: 'rgba(61,79,224,0.05)' },
   review:   { border: 'rgba(139,92,246,0.2)',  bg: 'rgba(139,92,246,0.05)' },
   followup: { border: 'rgba(245,158,11,0.2)',  bg: 'rgba(245,158,11,0.05)' },
   research: { border: 'rgba(52,211,153,0.2)',  bg: 'rgba(52,211,153,0.05)' },
@@ -179,7 +179,7 @@ export default function TasksPage() {
                   Cancel
                 </button>
                 <button onClick={addPersonalTask} disabled={savingTask || !newTaskTitle.trim()}
-                  style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'white', fontWeight: 500, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: (savingTask || !newTaskTitle.trim()) ? 0.4 : 1 }}>
+                  style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'white', fontWeight: 500, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', opacity: (savingTask || !newTaskTitle.trim()) ? 0.4 : 1 }}>
                   {savingTask ? 'Saving...' : 'Save'}
                 </button>
               </div>
@@ -194,7 +194,7 @@ export default function TasksPage() {
                 <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{doneTasks}/{totalTasks} · {progress}%</p>
               </div>
               <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
-                <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? '#34D399' : progress >= 60 ? '#4F7BF7' : '#FBBF24' }} />
+                <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? '#34D399' : progress >= 60 ? '#3D4FE0' : '#FBBF24' }} />
               </div>
               {progress === 100 && <p style={{ fontSize: '12px', color: '#34D399', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}>🎉 All done!</p>}
             </div>
@@ -212,8 +212,8 @@ export default function TasksPage() {
                   <button key={l} onClick={() => setTaskLang(l)}
                     style={{
                       fontSize: '14px', padding: '8px 20px', borderRadius: '8px',
-                      border: taskLang === l ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)',
-                      background: taskLang === l ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)',
+                      border: taskLang === l ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)',
+                      background: taskLang === l ? 'rgba(61,79,224,0.15)' : 'var(--bg-input)',
                       color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}>
@@ -222,7 +222,7 @@ export default function TasksPage() {
                 ))}
               </div>
               <button onClick={generateTasks} disabled={generating}
-                style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: generating ? 0.4 : 1 }}>
+                style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', opacity: generating ? 0.4 : 1 }}>
                 {generating ? '⏳ Generating...' : '✦ Generate Tasks'}
               </button>
             </div>
@@ -318,8 +318,8 @@ export default function TasksPage() {
                       <button key={l} onClick={() => setTaskLang(l)}
                         style={{
                           fontSize: '12px', padding: '6px 16px', borderRadius: '8px',
-                          border: taskLang === l ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)',
-                          background: taskLang === l ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)',
+                          border: taskLang === l ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)',
+                          background: taskLang === l ? 'rgba(61,79,224,0.15)' : 'var(--bg-input)',
                           color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}>
@@ -328,7 +328,7 @@ export default function TasksPage() {
                     ))}
                   </div>
                   <button onClick={generateTasks} disabled={generating}
-                    style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', opacity: generating ? 0.4 : 1 }}>
+                    style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: 'white', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', opacity: generating ? 0.4 : 1 }}>
                     {generating ? '⏳...' : '✦ Generate AI Tasks'}
                   </button>
                 </div>

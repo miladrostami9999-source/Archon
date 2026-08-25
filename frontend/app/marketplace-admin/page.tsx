@@ -255,8 +255,8 @@ export default function MarketplaceAdminPage() {
                 {(['pending', 'approved', 'rejected', 'all'] as const).map(f => (
                   <button key={f} onClick={() => setPaymentFilter(f)}
                     style={{ padding: '5px 12px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                      border: '1px solid ' + (paymentFilter === f ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                      background: paymentFilter === f ? 'rgba(79,123,247,0.15)' : 'transparent',
+                      border: '1px solid ' + (paymentFilter === f ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                      background: paymentFilter === f ? 'rgba(61,79,224,0.15)' : 'transparent',
                       color: paymentFilter === f ? '#60A5FA' : 'var(--text-muted)' }}>{f}</button>
                 ))}
               </div>
@@ -451,7 +451,7 @@ export default function MarketplaceAdminPage() {
                   <input type="number" value={cap} onChange={e => setCap(e.target.value)} placeholder="500" style={input} />
                 </div>
                 <button onClick={saveCap} disabled={capSaving}
-                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: capSaving ? 0.6 : 1 }}>
+                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: capSaving ? 0.6 : 1 }}>
                   {capSaving ? 'Saving…' : 'Save limit'}
                 </button>
               </div>
@@ -495,7 +495,7 @@ export default function MarketplaceAdminPage() {
                     <input value={payoutForm.admin_note} onChange={e => setPayoutForm(f => ({ ...f, admin_note: e.target.value }))} style={input} />
                   </div>
                   <button onClick={submitPayout} disabled={busy === -1}
-                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                     {busy === -1 ? 'Recording…' : 'Record payout'}
                   </button>
                 </>
@@ -606,7 +606,7 @@ export default function MarketplaceAdminPage() {
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-all' }}>{val}</div>
                               </div>
                               <button onClick={() => copy(name, val)}
-                                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', color: copied === name ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === name ? 'rgba(52,211,153,0.4)' : 'rgba(79,123,247,0.3)'}` }}>
+                                style={{ flexShrink: 0, fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '7px', cursor: 'pointer', color: copied === name ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === name ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
                                 {copied === name ? '✓' : 'Copy'}
                               </button>
                             </div>

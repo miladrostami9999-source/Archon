@@ -72,7 +72,7 @@ function EditForm() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <div style={{ width: '32px', height: '32px', border: '2px solid rgba(61,79,224,0.3)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
@@ -119,7 +119,7 @@ function EditForm() {
               <label style={labelStyle}>Company Name <span style={{ color: '#F87171' }}>*</span></label>
               <input name="name" value={form.name} onChange={handleChange}
                 style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
 
@@ -129,14 +129,14 @@ function EditForm() {
                 <label style={labelStyle}>Domain</label>
                 <input name="domain" value={form.domain} onChange={handleChange} placeholder="e.g. big.dk"
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>Website</label>
                 <input name="website" value={form.website} onChange={handleChange} placeholder="https://..."
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -146,7 +146,7 @@ function EditForm() {
               <label style={labelStyle}>Email</label>
               <input name="email" value={form.email} onChange={handleChange} placeholder="info@studio.com"
                 style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
 
@@ -156,14 +156,14 @@ function EditForm() {
                 <label style={labelStyle}>Country</label>
                 <input name="country" value={form.country} onChange={handleChange}
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>City</label>
                 <input name="city" value={form.city} onChange={handleChange}
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -201,14 +201,14 @@ function EditForm() {
                 <label style={labelStyle}>LinkedIn</label>
                 <input name="linkedin" value={form.linkedin} onChange={handleChange}
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
               <div>
                 <label style={labelStyle}>Instagram</label>
                 <input name="instagram" value={form.instagram} onChange={handleChange}
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -219,7 +219,7 @@ function EditForm() {
               <input name="tags" value={form.tags} onChange={handleChange}
                 placeholder="luxury, hospitality, outsources"
                 style={inputStyle}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '4px 0 0' }}>جدا شده با کاما — مثال: luxury, hospitality</p>
             </div>
@@ -239,7 +239,7 @@ function EditForm() {
                 <input name="opportunity_score" type="number" min="0" max="100"
                   value={form.opportunity_score} onChange={handleChange}
                   style={inputStyle}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             </div>
@@ -253,7 +253,7 @@ function EditForm() {
                 Cancel
               </button>
               <button onClick={handleSubmit} disabled={saving}
-                style={{ flex: 1, padding: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: saving ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+                style={{ flex: 1, padding: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: saving ? 0.5 : 1, transition: 'opacity 0.15s' }}>
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

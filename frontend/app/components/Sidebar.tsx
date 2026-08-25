@@ -9,7 +9,7 @@ interface User { name: string; email: string; role: string; plan: string; is_ver
 const PLAN_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   trial:  { label: 'Trial',  color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
   basic:  { label: 'Basic',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.1)' },
-  pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(79,123,247,0.15)' },
+  pro:    { label: 'Pro',    color: '#60A5FA', bg: 'rgba(61,79,224,0.15)' },
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.15)' },
 }
 
@@ -217,7 +217,7 @@ export default function Sidebar() {
     { label: 'Marketplace Admin', iconKey: 'contracts', href: '/marketplace-admin', badge: mpPaymentCount + pendingVerifications },
   ] : []
 
-  const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(79,123,247,0.12)' }: {
+  const NavItem = ({ item, accentColor = '#60A5FA', activeBg = 'rgba(61,79,224,0.12)' }: {
     item: { label: string; iconKey: string; href: string; badge?: number }
     accentColor?: string; activeBg?: string
   }) => {
@@ -265,7 +265,7 @@ export default function Sidebar() {
       <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <a href="/dashboard" onClick={() => setMobileOpen(false)}
           style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-          <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', boxShadow: '0 2px 8px rgba(79,123,247,0.35)', flexShrink: 0 }}>A</div>
+          <div style={{ width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', boxShadow: '0 2px 8px rgba(61,79,224,0.35)', flexShrink: 0 }}>A</div>
           <div>
             <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0 }}>Archon</p>
             <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
@@ -307,8 +307,8 @@ export default function Sidebar() {
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
               padding: '9px 10px', borderRadius: '9px', marginBottom: '10px',
-              border: `1px solid ${verifyStatus === 'pending' ? 'rgba(251,191,36,0.3)' : 'rgba(79,123,247,0.3)'}`,
-              background: verifyStatus === 'pending' ? 'rgba(251,191,36,0.08)' : 'rgba(79,123,247,0.08)',
+              border: `1px solid ${verifyStatus === 'pending' ? 'rgba(251,191,36,0.3)' : 'rgba(61,79,224,0.3)'}`,
+              background: verifyStatus === 'pending' ? 'rgba(251,191,36,0.08)' : 'rgba(61,79,224,0.08)',
             }}>
             <span style={{ fontSize: '13px', flexShrink: 0 }}>{verifyStatus === 'pending' ? '⏳' : '🪪'}</span>
             <span style={{ minWidth: 0 }}>
@@ -325,7 +325,7 @@ export default function Sidebar() {
         <button onClick={() => setDark(!dark)}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: '8px', marginBottom: '8px', background: dark ? 'rgba(255,255,255,0.04)' : '#F3F4F6', border: 'none', cursor: 'pointer' }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: ts }}>{dark ? '🌙 Dark' : '☀️ Light'}</span>
-          <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(79,123,247,0.4)' : '#D1D5DB' }}>
+          <div style={{ width: '30px', height: '15px', borderRadius: '8px', position: 'relative', background: dark ? 'rgba(61,79,224,0.4)' : '#D1D5DB' }}>
             <div style={{ position: 'absolute', top: '1.5px', left: dark ? '15px' : '1.5px', width: '12px', height: '12px', borderRadius: '50%', background: dark ? '#60A5FA' : 'white', transition: 'left 0.2s' }} />
           </div>
         </button>
@@ -342,11 +342,11 @@ export default function Sidebar() {
             style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', padding: '6px 8px', borderRadius: '10px', margin: '-2px -4px', transition: 'background 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-            <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(79,123,247,0.3)' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(61,79,224,0.3)' }}>
               {avatar ? (
                 <img src={avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' }}>
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -391,18 +391,18 @@ export default function Sidebar() {
             <HamburgerIcon />
           </button>
           <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
+            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'white' }}>A</div>
             <span style={{ fontSize: '14px', fontWeight: 700, color: tm }}>Archon</span>
           </a>
           {/* Account menu — logout used to live only at the bottom of the drawer,
               which was easy to miss on a phone. */}
           <div style={{ position: 'relative' }}>
             <div data-tour="profile-link" onClick={() => setAccountOpen(o => !o)}
-              style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(79,123,247,0.3)' }}>
+              style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(61,79,224,0.3)' }}>
               {avatar ? (
                 <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)' }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' }}>
                   {user?.name.charAt(0).toUpperCase() || 'A'}
                 </div>
               )}

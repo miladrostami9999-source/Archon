@@ -88,7 +88,7 @@ export default function MemberProfilePage() {
               {/* HEADER */}
               <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '22px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div style={{ width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: '2px solid rgba(79,123,247,0.25)' }}>
+                  <div style={{ width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: '2px solid rgba(61,79,224,0.25)' }}>
                     {m.avatar
                       ? <img src={m.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span style={{ fontSize: '22px', fontWeight: 800, color: 'white' }}>{initials}</span>}
@@ -113,7 +113,7 @@ export default function MemberProfilePage() {
                     )}
                     {!m.is_me && (
                       <button onClick={message} disabled={messaging}
-                        style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
+                        style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
                         {messaging ? 'Opening…' : '💬 Message'}
                       </button>
                     )}
@@ -123,7 +123,7 @@ export default function MemberProfilePage() {
                 {allSkills.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
                     {allSkills.map(s => (
-                      <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '999px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)' }}>{s}</span>
+                      <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '999px', color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)' }}>{s}</span>
                     ))}
                   </div>
                 )}

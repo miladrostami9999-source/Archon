@@ -122,7 +122,7 @@ function KanbanCard({ company, onFavorite, onClick }: {
             width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '10px', fontWeight: 700, color: '#7BAEF7',
-            background: 'linear-gradient(135deg, rgba(79,123,247,0.2), rgba(124,58,237,0.2))',
+            background: 'linear-gradient(135deg, rgba(61,79,224,0.2), rgba(46,59,176,0.2))',
           }}>
             {getInitials(company.name)}
           </div>
@@ -481,7 +481,7 @@ export default function Dashboard() {
             {/* SEARCH */}
             {isMobile ? (
               <button onClick={() => setSearchOpen(p => !p)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '8px', border: search ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)', background: search ? 'rgba(79,123,247,0.12)' : 'var(--bg-input)', color: search ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0, fontSize: '16px', position: 'relative' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '8px', border: search ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)', background: search ? 'rgba(61,79,224,0.12)' : 'var(--bg-input)', color: search ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0, fontSize: '16px', position: 'relative' }}>
                 ⌕
                 {search && <span style={{ position: 'absolute', top: '4px', right: '4px', width: '5px', height: '5px', borderRadius: '50%', background: '#60A5FA' }} />}
               </button>
@@ -491,7 +491,7 @@ export default function Dashboard() {
                 <input type="text" placeholder="Search companies..."
                   value={search} onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
                   style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', paddingLeft: '28px', paddingRight: '8px', paddingTop: '7px', paddingBottom: '7px', fontSize: '14px', color: 'var(--text)', width: '208px', outline: 'none', transition: 'all 0.15s' }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
               </div>
             )}
@@ -499,7 +499,7 @@ export default function Dashboard() {
             {/* FILTERS — icon only on mobile */}
             <div style={{ position: 'relative', flexShrink: 0 }} ref={filterRef}>
               <button onClick={e => { e.stopPropagation(); setFilterMenuOpen(p => !p) }}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 9px' : '8px 12px', borderRadius: '8px', fontSize: isMobile ? '16px' : '14px', border: hasFilters ? '1px solid rgba(79,123,247,0.3)' : '1px solid var(--border)', background: hasFilters ? 'rgba(79,123,247,0.15)' : 'var(--bg-input)', color: hasFilters ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', position: 'relative' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 9px' : '8px 12px', borderRadius: '8px', fontSize: isMobile ? '16px' : '14px', border: hasFilters ? '1px solid rgba(61,79,224,0.3)' : '1px solid var(--border)', background: hasFilters ? 'rgba(61,79,224,0.15)' : 'var(--bg-input)', color: hasFilters ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', position: 'relative' }}>
                 <span>⊟</span>
                 {!isMobile && <> Filters</>}
                 {hasFilters && <span style={{ position: 'absolute', top: '5px', right: '5px', width: '5px', height: '5px', borderRadius: '50%', background: '#60A5FA', display: 'block' }} />}
@@ -526,7 +526,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {['hot', 'warm', 'cold'].map(h => (
                         <button key={h} onClick={() => setFilterHeat(filterHeat === h ? '' : h)}
-                          style={{ flex: 1, padding: '6px', borderRadius: '8px', fontSize: '12px', border: filterHeat === h ? '1px solid rgba(79,123,247,0.4)' : '1px solid var(--border)', background: filterHeat === h ? 'rgba(79,123,247,0.2)' : 'var(--bg-input)', color: filterHeat === h ? '#93C5FD' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                          style={{ flex: 1, padding: '6px', borderRadius: '8px', fontSize: '12px', border: filterHeat === h ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)', background: filterHeat === h ? 'rgba(61,79,224,0.2)' : 'var(--bg-input)', color: filterHeat === h ? '#93C5FD' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
                           {HEAT_ICON[h]} {h}
                         </button>
                       ))}
@@ -555,7 +555,7 @@ export default function Dashboard() {
             <div data-tour="view-toggle" style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '2px', flexShrink: 0 }}>
               {([['list','☰'],['board','⊞']] as const).map(([v, icon]) => (
                 <button key={v} onClick={() => setView(v)}
-                  style={{ padding: isMobile ? '6px 8px' : '5px 10px', borderRadius: '6px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: view === v ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: view === v ? 'white' : 'var(--text-muted)' }}>
+                  style={{ padding: isMobile ? '6px 8px' : '5px 10px', borderRadius: '6px', fontSize: isMobile ? '14px' : '12px', fontWeight: 500, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: view === v ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: view === v ? 'white' : 'var(--text-muted)' }}>
                   {isMobile ? icon : (v === 'list' ? `${icon} List` : `${icon} Board`)}
                 </button>
               ))}
@@ -638,7 +638,7 @@ export default function Dashboard() {
 
             {/* ADD */}
             <button data-tour="add-company" onClick={() => window.location.href = '/add'}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 10px' : '8px 16px', borderRadius: '8px', fontSize: isMobile ? '14px' : '14px', fontWeight: 600, background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: isMobile ? '7px 10px' : '8px 16px', borderRadius: '8px', fontSize: isMobile ? '14px' : '14px', fontWeight: 600, background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', color: 'white', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
               {isMobile ? '+' : '+ Add'}
             </button>
           </div>
@@ -656,7 +656,7 @@ export default function Dashboard() {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setIsSmartMode(false) }}
                 onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)}
-                style={{ width: '100%', boxSizing: 'border-box' as const, background: 'var(--bg-input)', border: '1px solid rgba(79,123,247,0.4)', borderRadius: '8px', paddingLeft: '32px', paddingRight: search ? '36px' : '12px', paddingTop: '9px', paddingBottom: '9px', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box' as const, background: 'var(--bg-input)', border: '1px solid rgba(61,79,224,0.4)', borderRadius: '8px', paddingLeft: '32px', paddingRight: search ? '36px' : '12px', paddingTop: '9px', paddingBottom: '9px', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
               />
               {search && (
                 <button onClick={() => { setSearch(''); setIsSmartMode(false) }}
@@ -673,7 +673,7 @@ export default function Dashboard() {
 
         {/* AI SEARCH BAR */}
         {showAdvanced && (
-          <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(124,58,237,0.04)' }}>
+          <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', background: 'rgba(46,59,176,0.04)' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input type="text" placeholder="e.g. 'hot architecture firms not contacted yet'"
                 value={smartQuery} onChange={e => setSmartQuery(e.target.value)}
@@ -728,7 +728,7 @@ export default function Dashboard() {
               : `${allCompanies.length} companies — drag to change status`}
           </p>
           {isSmartMode && <span style={{ fontSize: '12px', background: 'rgba(139,92,246,0.15)', color: '#A78BFA', padding: '2px 8px', borderRadius: '999px' }}>AI filtered</span>}
-          {hasFilters && <span style={{ fontSize: '12px', background: 'rgba(79,123,247,0.15)', color: '#60A5FA', padding: '2px 8px', borderRadius: '999px' }}>Filtered</span>}
+          {hasFilters && <span style={{ fontSize: '12px', background: 'rgba(61,79,224,0.15)', color: '#60A5FA', padding: '2px 8px', borderRadius: '999px' }}>Filtered</span>}
           {view === 'board' && <span style={{ fontSize: '12px', background: 'rgba(52,211,153,0.12)', color: '#34D399', padding: '2px 8px', borderRadius: '999px' }}>⊞ Board View</span>}
         </div>
 
@@ -738,7 +738,7 @@ export default function Dashboard() {
             {loading || smartSearching ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                  <div style={{ width: '32px', height: '32px', border: '2px solid rgba(61,79,224,0.3)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
                   <p style={{ fontSize: '14px', color: 'var(--text-dim)', margin: 0 }}>{smartSearching ? 'AI searching...' : 'Loading...'}</p>
                 </div>
               </div>
@@ -758,10 +758,10 @@ export default function Dashboard() {
                       onClick={() => goToCompany(c.id)}
                       onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, company: c }) }}
                       style={{ borderRadius: '12px', border: '1px solid var(--border)', padding: '16px', cursor: 'pointer', transition: 'all 0.15s', background: 'var(--bg-card)' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.25)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.25)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-card)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, flexShrink: 0, background: 'linear-gradient(135deg, rgba(79,123,247,0.2), rgba(124,58,237,0.2))', border: '1px solid rgba(79,123,247,0.15)', color: '#7BAEF7' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, flexShrink: 0, background: 'linear-gradient(135deg, rgba(61,79,224,0.2), rgba(46,59,176,0.2))', border: '1px solid rgba(61,79,224,0.15)', color: '#7BAEF7' }}>
                           {getInitials(c.name)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -838,7 +838,7 @@ export default function Dashboard() {
                         <span key={`dots-${i}`} style={{ width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'var(--text-dim)' }}>…</span>
                       ) : (
                         <button key={p} onClick={() => goToPage(p as number)}
-                          style={{ width: '34px', height: '34px', borderRadius: '8px', fontSize: '13px', fontWeight: page === p ? 600 : 400, border: page === p ? 'none' : '1px solid var(--border)', background: page === p ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'var(--bg-input)', color: page === p ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                          style={{ width: '34px', height: '34px', borderRadius: '8px', fontSize: '13px', fontWeight: page === p ? 600 : 400, border: page === p ? 'none' : '1px solid var(--border)', background: page === p ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: page === p ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s' }}>
                           {p}
                         </button>
                       )
@@ -857,7 +857,7 @@ export default function Dashboard() {
           <div style={{ flex: 1, padding: isMobile ? '8px' : '16px 24px', overflowY: 'auto', overflowX: 'hidden' }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '96px' }}>
-                <div style={{ width: '32px', height: '32px', border: '2px solid rgba(79,123,247,0.3)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <div style={{ width: '32px', height: '32px', border: '2px solid rgba(61,79,224,0.3)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               </div>
             ) : (
               <DndContext
@@ -900,7 +900,7 @@ export default function Dashboard() {
                 {/* DRAG OVERLAY */}
                 <DragOverlay>
                   {activeCompany ? (
-                    <div style={{ borderRadius: '10px', border: '1px solid rgba(79,123,247,0.5)', background: 'var(--bg-card)', padding: '12px', width: '220px', boxShadow: '0 16px 48px rgba(0,0,0,0.5)', opacity: 0.95 }}>
+                    <div style={{ borderRadius: '10px', border: '1px solid rgba(61,79,224,0.5)', background: 'var(--bg-card)', padding: '12px', width: '220px', boxShadow: '0 16px 48px rgba(0,0,0,0.5)', opacity: 0.95 }}>
                       <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{activeCompany.name}</p>
                       <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '4px 0 0' }}>{activeCompany.country} · {activeCompany.industry}</p>
                     </div>

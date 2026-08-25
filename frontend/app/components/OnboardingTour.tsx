@@ -217,7 +217,7 @@ export default function OnboardingTour() {
     <div style={{ display: 'flex', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '999px', padding: '2px', gap: '2px', flexShrink: 0 }}>
       {(['en', 'fa'] as const).map(l => (
         <button key={l} onClick={() => setLangPersist(l)}
-          style={{ padding: '3px 9px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700, border: 'none', cursor: 'pointer', background: lang === l ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'transparent', color: lang === l ? 'white' : 'var(--text-dim)' }}>
+          style={{ padding: '3px 9px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700, border: 'none', cursor: 'pointer', background: lang === l ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'transparent', color: lang === l ? 'white' : 'var(--text-dim)' }}>
           {l === 'en' ? 'EN' : 'فا'}
         </button>
       ))}
@@ -227,7 +227,7 @@ export default function OnboardingTour() {
   const ProgressDots = () => (
     <div style={{ display: 'flex', gap: '5px', marginBottom: '16px' }}>
       {STEPS.map((_, i) => (
-        <div key={i} style={{ height: '3px', flex: 1, borderRadius: '999px', background: i <= stepIndex ? 'linear-gradient(135deg, #4F7BF7, #7C3AED)' : 'var(--border)', transition: 'background 0.3s' }} />
+        <div key={i} style={{ height: '3px', flex: 1, borderRadius: '999px', background: i <= stepIndex ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--border)', transition: 'background 0.3s' }} />
       ))}
     </div>
   )
@@ -239,7 +239,7 @@ export default function OnboardingTour() {
           {lang === 'fa' ? '← قبلی' : '← Back'}
         </button>
       )}
-      <button onClick={next} style={{ flex: 1, padding: '9px 14px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, color: 'white', border: 'none', background: 'linear-gradient(135deg, #4F7BF7, #7C3AED)', cursor: 'pointer' }}>
+      <button onClick={next} style={{ flex: 1, padding: '9px 14px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 700, color: 'white', border: 'none', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', cursor: 'pointer' }}>
         {isLast ? (lang === 'fa' ? 'بزن بریم 🚀' : "Let's go 🚀") : (lang === 'fa' ? 'بعدی →' : 'Next →')}
       </button>
     </div>
@@ -266,8 +266,8 @@ export default function OnboardingTour() {
           position: 'fixed',
           top: Math.max(rect.top - PAD, 0), left: Math.max(rect.left - PAD, 0),
           width: rect.width + PAD * 2, height: rect.height + PAD * 2,
-          borderRadius: '12px', border: '2px solid #4F7BF7',
-          boxShadow: '0 0 0 4px rgba(79,123,247,0.2), 0 0 24px rgba(79,123,247,0.35)',
+          borderRadius: '12px', border: '2px solid #3D4FE0',
+          boxShadow: '0 0 0 4px rgba(61,79,224,0.2), 0 0 24px rgba(61,79,224,0.35)',
           pointerEvents: 'none', transition: 'all 0.3s ease', zIndex: 1,
         }} />
       )}
@@ -275,7 +275,7 @@ export default function OnboardingTour() {
       {/* LOCATING SPINNER (element not found yet / navigating) */}
       {locating && (
         <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 2 }}>
-          <div style={{ width: '26px', height: '26px', border: '2px solid rgba(79,123,247,0.25)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'tourspin 0.7s linear infinite' }} />
+          <div style={{ width: '26px', height: '26px', border: '2px solid rgba(61,79,224,0.25)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'tourspin 0.7s linear infinite' }} />
         </div>
       )}
 
@@ -294,7 +294,7 @@ export default function OnboardingTour() {
               </div>
             </div>
 
-            <div style={{ width: '40px', height: '40px', borderRadius: '11px', background: 'linear-gradient(135deg, rgba(79,123,247,0.18), rgba(124,58,237,0.18))', border: '1px solid rgba(79,123,247,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', marginBottom: '12px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '11px', background: 'linear-gradient(135deg, rgba(61,79,224,0.18), rgba(46,59,176,0.18))', border: '1px solid rgba(61,79,224,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', marginBottom: '12px' }}>
               {step.icon}
             </div>
 

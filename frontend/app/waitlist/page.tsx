@@ -11,7 +11,7 @@ const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 const PLAN_META: Record<string, { color: string; bg: string }> = {
   trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' },
-  pro:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)' },
+  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)' },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)' },
 }
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
@@ -80,8 +80,8 @@ export default function WaitlistPage() {
               {(['pending', 'approved', 'all'] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                    border: '1px solid ' + (filter === f ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                    background: filter === f ? 'rgba(79,123,247,0.15)' : 'transparent',
+                    border: '1px solid ' + (filter === f ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                    background: filter === f ? 'rgba(61,79,224,0.15)' : 'transparent',
                     color: filter === f ? '#60A5FA' : 'var(--text-muted)' }}>
                   {f}
                 </button>
@@ -165,7 +165,7 @@ export default function WaitlistPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => { navigator.clipboard.writeText(`Email: ${approved.email}\nPassword: ${approved.temp_password}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                    style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                     {copied ? '✓ Copied' : '📋 Copy credentials'}
                   </button>
                   <button onClick={() => setApproved(null)}
@@ -184,7 +184,7 @@ export default function WaitlistPage() {
                     : ' (Email delivery is off, so let them know their account is active.)'}
                 </p>
                 <button onClick={() => setApproved(null)}
-                  style={{ width: '100%', padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                  style={{ width: '100%', padding: '11px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                   Done
                 </button>
               </>

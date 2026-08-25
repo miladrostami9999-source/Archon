@@ -58,7 +58,7 @@ export default function UsageWidget() {
             Look around as much as you like. Adding companies and sending email unlock once we confirm your payment.
           </p>
         </div>
-        <a href="/upgrade" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <a href="/upgrade" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
           Complete payment
         </a>
       </div>

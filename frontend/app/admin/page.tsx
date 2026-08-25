@@ -332,7 +332,7 @@ export default function AdminPanel() {
   }
 
   const kpiCards = [
-    { icon: '🏢', label: 'Companies', value: stats?.total_companies ?? '—', color: '#4F7BF7', bg: 'rgba(79,123,247,0.08)', border: 'rgba(79,123,247,0.15)' },
+    { icon: '🏢', label: 'Companies', value: stats?.total_companies ?? '—', color: '#3D4FE0', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)' },
     { icon: '👥', label: 'Users', value: userCount || '—', color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.15)' },
     { icon: '✉', label: 'Emails Sent', value: stats?.emails_sent ?? '—', color: '#34D399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)' },
     { icon: '🏆', label: 'Clients Won', value: stats?.clients_won ?? '—', color: '#FBBF24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.15)' },
@@ -341,7 +341,7 @@ export default function AdminPanel() {
   const tools = [
     {
       icon: '📥', title: 'Import CSV', desc: 'Bulk import companies from spreadsheet',
-      color: '#60A5FA', bg: 'rgba(79,123,247,0.08)', border: 'rgba(79,123,247,0.15)',
+      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
       action: () => window.location.href = '/import',
       label: 'Open Import',
     },
@@ -377,7 +377,7 @@ export default function AdminPanel() {
     },
     {
       icon: '📊', title: 'Weekly AI Report', desc: 'AI-powered business development summary',
-      color: '#60A5FA', bg: 'rgba(79,123,247,0.08)', border: 'rgba(79,123,247,0.15)',
+      color: '#60A5FA', bg: 'rgba(61,79,224,0.08)', border: 'rgba(61,79,224,0.15)',
       action: () => window.location.href = '/report',
       label: 'Generate Report',
     },
@@ -505,8 +505,8 @@ export default function AdminPanel() {
           <a href="/discovery" style={{
             display: 'flex', alignItems: 'center', gap: '14px', marginTop: '28px',
             padding: '18px', borderRadius: '14px', textDecoration: 'none',
-            border: '1px solid rgba(79,123,247,0.25)',
-            background: 'linear-gradient(135deg, rgba(79,123,247,0.07), rgba(124,58,237,0.07))',
+            border: '1px solid rgba(61,79,224,0.25)',
+            background: 'linear-gradient(135deg, rgba(61,79,224,0.07), rgba(46,59,176,0.07))',
           }}>
             <span style={{ fontSize: '26px' }}>🎯</span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -565,8 +565,8 @@ export default function AdminPanel() {
                         <button key={c.name} type="button" onClick={() => toggleCountry(pl.plan, c.name)}
                           style={{
                             fontSize: '11px', padding: '4px 9px', borderRadius: '999px', cursor: 'pointer',
-                            border: `1px solid ${on ? 'rgba(79,123,247,0.45)' : 'var(--border)'}`,
-                            background: on ? 'rgba(79,123,247,0.14)' : 'var(--bg-input)',
+                            border: `1px solid ${on ? 'rgba(61,79,224,0.45)' : 'var(--border)'}`,
+                            background: on ? 'rgba(61,79,224,0.14)' : 'var(--bg-input)',
                             color: on ? '#60A5FA' : 'var(--text-dim)',
                           }}>
                           {c.name} <span style={{ opacity: 0.6 }}>{c.count}</span>
@@ -582,7 +582,7 @@ export default function AdminPanel() {
                 </div>
 
                 <button onClick={() => savePlanLimit(pl)} disabled={savingPlan === pl.plan}
-                  style={{ marginTop: '14px', width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: savingPlan === pl.plan ? 0.6 : 1 }}>
+                  style={{ marginTop: '14px', width: '100%', padding: '9px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: savingPlan === pl.plan ? 0.6 : 1 }}>
                   {savingPlan === pl.plan ? 'Saving…' : 'Save'}
                 </button>
               </div>
@@ -633,7 +633,7 @@ export default function AdminPanel() {
             </datalist>
             <button onClick={() => mergeCountries(manualMergeFrom, manualMergeTo)}
               disabled={!manualMergeFrom.trim() || !manualMergeTo.trim() || merging !== null}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (!manualMergeFrom.trim() || !manualMergeTo.trim()) ? 0.5 : 1 }}>
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (!manualMergeFrom.trim() || !manualMergeTo.trim()) ? 0.5 : 1 }}>
               Merge
             </button>
           </div>
@@ -668,7 +668,7 @@ export default function AdminPanel() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '32px' }}>
             <button onClick={checkBulkPreview} disabled={bulkChecking}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer', opacity: bulkChecking ? 0.6 : 1 }}>
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer', opacity: bulkChecking ? 0.6 : 1 }}>
               {bulkChecking ? 'Checking…' : 'Preview count'}
             </button>
             {bulkPreview !== null && (
@@ -731,7 +731,7 @@ export default function AdminPanel() {
               Also send by email
             </label>
             <button onClick={checkBcPreview} disabled={bcChecking}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.25)', cursor: 'pointer', opacity: bcChecking ? 0.6 : 1 }}>
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer', opacity: bcChecking ? 0.6 : 1 }}>
               {bcChecking ? 'Checking…' : 'Preview count'}
             </button>
             {bcPreview !== null && (
@@ -740,7 +740,7 @@ export default function AdminPanel() {
               </span>
             )}
             <button onClick={sendBroadcast} disabled={bcSending || bcPreview === 0 || !bcTitle.trim()}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (bcSending || bcPreview === 0 || !bcTitle.trim()) ? 0.5 : 1 }}>
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (bcSending || bcPreview === 0 || !bcTitle.trim()) ? 0.5 : 1 }}>
               {bcSending ? 'Sending…' : 'Send broadcast'}
             </button>
             {bcMsg && <span style={{ fontSize: '12px', color: bcMsg.startsWith('✓') ? '#34D399' : '#F87171' }}>{bcMsg}</span>}
@@ -797,7 +797,7 @@ export default function AdminPanel() {
             </div>
           </div>
           <button onClick={saveInstructions} disabled={savingInstr}
-            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', marginBottom: '40px', opacity: savingInstr ? 0.6 : 1 }}>
+            style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', marginBottom: '40px', opacity: savingInstr ? 0.6 : 1 }}>
             {savingInstr ? 'Saving…' : 'Save instructions'}
           </button>
 

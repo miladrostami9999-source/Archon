@@ -33,7 +33,7 @@ interface Contract {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  active:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)', label: 'Active' },
+  active:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Active' },
   completed: { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
   disputed:  { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
@@ -82,7 +82,7 @@ export default function ContractsPage() {
                 return (
                   <a key={c.id} href={`/contracts/${c.id}`}
                     style={{ display: 'block', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.35)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>

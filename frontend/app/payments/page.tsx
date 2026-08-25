@@ -79,8 +79,8 @@ export default function PaymentsPage() {
               {(['pending', 'approved', 'all'] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                    border: '1px solid ' + (filter === f ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                    background: filter === f ? 'rgba(79,123,247,0.15)' : 'transparent',
+                    border: '1px solid ' + (filter === f ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                    background: filter === f ? 'rgba(61,79,224,0.15)' : 'transparent',
                     color: filter === f ? '#60A5FA' : 'var(--text-muted)' }}>{f}</button>
               ))}
             </div>

@@ -29,7 +29,7 @@ interface Project {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  open:        { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)', label: 'Open' },
+  open:        { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Open' },
   in_progress: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'In progress' },
   completed:   { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
   cancelled:   { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Cancelled' },
@@ -125,7 +125,7 @@ export default function ProjectsPage() {
               <BetaTag />
             </div>
             <button onClick={() => setShowPost(s => !s)}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
               {showPost ? 'Cancel' : '+ Post a Project'}
             </button>
           </div>
@@ -177,7 +177,7 @@ export default function ProjectsPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button onClick={submitPost} disabled={posting}
-                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
+                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
                   {posting ? 'Posting…' : 'Post project'}
                 </button>
                 {postMsg && <span style={{ fontSize: '12.5px', color: '#F87171' }}>{postMsg}</span>}
@@ -189,8 +189,8 @@ export default function ProjectsPage() {
             {(['open', 'mine'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-                  border: '1px solid ' + (tab === t ? 'rgba(79,123,247,0.4)' : 'var(--border)'),
-                  background: tab === t ? 'rgba(79,123,247,0.15)' : 'transparent',
+                  border: '1px solid ' + (tab === t ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
+                  background: tab === t ? 'rgba(61,79,224,0.15)' : 'transparent',
                   color: tab === t ? '#60A5FA' : 'var(--text-muted)' }}>
                 {t === 'open' ? 'Open board' : 'My projects'}
               </button>
@@ -212,7 +212,7 @@ export default function ProjectsPage() {
                 return (
                   <a key={p.id} href={`/projects/${p.id}`}
                     style={{ display: 'block', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.35)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>

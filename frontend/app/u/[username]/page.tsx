@@ -63,7 +63,7 @@ export default function PublicProfilePage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#0B0E15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '28px', height: '28px', border: '2px solid rgba(79,123,247,0.2)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: '28px', height: '28px', border: '2px solid rgba(61,79,224,0.2)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -117,7 +117,7 @@ export default function PublicProfilePage() {
                 </div>
               ))}
               {selectedProject.url && (
-                <a href={selectedProject.url} target="_blank" style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '13px', color: '#8FB3FF', padding: '10px', border: '1px solid rgba(79,123,247,0.2)', borderRadius: '10px', textDecoration: 'none', background: 'rgba(79,123,247,0.06)' }}>
+                <a href={selectedProject.url} target="_blank" style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '13px', color: '#8FB3FF', padding: '10px', border: '1px solid rgba(61,79,224,0.2)', borderRadius: '10px', textDecoration: 'none', background: 'rgba(61,79,224,0.06)' }}>
                   🔗 View External Link
                 </a>
               )}
@@ -129,7 +129,7 @@ export default function PublicProfilePage() {
       {/* HERO */}
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '64px 24px 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', marginBottom: '24px' }}>
-          <div style={{ width: '84px', height: '84px', borderRadius: '20px', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(79,123,247,0.3)' }}>
+          <div style={{ width: '84px', height: '84px', borderRadius: '20px', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(61,79,224,0.3)' }}>
             {profile.avatar ? (
               <img src={profile.avatar} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -152,7 +152,7 @@ export default function PublicProfilePage() {
           {/* Anyone signed in can start a conversation from here — the point
               of a public profile is being reachable. */}
           <button onClick={messageThem} disabled={messaging}
-            style={{ flexShrink: 0, padding: '10px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
+            style={{ flexShrink: 0, padding: '10px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
             {messaging ? 'Opening…' : '💬 Message'}
           </button>
         </div>
@@ -165,7 +165,7 @@ export default function PublicProfilePage() {
         {allSkills.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
             {allSkills.map(skill => (
-              <span key={skill} style={{ fontSize: '12px', fontWeight: 600, color: '#8FB3FF', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', padding: '5px 13px', borderRadius: '999px' }}>
+              <span key={skill} style={{ fontSize: '12px', fontWeight: 600, color: '#8FB3FF', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)', padding: '5px 13px', borderRadius: '999px' }}>
                 {skill}
               </span>
             ))}
@@ -235,9 +235,9 @@ export default function PublicProfilePage() {
               return (
                 <div key={item.id} onClick={() => setSelectedProject(item)}
                   style={{ borderRadius: '14px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)'; e.currentTarget.style.transform = 'translateY(-3px)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; e.currentTarget.style.transform = 'none' }}>
-                  <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(79,123,247,0.08), rgba(124,58,237,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <div style={{ height: '160px', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.08))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     {cover ? (
                       <img src={cover.data} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (

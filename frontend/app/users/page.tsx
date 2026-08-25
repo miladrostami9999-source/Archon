@@ -12,7 +12,7 @@ const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 const PLAN_META = {
   trial:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)', icon: '⏳', gradient: 'linear-gradient(135deg,rgba(52,211,153,0.15),rgba(52,211,153,0.05))' },
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', icon: '◈', gradient: 'linear-gradient(135deg,rgba(156,163,175,0.15),rgba(156,163,175,0.05))' },
-  pro:    { color: '#60A5FA', bg: 'rgba(79,123,247,0.12)',  border: 'rgba(79,123,247,0.25)',  icon: '⭐', gradient: 'linear-gradient(135deg,rgba(79,123,247,0.2),rgba(79,123,247,0.05))' },
+  pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  icon: '⭐', gradient: 'linear-gradient(135deg,rgba(61,79,224,0.2),rgba(61,79,224,0.05))' },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', icon: '🏆', gradient: 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.05))' },
 } as const
 
@@ -133,11 +133,11 @@ export default function UsersPage() {
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(79,123,247,0.3)' }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(61,79,224,0.3)' }}>
                     {detail.profile?.avatar ? (
                       <img src={detail.profile.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)' }}>
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                         {detail.name?.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -194,7 +194,7 @@ export default function UsersPage() {
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button onClick={() => emailUser(detail.email)}
-                    style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer' }}>
+                    style={{ flex: 1, minWidth: '130px', textAlign: 'center', padding: '10px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
                     {copiedEmail ? '✓ Email copied' : 'Email this user'}
                   </button>
                   {detail.public_url && (
@@ -238,7 +238,7 @@ export default function UsersPage() {
               ⬇ {isMobile ? '' : 'Export'}
             </button>
             <button onClick={() => setShowAdd(!showAdd)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 14px' : '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(79,123,247,0.3)' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '7px 14px' : '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(61,79,224,0.3)' }}>
               + {isMobile ? 'Add' : 'Add User'}
             </button>
           </div>
@@ -277,9 +277,9 @@ export default function UsersPage() {
 
           {/* ADD FORM */}
           {showAdd && (
-            <div style={{ borderRadius: '16px', border: '1px solid rgba(79,123,247,0.25)', background: 'rgba(79,123,247,0.04)', padding: isMobile ? '16px' : '22px', marginBottom: '20px' }}>
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(61,79,224,0.25)', background: 'rgba(61,79,224,0.04)', padding: isMobile ? '16px' : '22px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(79,123,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>➕</span>
+                <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(61,79,224,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>➕</span>
                 Create New User
               </h3>
               {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '12px', padding: '8px 12px', borderRadius: '8px', marginBottom: '14px' }}>{error}</div>}
@@ -292,7 +292,7 @@ export default function UsersPage() {
                   <div key={f.key}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{f.label}</label>
                     <input value={(addForm as any)[f.key]} onChange={e => setAddForm({ ...addForm, [f.key]: e.target.value })} placeholder={f.ph} type={f.type} style={inp}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
                   </div>
                 ))}
@@ -308,7 +308,7 @@ export default function UsersPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button onClick={() => { setShowAdd(false); setError('') }} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg-input)', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={createUser} disabled={saving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+                <button onClick={createUser} disabled={saving} style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
                   {saving ? 'Creating...' : 'Create User'}
                 </button>
               </div>
@@ -321,7 +321,7 @@ export default function UsersPage() {
               <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: '14px' }}>⌕</span>
               <input placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ ...inp, paddingLeft: '30px' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.5)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
             </div>
             {(search || filterPlan) && (
@@ -336,7 +336,7 @@ export default function UsersPage() {
           {/* USER CARDS */}
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
-              <div style={{ width: '24px', height: '24px', border: '2px solid rgba(79,123,247,0.2)', borderTop: '2px solid #4F7BF7', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
+              <div style={{ width: '24px', height: '24px', border: '2px solid rgba(61,79,224,0.2)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 10px' }} />
               <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>Loading users...</p>
             </div>
           ) : filtered.length === 0 ? (
@@ -353,12 +353,12 @@ export default function UsersPage() {
                 return (
                   <div key={u.id}
                     style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: isMobile ? '14px' : '16px 20px', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(79,123,247,0.2)'; e.currentTarget.style.transform = 'translateX(2px)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.2)'; e.currentTarget.style.transform = 'translateX(2px)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                       {/* AVATAR */}
-                      <div style={{ width: isMobile ? '36px' : '42px', height: isMobile ? '36px' : '42px', borderRadius: '50%', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '12px' : '14px', fontWeight: 800, color: 'white', flexShrink: 0, boxShadow: '0 2px 8px rgba(79,123,247,0.3)' }}>
+                      <div style={{ width: isMobile ? '36px' : '42px', height: isMobile ? '36px' : '42px', borderRadius: '50%', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '12px' : '14px', fontWeight: 800, color: 'white', flexShrink: 0, boxShadow: '0 2px 8px rgba(61,79,224,0.3)' }}>
                         {initials}
                       </div>
 
@@ -427,7 +427,7 @@ export default function UsersPage() {
                             <button onClick={() => openDetail(u.id)}
                               style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#A78BFA', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', cursor: 'pointer', fontWeight: 600 }}>View</button>
                             <button onClick={() => setEditUser(u)}
-                              style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#60A5FA', background: 'rgba(79,123,247,0.1)', border: '1px solid rgba(79,123,247,0.2)', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                              style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '8px', color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)', cursor: 'pointer', fontWeight: 600 }}>Edit</button>
                             {/* Reach a member directly rather than only ever
                                 seeing them as a row in a table. */}
                             <button onClick={() => messageUser(u.id)} disabled={messagingId === u.id}

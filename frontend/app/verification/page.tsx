@@ -198,7 +198,7 @@ export default function VerificationPage() {
                     {saving ? 'Saving…' : 'Save draft'}
                   </button>
                   <button onClick={submit} disabled={saving || v.status === 'verified'}
-                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#4F7BF7,#7C3AED)', border: 'none', cursor: 'pointer', opacity: (saving || v.status === 'verified') ? 0.5 : 1 }}>
+                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (saving || v.status === 'verified') ? 0.5 : 1 }}>
                     {v.status === 'verified' ? 'Verified' : 'Submit for review'}
                   </button>
                   {v.status === 'verified' && (
