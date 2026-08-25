@@ -987,7 +987,8 @@ def ensure_unique_username(db: Session, desired: str, user_id: int) -> str:
 
 
 @router.get("/profile/me")
-def get_my_profile(current_user: User = Depends(get_current_user)):
+def get_my_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import Campaign, Post
     data = json.loads(current_user.profile_json) if current_user.profile_json else {}
     return {
         "id": current_user.id,
@@ -997,6 +998,11 @@ def get_my_profile(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "username": current_user.username,
         "is_public": current_user.is_public,
+        "is_verified": db.query(UserVerification).filter(
+            UserVerification.user_id == current_user.id, UserVerification.status == "verified",
+        ).first() is not None,
+        "has_post": db.query(Post).filter(Post.user_id == current_user.id, Post.is_deleted == False).first() is not None,
+        "has_sent_email": db.query(Campaign).filter(Campaign.user_id == current_user.id, Campaign.status.in_(["sent", "replied"])).first() is not None,
         **data,
     }
 

@@ -7,6 +7,7 @@ import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 import PublishSection from './PublishSection'
 import PortfolioGrid from '../components/PortfolioGrid'
+import ProfileCompletion, { type CompletionSignals } from '../components/ProfileCompletion'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -107,6 +108,7 @@ export default function ProfilePage() {
   const [postsLoaded, setPostsLoaded] = useState(false)
   const [editingPostId, setEditingPostId] = useState<number | null>(null)
   const [editPostText, setEditPostText] = useState('')
+  const [completionExtra, setCompletionExtra] = useState({ isVerified: false, hasPost: false, hasSentEmail: false, isPublic: false })
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -143,6 +145,9 @@ export default function ProfilePage() {
         }
         setProfile(fromServer)
         localStorage.setItem('archon-profile', JSON.stringify(fromServer))
+        setCompletionExtra({
+          isVerified: !!d.is_verified, hasPost: !!d.has_post, hasSentEmail: !!d.has_sent_email, isPublic: !!d.is_public,
+        })
       })
       .catch(() => {})
   }, [])
@@ -604,6 +609,17 @@ export default function ProfilePage() {
           {/* ── TAB: INFO ── */}
           {activeTab === 'info' && (
             <>
+            <ProfileCompletion
+              signals={{
+                isVerified: completionExtra.isVerified,
+                hasPost: completionExtra.hasPost,
+                hasSentEmail: completionExtra.hasSentEmail,
+                isPublic: completionExtra.isPublic,
+                hasPortfolio: profile.portfolio.length > 0,
+                hasAvatar: !!profile.avatar,
+              }}
+              onNavigateTab={setActiveTab}
+            />
             {/* Marketplace mode — a view preference, not a permission. Both
                 modes can post work and take work; this decides which one the
                 Projects page leads with. */}
@@ -902,7 +918,7 @@ export default function ProfilePage() {
           {activeTab === 'security' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-              <PublishSection profile={profile} />
+              <PublishSection profile={profile} onPublicChange={isPublic => setCompletionExtra(c => ({ ...c, isPublic }))} />
 
               <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔐 Change Password</h2>
