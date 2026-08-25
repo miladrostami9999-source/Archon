@@ -13,13 +13,15 @@ interface Report {
   email_performance: string; weekly_goals: string; motivation: string
 }
 
+// One neutral card style for every section — organizational accent (--accent)
+// only, no per-section rainbow. Matches the rest of the design system.
 const SECTIONS = [
-  { key: 'summary',           icon: BarChart3, textIcon: '📊', label: 'Executive Summary',   labelFa: 'خلاصه اجرایی',      color: '#3D4FE0', bg: 'rgba(61,79,224,0.06)' },
-  { key: 'pipeline_insight',  icon: RefreshCw, textIcon: '🔄', label: 'Pipeline Health',     labelFa: 'سلامت پایپلاین',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.06)' },
-  { key: 'top_leads',         icon: Target, textIcon: '🎯', label: 'Top Leads',           labelFa: 'بهترین لیدها',       color: '#F59E0B', bg: 'rgba(245,158,11,0.06)' },
-  { key: 'follow_up_action',  icon: Clock, textIcon: '⏰', label: 'Follow-up Actions',   labelFa: 'پیگیری‌ها',          color: '#F97316', bg: 'rgba(249,115,22,0.06)' },
-  { key: 'email_performance', icon: Mail, textIcon: '✉', label:  'Email Performance',   labelFa: 'عملکرد ایمیل',       color: '#34D399', bg: 'rgba(52,211,153,0.06)' },
-  { key: 'weekly_goals',      icon: Sparkles, textIcon: '✦', label:  'Goals for Next Week', labelFa: 'اهداف هفته آینده',  color: '#14B8A6', bg: 'rgba(20,184,166,0.06)' },
+  { key: 'summary',           icon: BarChart3, textIcon: '#', label: 'Executive Summary',    labelFa: 'خلاصه اجرایی' },
+  { key: 'pipeline_insight',  icon: RefreshCw, textIcon: '#', label: 'Pipeline Health',      labelFa: 'سلامت پایپلاین' },
+  { key: 'top_leads',         icon: Target,    textIcon: '#', label: 'Top Leads',            labelFa: 'بهترین لیدها' },
+  { key: 'follow_up_action',  icon: Clock,     textIcon: '#', label: 'Follow-up Actions',    labelFa: 'پیگیری‌ها' },
+  { key: 'email_performance', icon: Mail,      textIcon: '#', label: 'Email Performance',    labelFa: 'عملکرد ایمیل' },
+  { key: 'weekly_goals',      icon: Sparkles,  textIcon: '#', label: 'Goals for Next Week',  labelFa: 'اهداف هفته آینده' },
 ] as const
 
 export default function WeeklyReport() {
@@ -129,8 +131,8 @@ export default function WeeklyReport() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {report && (
               <button onClick={copyReport}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: copied ? 'rgba(52,211,153,0.1)' : 'var(--bg-input)', color: copied ? '#34D399' : 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}>
-                {copied ? <><CheckCircle2 size={14} strokeWidth={1.75} color="#34D399" /> Copied!</> : <><Copy size={14} strokeWidth={1.75} color="var(--text-muted)" /> Copy</>}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: copied ? 'rgba(63,185,131,0.1)' : 'var(--bg-input)', color: copied ? 'var(--success)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}>
+                {copied ? <><CheckCircle2 size={14} strokeWidth={1.75} color="var(--success)" /> Copied!</> : <><Copy size={14} strokeWidth={1.75} color="var(--text-muted)" /> Copy</>}
               </button>
             )}
             {report && (
@@ -168,7 +170,7 @@ export default function WeeklyReport() {
               </p>
 
               {error && (
-                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 16px', borderRadius: '8px', marginBottom: '20px' }}>
+                <div style={{ background: 'rgba(228,114,111,0.1)', border: '1px solid rgba(228,114,111,0.25)', color: 'var(--error)', fontSize: '13px', padding: '10px 16px', borderRadius: '8px', marginBottom: '20px' }}>
                   {error}
                 </div>
               )}
@@ -177,7 +179,7 @@ export default function WeeklyReport() {
                 {(['en','fa'] as const).map(l => (
                   <button key={l} onClick={() => setLang(l)}
                     style={{ padding: '8px 24px', borderRadius: '8px', fontSize: '13px', border: lang === l ? 'none' : '1px solid var(--border)', background: lang === l ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: lang === l ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s', fontWeight: lang === l ? 600 : 400 }}>
-                    {l === 'en' ? '🇬🇧 English' : '🇮🇷 فارسی'}
+                    {l === 'en' ? 'English' : 'فارسی'}
                   </button>
                 ))}
               </div>
@@ -188,7 +190,7 @@ export default function WeeklyReport() {
                     <Lock size={15} strokeWidth={1.75} color="var(--text-muted)" />
                     <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>{isFa ? 'گزارش این هفته تولید شده' : 'Report already generated this week'}</span>
                   </div>
-                  {timeLeft && <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}><Clock size={12} strokeWidth={1.75} color="var(--text-dim)" /> Next report available in: <strong style={{ color: '#FBBF24' }}>{timeLeft}</strong></p>}
+                  {timeLeft && <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}><Clock size={12} strokeWidth={1.75} color="var(--text-dim)" /> Next report available in: <strong style={{ color: 'var(--warning)' }}>{timeLeft}</strong></p>}
                 </div>
               ) : (
                 <button onClick={generate} disabled={loading}
@@ -205,15 +207,15 @@ export default function WeeklyReport() {
                 <div>
                   <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: '0 0 2px', letterSpacing: '-0.01em' }}>{report.title}</h2>
                   <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399', display: 'inline-block' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
                     Generated by Claude AI
                     {generatedAt && <span style={{ color: 'var(--text-dim)' }}> · {formatDate(generatedAt)}</span>}
                   </p>
                 </div>
                 {isLocked && timeLeft && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: 'rgba(221,162,63,0.1)', border: '1px solid rgba(221,162,63,0.3)' }}>
                     <Clock size={12} strokeWidth={1.75} color="#FBBF24" />
-                    <span style={{ fontSize: '11px', color: '#FBBF24', fontWeight: 500 }}>{timeLeft}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: 500 }}>{timeLeft}</span>
                   </div>
                 )}
               </div>
@@ -222,12 +224,12 @@ export default function WeeklyReport() {
                 const content = report[section.key as keyof Report]
                 if (!content) return null
                 return (
-                  <div key={section.key} style={{ borderRadius: '14px', border: `1px solid ${section.color}20`, background: section.bg, padding: '18px 20px', transition: 'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = section.color + '40'; e.currentTarget.style.transform = 'translateX(2px)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = section.color + '20'; e.currentTarget.style.transform = 'none' }}>
+                  <div key={section.key} style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px 20px', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: section.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><section.icon size={14} strokeWidth={1.75} color={section.color} /></div>
-                      <h3 style={{ fontSize: '11px', fontWeight: 700, color: section.color, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><section.icon size={14} strokeWidth={1.75} color="var(--text-muted)" /></div>
+                      <h3 style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                         {isFa ? section.labelFa : section.label}
                       </h3>
                     </div>
@@ -239,7 +241,7 @@ export default function WeeklyReport() {
               })}
 
               {report.motivation && (
-                <div style={{ borderRadius: '14px', border: '1px solid rgba(61,79,224,0.15)', background: 'linear-gradient(135deg, rgba(61,79,224,0.06), rgba(46,59,176,0.06))', padding: '20px 24px', textAlign: 'center' }}>
+                <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--accent)', background: 'var(--accent-dim)', padding: '20px 24px', textAlign: 'center' }}>
                   <p style={{ fontSize: '16px', fontStyle: 'italic', color: 'var(--text)', margin: '0 0 8px', lineHeight: 1.7, direction: isFa ? 'rtl' : 'ltr' }}>
                     "{report.motivation}"
                   </p>

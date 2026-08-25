@@ -34,7 +34,7 @@ interface EmailAnalytics {
 }
 
 const card: React.CSSProperties = {
-  borderRadius: '12px',
+  borderRadius: 'var(--radius-lg)',
   border: '1px solid var(--border)',
   background: 'var(--bg-card)',
   padding: '20px',
@@ -58,7 +58,7 @@ export default function Analytics() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Sidebar />
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '2px solid rgba(61,79,224,0.3)', borderTop: '2px solid #3D4FE0', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <div style={{ width: '32px', height: '32px', border: '2px solid var(--accent-dim)', borderTop: '2px solid var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     </div>
   )
@@ -92,18 +92,17 @@ export default function Analytics() {
 
         <div style={{ padding: isMobile ? '16px' : '24px 32px', maxWidth: '1000px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* KPI CARDS */}
+          {/* KPI CARDS — one neutral style, organizational accent only */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px' }}>
             {[
-              { label: 'Total Companies', value: data.total_companies, icon: Building2, color: '#3D4FE0', sub: `${data.favorites} favorites` },
-              { label: 'Active Pipeline', value: activeCompanies, icon: Zap, color: '#F59E0B', sub: 'in progress' },
-              { label: 'Reply Rate', value: `${replyRate}%`, icon: MessageCircle, color: '#34D399', sub: `${data.emails.replied} of ${data.emails.sent} sent` },
-              { label: 'Clients Won', value: data.status_counts.client || 0, icon: Trophy, color: '#A78BFA', sub: `${conversionRate}% conversion` },
+              { label: 'Total Companies', value: data.total_companies, icon: Building2, sub: `${data.favorites} favorites` },
+              { label: 'Active Pipeline', value: activeCompanies, icon: Zap, sub: 'in progress' },
+              { label: 'Reply Rate', value: `${replyRate}%`, icon: MessageCircle, sub: `${data.emails.replied} of ${data.emails.sent} sent` },
+              { label: 'Clients Won', value: data.status_counts.client || 0, icon: Trophy, sub: `${conversionRate}% conversion` },
             ].map(s => (
-              <div key={s.label} style={{ ...card, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, right: 0, width: '64px', height: '64px', borderRadius: '50%', background: s.color, opacity: 0.1, transform: 'translate(30%, -30%)' }} />
-                <p style={{ margin: '0 0 8px' }}><s.icon size={20} strokeWidth={1.5} color={s.color} /></p>
-                <p style={{ fontSize: '24px', fontWeight: 700, color: s.color, margin: 0 }}>{s.value}</p>
+              <div key={s.label} style={card}>
+                <p style={{ margin: '0 0 8px' }}><s.icon size={18} strokeWidth={1.5} color="var(--text-muted)" /></p>
+                <p className="mono" style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{s.value}</p>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0', fontWeight: 500 }}>{s.label}</p>
                 <p style={{ fontSize: '10px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{s.sub}</p>
               </div>
@@ -148,13 +147,13 @@ export default function Analytics() {
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
                 {[
-                  { label: 'Generated', value: email.generated, color: '#60A5FA' },
-                  { label: 'Sent', value: email.sent, color: '#A78BFA' },
-                  { label: 'Replies', value: email.replied, color: '#34D399' },
-                  { label: 'Reply rate', value: `${email.reply_rate}%`, color: email.reply_rate > 20 ? '#34D399' : '#F59E0B' },
+                  { label: 'Generated', value: email.generated },
+                  { label: 'Sent', value: email.sent },
+                  { label: 'Replies', value: email.replied },
+                  { label: 'Reply rate', value: `${email.reply_rate}%`, color: email.reply_rate > 20 ? 'var(--success)' : 'var(--warning)' },
                 ].map(m => (
-                  <div key={m.label} style={{ borderRadius: '10px', background: 'var(--bg-input)', padding: '12px' }}>
-                    <p style={{ fontSize: '20px', fontWeight: 800, color: m.color, margin: 0 }}>{m.value}</p>
+                  <div key={m.label} style={{ borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', padding: '12px' }}>
+                    <p className="mono" style={{ fontSize: '18px', fontWeight: 700, color: m.color || 'var(--text)', margin: 0 }}>{m.value}</p>
                     <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{m.label}</p>
                   </div>
                 ))}
@@ -168,9 +167,9 @@ export default function Analytics() {
                     <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '64px' }}>
                         <div title={`${m.sent} sent, ${m.replied} replied`}
-                          style={{ width: '100%', height: `${Math.round((m.sent / peak) * 100)}%`, minHeight: m.sent ? '4px' : '2px', background: m.sent ? 'linear-gradient(180deg,#60A5FA,#3D4FE0)' : 'var(--border)', borderRadius: '4px 4px 0 0', position: 'relative' }}>
+                          style={{ width: '100%', height: `${Math.round((m.sent / peak) * 100)}%`, minHeight: m.sent ? '4px' : '2px', background: m.sent ? 'linear-gradient(180deg,#3D4FE0,#2E3BB0)' : 'var(--border)', borderRadius: '4px 4px 0 0', position: 'relative' }}>
                           {m.replied > 0 && (
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${Math.round((m.replied / Math.max(m.sent, 1)) * 100)}%`, background: '#34D399', borderRadius: '0 0 4px 4px' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${Math.round((m.replied / Math.max(m.sent, 1)) * 100)}%`, background: 'var(--success)', borderRadius: '0 0 4px 4px' }} />
                           )}
                         </div>
                       </div>
@@ -180,8 +179,8 @@ export default function Analytics() {
                 })}
               </div>
               <div style={{ display: 'flex', gap: '14px', marginTop: '10px' }}>
-                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#3D4FE0', marginRight: '5px' }} />Sent</span>
-                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: '#34D399', marginRight: '5px' }} />Replied</span>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: 'var(--accent)', marginRight: '5px' }} />Sent</span>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: 'var(--success)', marginRight: '5px' }} />Replied</span>
               </div>
             </div>
           )}
@@ -193,9 +192,9 @@ export default function Analytics() {
               <h2 style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 16px' }}>Email Campaign (whole team)</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
-                  { label: 'Generated', value: data.emails.total, color: '#3D4FE0' },
-                  { label: 'Sent', value: data.emails.sent, color: '#F97316' },
-                  { label: 'Replied', value: data.emails.replied, color: '#34D399' },
+                  { label: 'Generated', value: data.emails.total },
+                  { label: 'Sent', value: data.emails.sent },
+                  { label: 'Replied', value: data.emails.replied, color: 'var(--success)' },
                 ].map(item => (
                   <div key={item.label}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -204,7 +203,7 @@ export default function Analytics() {
                     </div>
                     <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
                       <div style={{
-                        height: '100%', borderRadius: '999px', background: item.color,
+                        height: '100%', borderRadius: '999px', background: item.color || 'var(--accent)',
                         width: `${data.emails.total > 0 ? (item.value / data.emails.total) * 100 : 0}%`,
                       }} />
                     </div>
@@ -212,7 +211,7 @@ export default function Analytics() {
                 ))}
                 <div style={{ paddingTop: '8px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Reply Rate</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: replyRate > 20 ? '#34D399' : '#F59E0B' }}>{replyRate}%</span>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: replyRate > 20 ? 'var(--success)' : 'var(--warning)' }}>{replyRate}%</span>
                 </div>
               </div>
             </div>
@@ -246,7 +245,7 @@ export default function Analytics() {
                 <p style={{ fontSize: '14px', color: 'var(--text-dim)', textAlign: 'center', padding: '16px 0' }}>No data</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {data.industries.map((item, i) => (
+                  {data.industries.map((item) => (
                     <div key={item.name}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
@@ -256,7 +255,7 @@ export default function Analytics() {
                         <div style={{
                           height: '100%', borderRadius: '999px',
                           width: `${(item.count / maxIndustry) * 100}%`,
-                          background: ['#3D4FE0', '#8B5CF6', '#34D399', '#F59E0B', '#F97316'][i % 5],
+                          background: 'var(--accent)',
                         }} />
                       </div>
                     </div>
@@ -278,7 +277,7 @@ export default function Analytics() {
                         <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{item.count}</span>
                       </div>
                       <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
-                        <div style={{ height: '100%', borderRadius: '999px', background: '#34D399', width: `${(item.count / maxCountry) * 100}%` }} />
+                        <div style={{ height: '100%', borderRadius: '999px', background: 'var(--accent)', width: `${(item.count / maxCountry) * 100}%` }} />
                       </div>
                     </div>
                   ))}
