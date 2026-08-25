@@ -32,7 +32,7 @@ def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(requi
         )
 
     try:
-        tasks = generate_daily_tasks(company_list, lang=data.lang)
+        tasks = generate_daily_tasks(company_list, lang=data.lang, user_name=current_user.name)
     except Exception as e:
         import traceback
         print("TASK ERROR:", traceback.format_exc())
@@ -52,6 +52,7 @@ def generate_tasks(data: TaskGenerateRequest, current_user: User = Depends(requi
         task = DailyTask(
             user_id=current_user.id,
             task_type=t.get("type", "review"),
+            title=t.get("title", ""),
             description=f"{t.get('title', '')} — {t.get('description', '')}",
             priority=t.get("priority", 3),
             is_done=False,
@@ -97,6 +98,7 @@ def add_personal_task(data: PersonalTaskCreate, current_user: User = Depends(get
     task = DailyTask(
         user_id=current_user.id,
         task_type="personal",
+        title=data.title,
         description=data.description,
         priority=99,
         is_done=False,

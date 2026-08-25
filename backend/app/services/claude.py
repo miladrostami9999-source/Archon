@@ -185,7 +185,7 @@ Do not include any other text.
     return parse_json_response(message.content[0].text)
 
 
-def generate_daily_tasks(companies: list, lang: str = "en") -> list:
+def generate_daily_tasks(companies: list, lang: str = "en", user_name: str = "there") -> list:
     today_stats = {
         "total": len(companies),
         "new": len([c for c in companies if c.get('status') == 'new']),
@@ -226,7 +226,7 @@ Top companies:
 
 {lang_instruction}
 
-Generate exactly 5 specific actionable daily tasks for Milad.
+Generate exactly 5 specific actionable daily tasks for {user_name}.
 Types: review, email, followup, research, update
 
 Return ONLY this JSON array, no markdown, no extra text:

@@ -19,7 +19,6 @@ import {
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useAccess } from '../hooks/useAccess'
 import { LockBanner, CountryScopeNotice, LockedField, UnlockButton } from '../components/AccessLock'
-import DailyTasksPanel from '../components/DailyTasksPanel'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const PAGE_SIZE = 20
@@ -479,8 +478,7 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text)', transition: 'background 0.25s, color 0.25s' }}>
       <Sidebar />
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'row', paddingTop: isMobile ? '52px' : 0, minHeight: '100vh', overflowX: 'hidden' }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', paddingTop: isMobile ? '52px' : 0, minHeight: '100vh', overflowX: 'hidden' }}>
 
         {/* TOP BAR */}
         <div style={{
@@ -930,9 +928,6 @@ export default function Dashboard() {
             )}
           </div>
         )}
-        </div>
-
-        {!isMobile && <DailyTasksPanel />}
       </div>
 
       {/* CONTEXT MENU */}

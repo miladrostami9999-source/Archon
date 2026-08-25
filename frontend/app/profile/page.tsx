@@ -674,10 +674,18 @@ export default function ProfilePage() {
                 </a>
               )}
 
-              <a href="/profile/security"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none' }}>
-                🔒 Security settings
-              </a>
+              {/* SETTINGS — Verification + Security, visually separated from the identity/content sections above */}
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '12px', paddingTop: '12px' }}>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Settings</p>
+                <a href="/verification"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: vMeta.color === 'var(--text-dim)' ? 'var(--text-muted)' : vMeta.color, textDecoration: 'none', marginBottom: '8px' }}>
+                  <vMeta.Icon size={13} strokeWidth={2} style={{ flexShrink: 0 }} /> Identity Verification — {vMeta.label}
+                </a>
+                <a href="/profile/security"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                  🔒 Security settings
+                </a>
+              </div>
             </div>
           </aside>
 
@@ -991,23 +999,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </SectionCard>
-
-            {/* IDENTITY VERIFICATION */}
-            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <vMeta.Icon size={22} strokeWidth={1.75} style={{ color: vMeta.color, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Identity Verification — {vMeta.label}</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{vMeta.desc}</p>
-                  </div>
-                </div>
-                <a href="/verification"
-                  style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', textDecoration: 'none', flexShrink: 0 }}>
-                  {verification?.status === 'verified' ? 'View details' : 'Complete verification'} →
-                </a>
-              </div>
-            </div>
             </>
           )}
 

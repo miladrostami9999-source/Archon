@@ -33,7 +33,7 @@ def run_daily_tasks(db: Session) -> dict:
             skipped += 1
             continue
         try:
-            tasks = generate_daily_tasks(company_list, lang="en")
+            tasks = generate_daily_tasks(company_list, lang="en", user_name=user.name)
         except Exception as e:
             print(f"⚠️  auto daily-tasks failed for user {user.id}: {e}")
             failed += 1
@@ -45,6 +45,7 @@ def run_daily_tasks(db: Session) -> dict:
         for t in tasks:
             db.add(DailyTask(
                 user_id=user.id, task_type=t.get("type", "review"),
+                title=t.get("title", ""),
                 description=f"{t.get('title', '')} — {t.get('description', '')}",
                 priority=t.get("priority", 3), is_done=False, date=datetime.utcnow(),
             ))
