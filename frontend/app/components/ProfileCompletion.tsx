@@ -18,15 +18,15 @@ interface ChecklistItem {
 
 interface ProfileCompletionProps {
   signals: CompletionSignals
-  onNavigateTab: (tab: 'info' | 'portfolio' | 'security') => void
+  onNavigateTab: (tab: 'profile') => void
 }
 
 export default function ProfileCompletion({ signals, onNavigateTab }: ProfileCompletionProps) {
   const items: ChecklistItem[] = [
-    { key: 'hasAvatar', label: 'Add a profile photo', action: { label: 'Add photo', onClick: () => onNavigateTab('info') } },
+    { key: 'hasAvatar', label: 'Add a profile photo', action: { label: 'Add photo', onClick: () => onNavigateTab('profile') } },
     { key: 'isVerified', label: 'Verify your identity', action: { label: 'Verify', href: '/verification' } },
-    { key: 'hasPortfolio', label: 'Add a portfolio project', action: { label: 'Add project', onClick: () => onNavigateTab('portfolio') } },
-    { key: 'isPublic', label: 'Make your profile public', action: { label: 'Publish', onClick: () => onNavigateTab('security') } },
+    { key: 'hasPortfolio', label: 'Add a portfolio project', action: { label: 'Add project', onClick: () => onNavigateTab('profile') } },
+    { key: 'isPublic', label: 'Make your profile public', action: { label: 'Publish', href: '/profile/security' } },
     { key: 'hasPost', label: 'Share your first post', action: { label: 'Go to Feed', href: '/feed' } },
     { key: 'hasSentEmail', label: 'Send your first email to a company', action: { label: 'Go to Dashboard', href: '/dashboard' } },
   ]

@@ -4,13 +4,19 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import PortfolioGrid, { type PortfolioItem } from '../../components/PortfolioGrid'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+interface EducationItem { id: string; school: string; degree: string; field: string; start_year: string; end_year: string }
+interface ExperienceItem { id: string; title: string; company: string; start_date: string; end_date: string; description: string }
+
 interface PublicProfile {
-  name: string; username: string; is_verified: boolean; avatar: string; bio: string
+  name: string; username: string; email: string; is_verified: boolean; avatar: string
+  headline: string; bio: string
   location: string; website: string; company: string
   skills: string[]; customSkills: string[]; portfolio: PortfolioItem[]
+  education: EducationItem[]; experience: ExperienceItem[]
   marketplace_rating: number | null; marketplace_review_count: number
   marketplace_satisfaction: number | null
   marketplace_completed_contracts: number
@@ -18,9 +24,12 @@ interface PublicProfile {
   user_id: number
 }
 
+interface Post { id: number; text: string; image_url: string | null; created_at: string; like_count: number; comment_count: number }
+
 export default function PublicProfilePage() {
   const params = useParams()
   const username = params?.username as string
+  const isMobile = useIsMobile()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -28,6 +37,9 @@ export default function PublicProfilePage() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [messaging, setMessaging] = useState(false)
   const [msgError, setMsgError] = useState('')
+  const [tab, setTab] = useState<'portfolio' | 'posts'>('portfolio')
+  const [posts, setPosts] = useState<Post[]>([])
+  const [postsLoaded, setPostsLoaded] = useState(false)
 
   const messageThem = async () => {
     if (!profile) return
@@ -54,6 +66,14 @@ export default function PublicProfilePage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [username])
+
+  useEffect(() => {
+    if (tab !== 'posts' || postsLoaded || !username) return
+    axios.get(`${API}/auth/profile/public/${username}/posts`)
+      .then(res => setPosts(res.data.items || []))
+      .catch(() => {})
+      .finally(() => setPostsLoaded(true))
+  }, [tab, username, postsLoaded])
 
   const initials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
   const allSkills = profile ? [...(profile.skills || []), ...(profile.customSkills || [])] : []
@@ -125,105 +145,138 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* HERO */}
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '64px 24px 40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', marginBottom: '24px' }}>
-          <div style={{ width: '84px', height: '84px', borderRadius: '20px', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(61,79,224,0.3)' }}>
-            {profile.avatar ? (
-              <img src={profile.avatar} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <span style={{ fontSize: '30px', fontWeight: 800, color: 'white' }}>{initials(profile.name)}</span>
-            )}
-          </div>
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <h1 style={{ fontSize: '26px', fontWeight: 700, margin: '0 0 6px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {profile.name}{profile.is_verified && <VerifiedBadge size={19} />}
-            </h1>
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '13px', color: 'rgba(231,234,240,0.55)' }}>
-              {profile.marketplace_review_count > 0 && (
-                <span style={{ color: '#FBBF24' }}>★ {profile.marketplace_rating} <span style={{ color: 'rgba(231,234,240,0.55)' }}>({profile.marketplace_review_count} contract{profile.marketplace_review_count === 1 ? '' : 's'})</span></span>
-              )}
-              {profile.company && <span>🏢 {profile.company}</span>}
-              {profile.location && <span>📍 {profile.location}</span>}
-              {profile.website && <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" style={{ color: '#8FB3FF', textDecoration: 'none' }}>🌐 {profile.website.replace(/^https?:\/\//, '')}</a>}
-            </div>
-          </div>
-          {/* Anyone signed in can start a conversation from here — the point
-              of a public profile is being reachable. */}
-          <button onClick={messageThem} disabled={messaging}
-            style={{ flexShrink: 0, padding: '10px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1 }}>
-            {messaging ? 'Opening…' : '💬 Message'}
-          </button>
-        </div>
-        {msgError && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '-12px 0 16px' }}>{msgError}</p>}
+      <div style={{ maxWidth: '1040px', margin: '0 auto', padding: isMobile ? '24px 16px 60px' : '48px 24px 60px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
 
-        {profile.bio && (
-          <p style={{ fontSize: '15px', color: 'rgba(231,234,240,0.75)', lineHeight: 1.7, marginBottom: '24px', maxWidth: '680px' }}>{profile.bio}</p>
-        )}
-
-        {allSkills.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-            {allSkills.map(skill => (
-              <span key={skill} style={{ fontSize: '12px', fontWeight: 600, color: '#8FB3FF', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)', padding: '5px 13px', borderRadius: '999px' }}>
-                {skill}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* REPUTATION — what people who actually worked with them said. A score
-          on its own tells a prospective client nothing, so the comments are
-          shown in full. */}
-      {profile.marketplace_review_count > 0 && (
-        <div style={{ maxWidth: '860px', margin: '0 auto', padding: '20px 24px 0' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px' }}>
-            Reputation
-          </p>
-
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
-            {([
-              ['★ ' + profile.marketplace_rating, 'Average rating', '#FBBF24'],
-              [`${profile.marketplace_satisfaction}%`, 'Satisfaction', '#34D399'],
-              [String(profile.marketplace_completed_contracts), 'Contracts completed', '#60A5FA'],
-              [String(profile.marketplace_review_count), 'Reviews', '#A78BFA'],
-            ] as [string, string, string][]).map(([value, name, color]) => (
-              <div key={name} style={{ flex: '1 1 130px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px' }}>
-                <div style={{ fontSize: '20px', fontWeight: 800, color, marginBottom: '2px' }}>{value}</div>
-                <div style={{ fontSize: '11px', color: 'rgba(231,234,240,0.45)' }}>{name}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {profile.marketplace_reviews.map((r, i) => (
-              <div key={i} style={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: r.comment ? '6px' : 0 }}>
-                  <span style={{ fontSize: '13px', color: '#FBBF24', letterSpacing: '1px' }}>
-                    {'★'.repeat(r.rating)}<span style={{ color: 'rgba(255,255,255,0.15)' }}>{'★'.repeat(5 - r.rating)}</span>
-                  </span>
-                  <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'rgba(231,234,240,0.8)' }}>{r.reviewer_name}</span>
-                  <span style={{ fontSize: '11px', color: 'rgba(231,234,240,0.35)', marginLeft: 'auto' }}>
-                    {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-                {r.comment && (
-                  <p style={{ fontSize: '13px', color: 'rgba(231,234,240,0.7)', margin: 0, lineHeight: 1.6 }}>{r.comment}</p>
+          {/* ── LEFT COLUMN ── */}
+          <aside style={{ width: isMobile ? '100%' : '280px', flexShrink: 0 }}>
+            <div style={{ borderRadius: '20px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.02)', padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '84px', height: '84px', borderRadius: '20px', overflow: 'hidden', margin: '0 auto 14px', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(61,79,224,0.3)' }}>
+                {profile.avatar ? (
+                  <img src={profile.avatar} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: '28px', fontWeight: 800, color: 'white' }}>{initials(profile.name)}</span>
                 )}
               </div>
-            ))}
+              <h1 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {profile.name}{profile.is_verified && <VerifiedBadge size={16} />}
+              </h1>
+              {profile.headline && <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#8FB3FF', margin: '0 0 8px' }}>{profile.headline}</p>}
+
+              {profile.marketplace_review_count > 0 && (
+                <p style={{ fontSize: '12.5px', color: '#FBBF24', margin: '0 0 10px' }}>
+                  ★ {profile.marketplace_rating} <span style={{ color: 'rgba(231,234,240,0.5)' }}>({profile.marketplace_review_count})</span>
+                </p>
+              )}
+
+              <button onClick={messageThem} disabled={messaging}
+                style={{ width: '100%', padding: '9px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: messaging ? 0.6 : 1, marginBottom: '12px' }}>
+                {messaging ? 'Opening…' : '💬 Message'}
+              </button>
+              {msgError && <p style={{ fontSize: '11.5px', color: '#F87171', margin: '-6px 0 10px' }}>{msgError}</p>}
+
+              {(profile.location || profile.company) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' }}>
+                  {profile.company && <span style={{ fontSize: '12px', color: 'rgba(231,234,240,0.55)' }}>🏢 {profile.company}</span>}
+                  {profile.location && <span style={{ fontSize: '12px', color: 'rgba(231,234,240,0.55)' }}>📍 {profile.location}</span>}
+                </div>
+              )}
+
+              {profile.bio && (
+                <p style={{ fontSize: '12.5px', color: 'rgba(231,234,240,0.7)', lineHeight: 1.6, margin: '0 0 10px', textAlign: 'left' }}>{profile.bio}</p>
+              )}
+
+              {allSkills.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+                  {allSkills.map(skill => (
+                    <span key={skill} style={{ fontSize: '10px', fontWeight: 600, color: '#8FB3FF', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)', padding: '3px 10px', borderRadius: '999px' }}>
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {(profile.education?.length > 0 || profile.experience?.length > 0 || profile.email || profile.website) && (
+              <div style={{ borderRadius: '20px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.02)', padding: '20px' }}>
+                {profile.education?.length > 0 && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Education</p>
+                    {profile.education.map(e => (
+                      <div key={e.id} style={{ marginBottom: '6px' }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{e.degree || e.school}</p>
+                        <p style={{ fontSize: '11px', color: 'rgba(231,234,240,0.45)', margin: 0 }}>{e.degree ? e.school : ''}{e.end_year ? `${e.degree ? ' · ' : ''}${e.end_year}` : ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {profile.experience?.length > 0 && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Experience</p>
+                    {profile.experience.map(e => (
+                      <div key={e.id} style={{ marginBottom: '6px' }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>{e.title}</p>
+                        <p style={{ fontSize: '11px', color: 'rgba(231,234,240,0.45)', margin: 0 }}>{e.company}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* CONTACT — email + website only; phone stays private */}
+                <div style={{ borderTop: (profile.education?.length > 0 || profile.experience?.length > 0) ? '1px solid rgba(255,255,255,0.08)' : 'none', paddingTop: (profile.education?.length > 0 || profile.experience?.length > 0) ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {profile.email && <span style={{ fontSize: '12px', color: 'rgba(231,234,240,0.55)' }}>✉ {profile.email}</span>}
+                  {profile.website && (
+                    <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank"
+                      style={{ fontSize: '12px', color: '#8FB3FF', textDecoration: 'none' }}>
+                      🌐 {profile.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* ── RIGHT COLUMN ── */}
+          <div style={{ flex: 1, minWidth: '300px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px', marginBottom: '16px', width: 'fit-content' }}>
+              {([['portfolio', 'Portfolio'], ['posts', 'Posts']] as const).map(([id, label]) => (
+                <button key={id} onClick={() => setTab(id)}
+                  style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: 'pointer', background: tab === id ? 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' : 'transparent', color: tab === id ? 'white' : 'rgba(231,234,240,0.5)' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'portfolio' && (
+              <PortfolioGrid items={profile.portfolio || []} variant="dark" onSelect={setSelectedProject}
+                emptyTitle="No portfolio items yet" emptySubtitle="Nothing has been shared here yet." />
+            )}
+
+            {tab === 'posts' && (
+              !postsLoaded ? (
+                <p style={{ fontSize: '13px', color: 'rgba(231,234,240,0.4)' }}>Loading…</p>
+              ) : posts.length === 0 ? (
+                <div style={{ borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', textAlign: 'center', padding: '40px 20px', color: 'rgba(231,234,240,0.4)', fontSize: '13px' }}>
+                  No posts yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {posts.map(p => (
+                    <div key={p.id} style={{ borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '16px' }}>
+                      <p style={{ fontSize: '11px', color: 'rgba(231,234,240,0.4)', margin: '0 0 8px' }}>{new Date(p.created_at).toLocaleDateString()}</p>
+                      <p style={{ fontSize: '13.5px', color: 'rgba(231,234,240,0.85)', margin: '0 0 8px', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.text}</p>
+                      {p.image_url && <img src={p.image_url} alt="" style={{ maxWidth: '100%', borderRadius: '10px', marginBottom: '8px', display: 'block' }} />}
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'rgba(231,234,240,0.4)' }}>
+                        <span>♡ {p.like_count}</span>
+                        <span>💬 {p.comment_count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
           </div>
         </div>
-      )}
-
-      {/* PORTFOLIO */}
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '20px 24px 80px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(231,234,240,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px' }}>
-          Portfolio
-        </p>
-
-        <PortfolioGrid items={profile.portfolio || []} variant="dark" onSelect={setSelectedProject}
-          emptyTitle="No portfolio items yet" emptySubtitle="Nothing has been shared here yet." />
       </div>
 
       {/* FOOTER */}

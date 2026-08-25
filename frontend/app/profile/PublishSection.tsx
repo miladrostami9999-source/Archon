@@ -28,6 +28,7 @@ const headers = () => ({ Authorization: `Bearer ${getToken()}` })
 
 interface Props {
   profile: {
+    headline?: string
     bio?: string
     location?: string
     website?: string
@@ -37,6 +38,8 @@ interface Props {
     customSkills?: string[]
     avatar?: string
     portfolio?: any[]
+    education?: any[]
+    experience?: any[]
   }
   onPublicChange?: (isPublic: boolean, username: string | null) => void
 }
@@ -67,6 +70,7 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
     setSaving(true); setError('')
     try {
       const res = await axios.put(`${API}/auth/profile/me`, {
+        headline: profile.headline || '',
         bio: profile.bio || '',
         location: profile.location || '',
         website: profile.website || '',
@@ -76,6 +80,8 @@ export default function PublishSection({ profile, onPublicChange }: Props) {
         skills: profile.skills || [],
         customSkills: profile.customSkills || [],
         portfolio: profile.portfolio || [],
+        education: profile.education || [],
+        experience: profile.experience || [],
         is_public: makePublic,
         username: username || undefined,
       }, { headers: headers() })

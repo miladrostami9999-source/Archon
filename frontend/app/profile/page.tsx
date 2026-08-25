@@ -5,9 +5,12 @@ import Sidebar from '../components/Sidebar'
 import { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
-import PublishSection from './PublishSection'
 import PortfolioGrid from '../components/PortfolioGrid'
-import ProfileCompletion, { type CompletionSignals } from '../components/ProfileCompletion'
+import ProfileCompletion from '../components/ProfileCompletion'
+import {
+  Pencil, Plus, X, GraduationCap, Briefcase, ShieldCheck,
+  Mail, Phone, Globe, CheckCircle2, Clock, AlertCircle,
+} from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -49,6 +52,13 @@ const PLAN_META: Record<string, { label: string; color: string; bg: string; desc
   agency: { label: 'Agency', color: '#A78BFA', bg: 'rgba(139,92,246,0.1)', desc: 'Unlimited · All features' },
 }
 
+const VERIFICATION_META: Record<string, { label: string; desc: string; color: string; Icon: typeof ShieldCheck }> = {
+  unverified: { label: 'Not started', desc: 'Verify your identity to get paid for contracts.', color: 'var(--text-dim)', Icon: ShieldCheck },
+  pending:    { label: 'Pending review', desc: "We're reviewing your submission.", color: '#FBBF24', Icon: Clock },
+  verified:   { label: 'Verified', desc: 'Your identity has been verified.', color: 'var(--success)', Icon: CheckCircle2 },
+  rejected:   { label: 'Needs attention', desc: 'Some information needs to be corrected.', color: '#F87171', Icon: AlertCircle },
+}
+
 interface UserProfile {
   id: number; name: string; email: string
   role: string; plan: string; created_at: string; last_login: string | null
@@ -62,17 +72,43 @@ interface PortfolioItem {
   id: string; title: string; desc: string; url: string
   images: PortfolioImage[]
 }
+interface EducationItem {
+  id: string; school: string; degree: string; field: string; start_year: string; end_year: string
+}
+interface ExperienceItem {
+  id: string; title: string; company: string; start_date: string; end_date: string; description: string
+}
 
 interface LocalProfile {
-  bio: string; location: string; website: string; company: string
+  headline: string; bio: string; location: string; website: string; company: string
   phone: string; skills: string[]; customSkills: string[]
   avatar: string  // base64 image
   portfolio: PortfolioItem[]
+  education: EducationItem[]
+  experience: ExperienceItem[]
 }
 
 const defaultProfile: LocalProfile = {
-  bio: '', location: '', website: '', company: '', phone: '',
-  skills: [], customSkills: [], avatar: '', portfolio: [],
+  headline: '', bio: '', location: '', website: '', company: '', phone: '',
+  skills: [], customSkills: [], avatar: '', portfolio: [], education: [], experience: [],
+}
+
+// Section-card wrapper used across the merged Profile tab — module scope so
+// its identity is stable across renders (a component defined inside the page
+// function would remount its children, dropping input focus on every keystroke).
+function SectionCard({ title, editing, onToggleEdit, children }: { title: string; editing: boolean; onToggleEdit: () => void; children: React.ReactNode }) {
+  return (
+    <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</h2>
+        <button onClick={onToggleEdit}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: editing ? 'rgba(61,79,224,0.12)' : 'var(--bg-input)', color: editing ? '#60A5FA' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}>
+          <Pencil size={13} strokeWidth={1.75} />
+        </button>
+      </div>
+      {children}
+    </div>
+  )
 }
 
 export default function ProfilePage() {
@@ -80,12 +116,9 @@ export default function ProfilePage() {
 
   const [user, setUser] = useState<UserProfile | null>(null)
   const [profile, setProfile] = useState<LocalProfile>(defaultProfile)
-  const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'portfolio' | 'posts' | 'security'>('info')
+  const [activeTab, setActiveTab] = useState<'profile' | 'posts'>('profile')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [pwdForm, setPwdForm] = useState({ old_password: '', new_password: '', confirm: '' })
-  const [pwdError, setPwdError] = useState('')
-  const [pwdSuccess, setPwdSuccess] = useState(false)
   const [newSkill, setNewSkill] = useState('')
   const [newPortfolio, setNewPortfolio] = useState({ title: '', desc: '', url: '' })
   const [newPortfolioImages, setNewPortfolioImages] = useState<PortfolioImage[]>([])
@@ -97,18 +130,23 @@ export default function ProfilePage() {
   const portfolioImgRef = useRef<HTMLInputElement>(null)
   const [accountMode, setAccountMode] = useState<'freelancer' | 'client'>('freelancer')
   const [modeSaving, setModeSaving] = useState(false)
-  const [dangerMode, setDangerMode] = useState<'' | 'deactivate' | 'delete'>('')
-  const [deletePwd, setDeletePwd] = useState('')
-  const [dangerErr, setDangerErr] = useState('')
-  const [dangerBusy, setDangerBusy] = useState(false)
   const [reputation, setReputation] = useState<{ sent: number; replied: number; reply_rate: number; bounced_manual: number; score: number } | null>(null)
-  const [gmailConnecting, setGmailConnecting] = useState(false)
-  const [gmailMsg, setGmailMsg] = useState('')
   const [myPosts, setMyPosts] = useState<{ id: number; text: string; image_url: string | null; created_at: string; like_count: number; comment_count: number }[]>([])
   const [postsLoaded, setPostsLoaded] = useState(false)
   const [editingPostId, setEditingPostId] = useState<number | null>(null)
   const [editPostText, setEditPostText] = useState('')
   const [completionExtra, setCompletionExtra] = useState({ isVerified: false, hasPost: false, hasSentEmail: false, isPublic: false, username: null as string | null })
+
+  // Section edit toggles for the merged Profile tab (Upwork-style: view by
+  // default, click the pencil to reveal the editor for just that section).
+  const [editingBio, setEditingBio] = useState(false)
+  const [editingSkills, setEditingSkills] = useState(false)
+  const [editingPortfolio, setEditingPortfolio] = useState(false)
+  const [editingEducation, setEditingEducation] = useState(false)
+  const [editingExperience, setEditingExperience] = useState(false)
+  const [newEducation, setNewEducation] = useState({ school: '', degree: '', field: '', start_year: '', end_year: '' })
+  const [newExperience, setNewExperience] = useState({ title: '', company: '', start_date: '', end_date: '', description: '' })
+  const [verification, setVerification] = useState<{ status: string; admin_note?: string | null } | null>(null)
 
   useEffect(() => {
     axios.get(`${API}/auth/me`, { headers: headers() })
@@ -119,15 +157,9 @@ export default function ProfilePage() {
       .then(res => setReputation(res.data))
       .catch(() => {})
 
-    // The Gmail connect flow redirects back here with ?gmail_error=... when
-    // the callback failed server-side (state expired, Google API error...),
-    // since that route can't render a page of its own to show the message.
-    const params = new URLSearchParams(window.location.search)
-    const gmailError = params.get('gmail_error')
-    if (gmailError) {
-      setGmailMsg(`✗ ${gmailError}`)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
+    axios.get(`${API}/marketplace/verification/me`, { headers: headers() })
+      .then(res => setVerification(res.data))
+      .catch(() => {})
 
     // Show cached profile immediately, then reconcile with the server, which is
     // the source of truth (and what the public profile page reads from).
@@ -138,10 +170,12 @@ export default function ProfilePage() {
       .then(res => {
         const d = res.data || {}
         const fromServer: LocalProfile = {
+          headline: d.headline || '',
           bio: d.bio || '', location: d.location || '', website: d.website || '',
           company: d.company || '', phone: d.phone || '', avatar: d.avatar || '',
           skills: d.skills || [], customSkills: d.customSkills || [],
           portfolio: d.portfolio || [],
+          education: d.education || [], experience: d.experience || [],
         }
         setProfile(fromServer)
         localStorage.setItem('archon-profile', JSON.stringify(fromServer))
@@ -191,64 +225,16 @@ export default function ProfilePage() {
     // username and is_public are omitted so the backend keeps their values.
     try {
       await axios.put(`${API}/auth/profile/me`, {
+        headline: p.headline || '',
         bio: p.bio || '', location: p.location || '', website: p.website || '',
         company: p.company || '', phone: p.phone || '', avatar: p.avatar || '',
         skills: p.skills || [], customSkills: p.customSkills || [],
         portfolio: p.portfolio || [],
+        education: p.education || [], experience: p.experience || [],
       }, { headers: headers() })
     } catch {}
 
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500)
-  }
-
-  const changePassword = async () => {
-    setPwdError(''); setPwdSuccess(false)
-    if (!pwdForm.old_password || !pwdForm.new_password) { setPwdError('All fields required'); return }
-    if (pwdForm.new_password !== pwdForm.confirm) { setPwdError('Passwords do not match'); return }
-    if (pwdForm.new_password.length < 8) { setPwdError('Min 8 characters'); return }
-    try {
-      await axios.post(`${API}/auth/change-password`, { old_password: pwdForm.old_password, new_password: pwdForm.new_password }, { headers: headers() })
-      setPwdSuccess(true); setPwdForm({ old_password: '', new_password: '', confirm: '' })
-    } catch (e: any) { setPwdError(e.response?.data?.detail || 'Error') }
-  }
-
-  const signOutAfter = (msg: string) => {
-    alert(msg)
-    localStorage.removeItem('archon-token')
-    localStorage.removeItem('archon-user')
-    localStorage.removeItem('archon-profile')
-    window.location.href = '/login'
-  }
-
-  const deactivateAccount = async () => {
-    setDangerBusy(true); setDangerErr('')
-    try {
-      await axios.post(`${API}/auth/me/deactivate`, {}, { headers: headers() })
-      signOutAfter('Your account has been deactivated. Contact us when you want it back.')
-    } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not deactivate the account.') }
-    setDangerBusy(false)
-  }
-
-  const connectGmail = async () => {
-    setGmailConnecting(true); setGmailMsg('')
-    try {
-      const res = await axios.get(`${API}/auth/google/authorize`, { headers: headers() })
-      window.location.href = res.data.authorize_url
-    } catch (e: any) {
-      setGmailMsg(`✗ ${e.response?.data?.detail || 'Could not start Gmail connect'}`)
-      setGmailConnecting(false)
-    }
-  }
-
-  const disconnectGmail = async () => {
-    setGmailConnecting(true); setGmailMsg('')
-    try {
-      await axios.post(`${API}/auth/google/disconnect`, {}, { headers: headers() })
-      setUser(u => u ? { ...u, google_email: null } : u)
-    } catch (e: any) {
-      setGmailMsg(`✗ ${e.response?.data?.detail || 'Could not disconnect'}`)
-    }
-    setGmailConnecting(false)
   }
 
   const switchAccountMode = async (mode: 'freelancer' | 'client') => {
@@ -271,16 +257,6 @@ export default function ProfilePage() {
       setAccountMode(previous)
     }
     setModeSaving(false)
-  }
-
-  const deleteAccount = async () => {
-    if (!deletePwd) { setDangerErr('Enter your password to confirm.'); return }
-    setDangerBusy(true); setDangerErr('')
-    try {
-      await axios.post(`${API}/auth/me/delete`, { password: deletePwd }, { headers: headers() })
-      signOutAfter('Your account and all of its data have been deleted.')
-    } catch (e: any) { setDangerErr(e.response?.data?.detail || 'Could not delete the account.') }
-    setDangerBusy(false)
   }
 
   // Avatar upload
@@ -401,9 +377,38 @@ export default function ProfilePage() {
     if (selectedProject?.id === id) setSelectedProject(null)
   }
 
+  const addEducation = () => {
+    if (!newEducation.school.trim()) return
+    const updated = { ...profile, education: [...profile.education, { ...newEducation, id: Date.now().toString() }] }
+    setProfile(updated)
+    saveProfile(updated)
+    setNewEducation({ school: '', degree: '', field: '', start_year: '', end_year: '' })
+  }
+
+  const removeEducation = (id: string) => {
+    const updated = { ...profile, education: profile.education.filter(e => e.id !== id) }
+    setProfile(updated)
+    saveProfile(updated)
+  }
+
+  const addExperience = () => {
+    if (!newExperience.title.trim()) return
+    const updated = { ...profile, experience: [...profile.experience, { ...newExperience, id: Date.now().toString() }] }
+    setProfile(updated)
+    saveProfile(updated)
+    setNewExperience({ title: '', company: '', start_date: '', end_date: '', description: '' })
+  }
+
+  const removeExperience = (id: string) => {
+    const updated = { ...profile, experience: profile.experience.filter(e => e.id !== id) }
+    setProfile(updated)
+    saveProfile(updated)
+  }
+
   const initials = user?.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
   const plan = user ? PLAN_META[user.plan] || PLAN_META.basic : null
   const allSkills = [...profile.skills, ...profile.customSkills]
+  const vMeta = VERIFICATION_META[verification?.status || 'unverified'] || VERIFICATION_META.unverified
 
   const inputStyle: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
@@ -417,13 +422,13 @@ export default function ProfilePage() {
     color: 'var(--text-dim)', marginBottom: '6px',
     textTransform: 'uppercase', letterSpacing: '0.08em',
   }
+  const counterStyle: React.CSSProperties = { textAlign: 'right', fontSize: '11px', color: 'var(--text-dim)', margin: '4px 0 0' }
+  const saveBtnStyle: React.CSSProperties = { padding: '9px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }
+  const rowDeleteBtnStyle: React.CSSProperties = { width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(239,68,68,0.12)', border: 'none', color: '#F87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
 
   const tabs = [
-    { id: 'info', label: 'Profile Info', icon: '👤' },
-    { id: 'skills', label: 'Skills', icon: '⚡' },
-    { id: 'portfolio', label: 'Portfolio', icon: '🖼' },
+    { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'posts', label: 'Posts', icon: '📝' },
-    { id: 'security', label: 'Security', icon: '🔐' },
   ] as const
 
   return (
@@ -539,13 +544,15 @@ export default function ProfilePage() {
         <div style={{ maxWidth: '1120px', margin: '0 auto', padding: isMobile ? '16px' : '32px 40px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
 
           {/* ── IDENTITY SIDEBAR ── */}
-          <aside style={{ width: isMobile ? '100%' : '280px', flexShrink: 0, position: isMobile ? 'static' : 'sticky', top: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', textAlign: 'center' }}>
+          <aside style={{ width: isMobile ? '100%' : '280px', flexShrink: 0, position: isMobile ? 'static' : 'sticky', top: '24px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+
+            {/* CARD 1 — Identity */}
+            <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', textAlign: 'center' }}>
               {/* AVATAR */}
               <div style={{ position: 'relative', display: 'inline-block', marginBottom: '14px' }}>
                 <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
                 <div onClick={() => avatarRef.current?.click()}
-                  style={{ width: '88px', height: '88px', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
+                  style={{ width: '88px', height: '88px', borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', border: '3px solid var(--bg-main)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', position: 'relative', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
                   title="Click to upload photo">
                   {profile.avatar ? (
                     <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -564,7 +571,7 @@ export default function ProfilePage() {
               <h1 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 {user?.name || '—'}{user?.is_verified && <VerifiedBadge size={16} />}
               </h1>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px' }}>{user?.email}</p>
+              {profile.headline && <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#60A5FA', margin: '0 0 8px' }}>{profile.headline}</p>}
 
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '10px' }}>
                 {plan && <span style={{ fontSize: '10.5px', fontWeight: 700, color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase' }}>{plan.label}</span>}
@@ -578,7 +585,11 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {profile.bio && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.6, textAlign: 'left' }}>{profile.bio}</p>}
+              {profile.bio && (
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 10px', lineHeight: 1.6, textAlign: 'left' }}>
+                  {profile.bio.length > 150 ? `${profile.bio.slice(0, 150)}…` : profile.bio}
+                </p>
+              )}
 
               {allSkills.length > 0 && (
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -587,19 +598,6 @@ export default function ProfilePage() {
                   ))}
                   {allSkills.length > 6 && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>+{allSkills.length - 6}</span>}
                 </div>
-              )}
-
-              {user?.created_at && (
-                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '14px 0 0', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-                  Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                </p>
-              )}
-
-              {completionExtra.isPublic && completionExtra.username && (
-                <a href={`/u/${completionExtra.username}`} target="_blank" rel="noreferrer"
-                  style={{ display: 'block', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
-                  View public profile ↗
-                </a>
               )}
             </div>
 
@@ -612,8 +610,75 @@ export default function ProfilePage() {
                 hasPortfolio: profile.portfolio.length > 0,
                 hasAvatar: !!profile.avatar,
               }}
-              onNavigateTab={setActiveTab}
+              onNavigateTab={() => setActiveTab('profile')}
             />
+
+            {/* CARD 3 — Education / Experience summary + contact + links */}
+            <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+              {profile.education.length > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Education</p>
+                  {profile.education.slice(0, 2).map(e => (
+                    <div key={e.id} style={{ marginBottom: '6px' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{e.degree || e.school}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{e.degree ? e.school : ''}{e.end_year ? `${e.degree ? ' · ' : ''}${e.end_year}` : ''}</p>
+                    </div>
+                  ))}
+                  {profile.education.length > 2 && <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>+{profile.education.length - 2} more</p>}
+                </div>
+              )}
+
+              {profile.experience.length > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Experience</p>
+                  {profile.experience.slice(0, 2).map(e => (
+                    <div key={e.id} style={{ marginBottom: '6px' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{e.title}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{e.company}</p>
+                    </div>
+                  ))}
+                  {profile.experience.length > 2 && <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>+{profile.experience.length - 2} more</p>}
+                </div>
+              )}
+
+              {/* CONTACT — deliberately last in the card, per Milad's request */}
+              <div style={{ borderTop: (profile.education.length > 0 || profile.experience.length > 0) ? '1px solid var(--border)' : 'none', paddingTop: (profile.education.length > 0 || profile.experience.length > 0) ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {user?.email && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <Mail size={13} strokeWidth={1.5} style={{ color: 'var(--text-dim)', flexShrink: 0 }} /> {user.email}
+                  </div>
+                )}
+                {profile.phone && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <Phone size={13} strokeWidth={1.5} style={{ color: 'var(--text-dim)', flexShrink: 0 }} /> {profile.phone}
+                  </div>
+                )}
+                {profile.website && (
+                  <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
+                    <Globe size={13} strokeWidth={1.5} style={{ flexShrink: 0 }} /> {profile.website}
+                  </a>
+                )}
+              </div>
+
+              {user?.created_at && (
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '12px 0 0', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                  Member since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </p>
+              )}
+
+              {completionExtra.isPublic && completionExtra.username && (
+                <a href={`/u/${completionExtra.username}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'block', marginTop: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none' }}>
+                  View public profile ↗
+                </a>
+              )}
+
+              <a href="/profile/security"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none' }}>
+                🔒 Security settings
+              </a>
+            </div>
           </aside>
 
           {/* ── MAIN COLUMN ── */}
@@ -629,13 +694,13 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {/* ── TAB: INFO ── */}
-          {activeTab === 'info' && (
+          {/* ── TAB: PROFILE (merged Info + Skills + Portfolio + Education + Experience + Verification) ── */}
+          {activeTab === 'profile' && (
             <>
             {/* Marketplace mode — a view preference, not a permission. Both
                 modes can post work and take work; this decides which one the
                 Projects page leads with. */}
-            <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: '16px' }}>
+            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: 'var(--space-4)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Marketplace mode</h2>
                 <BetaTag />
@@ -671,7 +736,7 @@ export default function ProfilePage() {
             </div>
 
             {reputation && reputation.sent > 0 && (
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: '16px' }}>
+              <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', marginBottom: 'var(--space-4)' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px' }}>Email Reputation</h2>
                 <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
                   A rough health signal for your outreach, based on how often people reply.
@@ -694,190 +759,256 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px' }}>Personal Information</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={labelStyle}>Full Name</label>
-                  <input value={user?.name || ''} disabled style={{ ...inputStyle, opacity: 0.5 }} />
-                  <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '4px 0 0' }}>Contact admin to change</p>
-                </div>
-                <div>
-                  <label style={labelStyle}>Email</label>
-                  <input value={user?.email || ''} disabled style={{ ...inputStyle, opacity: 0.5 }} />
-                </div>
-                {[
-                  { label: 'Studio / Company', key: 'company', placeholder: 'Armila Design Studio' },
-                  { label: 'Location', key: 'location', placeholder: 'Madrid, Spain' },
-                  { label: 'Website', key: 'website', placeholder: 'https://armiladesign.com' },
-                  { label: 'Phone', key: 'phone', placeholder: '+34 XXX XXX XXX' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={labelStyle}>{f.label}</label>
-                    <input value={(profile as any)[f.key]} onChange={e => setProfile(p => ({ ...p, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder} style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+            {/* HEADLINE & BIO */}
+            <SectionCard title="Headline & Bio" editing={editingBio} onToggleEdit={() => setEditingBio(v => !v)}>
+              {editingBio ? (
+                <>
+                  <label style={labelStyle}>Professional headline</label>
+                  <input value={profile.headline} maxLength={80} onChange={e => setProfile(p => ({ ...p, headline: e.target.value }))}
+                    placeholder="e.g. Senior Architectural Visualization Artist" style={inputStyle} />
+                  <p style={counterStyle}>{profile.headline.length}/80</p>
+                  <label style={{ ...labelStyle, marginTop: '14px' }}>Bio</label>
+                  <textarea value={profile.bio} maxLength={600} rows={5} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
+                    placeholder="Tell clients about your studio and expertise..." style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }} />
+                  <p style={counterStyle}>{profile.bio.length}/600</p>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
+                    <button onClick={() => { saveProfile(); setEditingBio(false) }} style={saveBtnStyle}>{saving ? 'Saving...' : 'Save'}</button>
                   </div>
-                ))}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Bio</label>
-                  <textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
-                    placeholder="Tell us about your studio and expertise..." rows={3}
-                    style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button onClick={() => saveProfile()} disabled={saving}
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  {saved ? '✓ Saved!' : saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-            </>
-          )}
+                </>
+              ) : (
+                <>
+                  {profile.headline
+                    ? <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>{profile.headline}</p>
+                    : <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: '0 0 8px' }}>No headline yet</p>}
+                  {profile.bio
+                    ? <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
+                    : <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No bio yet — introduce your studio and expertise.</p>}
+                </>
+              )}
+            </SectionCard>
 
-          {/* ── TAB: SKILLS ── */}
-          {activeTab === 'skills' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* PRESET SKILLS */}
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Skills & Expertise</h2>
-                  <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{allSkills.length} selected</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                  {SKILLS_OPTIONS.map(skill => {
-                    const selected = profile.skills.includes(skill)
-                    return (
-                      <button key={skill} onClick={() => toggleSkill(skill)}
-                        style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', background: selected ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(61,79,224,0.3)' : 'none' }}>
-                        {selected ? '✓ ' : ''}{skill}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* CUSTOM SKILLS */}
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px' }}>Add Custom Skill</h3>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                  <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
-                    placeholder="e.g. Rhino, Grasshopper, Midjourney..."
-                    style={{ ...inputStyle, flex: 1 }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-                  <button onClick={addCustomSkill} disabled={!newSkill.trim()}
-                    style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newSkill.trim() ? 0.4 : 1 }}>
-                    + Add
-                  </button>
-                </div>
-                {profile.customSkills.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {profile.customSkills.map(skill => (
-                      <span key={skill} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', padding: '5px 12px', borderRadius: '999px' }}>
-                        {skill}
-                        <button onClick={() => removeCustomSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(167,139,250,0.5)', fontSize: '12px', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>✕</button>
-                      </span>
-                    ))}
+            {/* SKILLS */}
+            <SectionCard title="Skills & Expertise" editing={editingSkills} onToggleEdit={() => setEditingSkills(v => !v)}>
+              {editingSkills ? (
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                    {SKILLS_OPTIONS.map(skill => {
+                      const selected = profile.skills.includes(skill)
+                      return (
+                        <button key={skill} onClick={() => toggleSkill(skill)}
+                          style={{ padding: '7px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', border: 'none', background: selected ? 'linear-gradient(135deg, #3D4FE0, #2E3BB0)' : 'var(--bg-input)', color: selected ? 'white' : 'var(--text-muted)', boxShadow: selected ? '0 2px 8px rgba(61,79,224,0.3)' : 'none' }}>
+                          {selected ? '✓ ' : ''}{skill}
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => saveProfile()}
-                  style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  {saved ? '✓ Saved!' : 'Save Skills'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── TAB: PORTFOLIO ── */}
-          {activeTab === 'portfolio' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-              {/* ADD PROJECT */}
-              <div style={{ borderRadius: '16px', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.03)', padding: '20px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  🖼 Add New Project
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>Project Title *</label>
-                    <input value={newPortfolio.title} onChange={e => setNewPortfolio(p => ({ ...p, title: e.target.value }))}
-                      placeholder="Modern Villa, Dubai" style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                    <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
+                      placeholder="e.g. Rhino, Grasshopper, Midjourney..."
+                      style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={addCustomSkill} disabled={!newSkill.trim()}
+                      style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newSkill.trim() ? 0.4 : 1 }}>
+                      + Add
+                    </button>
                   </div>
-                  <div>
-                    <label style={labelStyle}>External Link (optional)</label>
-                    <input value={newPortfolio.url} onChange={e => setNewPortfolio(p => ({ ...p, url: e.target.value }))}
-                      placeholder="https://behance.net/..." style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Description</label>
-                    <input value={newPortfolio.desc} onChange={e => setNewPortfolio(p => ({ ...p, desc: e.target.value }))}
-                      placeholder="3D visualization for a luxury residential project..." style={inputStyle}
-                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-                  </div>
-                </div>
-                {/* PHOTO UPLOAD for new project */}
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={labelStyle}>Photos (optional)</label>
-                  <input ref={newProjectImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleNewProjectImages} />
-                  <button onClick={() => newProjectImgRef.current?.click()}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', transition: 'all 0.15s', width: '100%', justifyContent: 'center' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(61,79,224,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(61,79,224,0.04)' }}>
-                    📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#3D4FE0', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
-                  </button>
-                  {newPortfolioImages.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
-                      {newPortfolioImages.map(img => (
-                        <div key={img.id} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                          <img src={img.data} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <button onClick={() => setNewPortfolioImages(prev => prev.filter(i => i.id !== img.id))}
-                            style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                        </div>
+                  {profile.customSkills.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                      {profile.customSkills.map(skill => (
+                        <span key={skill} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#A78BFA', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', padding: '5px 12px', borderRadius: '999px' }}>
+                          {skill}
+                          <button onClick={() => removeCustomSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(167,139,250,0.5)', fontSize: '12px', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}>✕</button>
+                        </span>
                       ))}
                     </div>
                   )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={() => { saveProfile(); setEditingSkills(false) }} style={saveBtnStyle}>{saving ? 'Saving...' : 'Save'}</button>
+                  </div>
+                </>
+              ) : allSkills.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {allSkills.map(s => (
+                    <span key={s} style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.15)', padding: '5px 12px', borderRadius: '999px' }}>{s}</span>
+                  ))}
                 </div>
-                <button onClick={addPortfolio} disabled={!newPortfolio.title}
-                  style={{ padding: '9px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newPortfolio.title ? 0.4 : 1 }}>
-                  + Create Project
-                </button>
-              </div>
+              ) : (
+                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No skills added yet</p>
+              )}
+            </SectionCard>
 
-              {/* PORTFOLIO GRID */}
+            {/* PORTFOLIO */}
+            <SectionCard title="Portfolio" editing={editingPortfolio} onToggleEdit={() => setEditingPortfolio(v => !v)}>
+              {editingPortfolio && (
+                <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.03)', padding: '20px', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: '0 0 14px' }}>Add New Project</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={labelStyle}>Project Title *</label>
+                      <input value={newPortfolio.title} onChange={e => setNewPortfolio(p => ({ ...p, title: e.target.value }))}
+                        placeholder="Modern Villa, Dubai" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>External Link (optional)</label>
+                      <input value={newPortfolio.url} onChange={e => setNewPortfolio(p => ({ ...p, url: e.target.value }))}
+                        placeholder="https://behance.net/..." style={inputStyle} />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>Description</label>
+                      <input value={newPortfolio.desc} onChange={e => setNewPortfolio(p => ({ ...p, desc: e.target.value }))}
+                        placeholder="3D visualization for a luxury residential project..." style={inputStyle} />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={labelStyle}>Photos (optional)</label>
+                    <input ref={newProjectImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleNewProjectImages} />
+                    <button onClick={() => newProjectImgRef.current?.click()}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '10px', border: '1px dashed rgba(61,79,224,0.4)', background: 'rgba(61,79,224,0.04)', color: '#60A5FA', cursor: 'pointer', fontSize: '13px', width: '100%', justifyContent: 'center' }}>
+                      📷 Add Photos {newPortfolioImages.length > 0 && <span style={{ background: '#3D4FE0', color: 'white', borderRadius: '999px', padding: '1px 8px', fontSize: '11px', fontWeight: 700 }}>{newPortfolioImages.length}</span>}
+                    </button>
+                    {newPortfolioImages.length > 0 && (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                        {newPortfolioImages.map(img => (
+                          <div key={img.id} style={{ position: 'relative', width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                            <img src={img.data} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button onClick={() => setNewPortfolioImages(prev => prev.filter(i => i.id !== img.id))}
+                              style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={addPortfolio} disabled={!newPortfolio.title} style={{ ...saveBtnStyle, opacity: !newPortfolio.title ? 0.4 : 1 }}>
+                    + Create Project
+                  </button>
+                </div>
+              )}
               <PortfolioGrid
                 items={profile.portfolio}
                 isMobile={isMobile}
-                editable
+                editable={editingPortfolio}
                 onSelect={setSelectedProject}
                 onAddImages={handlePortfolioImages}
                 onDeleteItem={removePortfolio}
                 emptyTitle="No projects yet"
                 emptySubtitle="Create a project and upload your architectural visualizations"
               />
+            </SectionCard>
 
-              {profile.portfolio.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={() => saveProfile()}
-                    style={{ padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: saved ? '#34D399' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
-                    {saved ? '✓ Saved!' : 'Save Portfolio'}
+            {/* EDUCATION */}
+            <SectionCard title="Education" editing={editingEducation} onToggleEdit={() => setEditingEducation(v => !v)}>
+              {profile.education.length === 0 && !editingEducation && (
+                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No education added yet</p>
+              )}
+              {profile.education.map(e => (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                  <GraduationCap size={16} strokeWidth={1.5} style={{ color: 'var(--text-dim)', marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{e.degree || 'Education'}{e.field ? ` · ${e.field}` : ''}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      {e.school}{(e.start_year || e.end_year) ? ` · ${e.start_year || ''}${e.start_year && e.end_year ? '–' : ''}${e.end_year || ''}` : ''}
+                    </p>
+                  </div>
+                  {editingEducation && <button onClick={() => removeEducation(e.id)} style={rowDeleteBtnStyle}><X size={12} strokeWidth={2} /></button>}
+                </div>
+              ))}
+              {editingEducation && (
+                <div style={{ marginTop: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.03)', padding: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>School *</label>
+                      <input value={newEducation.school} onChange={e => setNewEducation(p => ({ ...p, school: e.target.value }))} placeholder="Politecnico di Milano" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Degree</label>
+                      <input value={newEducation.degree} onChange={e => setNewEducation(p => ({ ...p, degree: e.target.value }))} placeholder="Bachelor of Architecture" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Field of Study</label>
+                      <input value={newEducation.field} onChange={e => setNewEducation(p => ({ ...p, field: e.target.value }))} placeholder="Architecture" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Start Year</label>
+                      <input value={newEducation.start_year} onChange={e => setNewEducation(p => ({ ...p, start_year: e.target.value }))} placeholder="2016" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>End Year</label>
+                      <input value={newEducation.end_year} onChange={e => setNewEducation(p => ({ ...p, end_year: e.target.value }))} placeholder="2020" style={inputStyle} />
+                    </div>
+                  </div>
+                  <button onClick={addEducation} disabled={!newEducation.school.trim()} style={{ ...saveBtnStyle, opacity: !newEducation.school.trim() ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Plus size={13} strokeWidth={2.5} /> Add Education
                   </button>
                 </div>
               )}
+            </SectionCard>
+
+            {/* EXPERIENCE */}
+            <SectionCard title="Work Experience" editing={editingExperience} onToggleEdit={() => setEditingExperience(v => !v)}>
+              {profile.experience.length === 0 && !editingExperience && (
+                <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No work experience added yet</p>
+              )}
+              {profile.experience.map(e => (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                  <Briefcase size={16} strokeWidth={1.5} style={{ color: 'var(--text-dim)', marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>{e.title}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      {e.company}{(e.start_date || e.end_date) ? ` · ${e.start_date || ''}${e.start_date && e.end_date ? '–' : ''}${e.end_date || ''}` : ''}
+                    </p>
+                    {e.description && <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0', lineHeight: 1.5 }}>{e.description}</p>}
+                  </div>
+                  {editingExperience && <button onClick={() => removeExperience(e.id)} style={rowDeleteBtnStyle}><X size={12} strokeWidth={2} /></button>}
+                </div>
+              ))}
+              {editingExperience && (
+                <div style={{ marginTop: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(61,79,224,0.2)', background: 'rgba(61,79,224,0.03)', padding: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={labelStyle}>Job Title *</label>
+                      <input value={newExperience.title} onChange={e => setNewExperience(p => ({ ...p, title: e.target.value }))} placeholder="Senior 3D Artist" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Company</label>
+                      <input value={newExperience.company} onChange={e => setNewExperience(p => ({ ...p, company: e.target.value }))} placeholder="Studio Name" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Start Date</label>
+                      <input value={newExperience.start_date} onChange={e => setNewExperience(p => ({ ...p, start_date: e.target.value }))} placeholder="Jan 2021" style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>End Date</label>
+                      <input value={newExperience.end_date} onChange={e => setNewExperience(p => ({ ...p, end_date: e.target.value }))} placeholder="Present" style={inputStyle} />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>Description</label>
+                      <input value={newExperience.description} onChange={e => setNewExperience(p => ({ ...p, description: e.target.value }))} placeholder="What did you work on?" style={inputStyle} />
+                    </div>
+                  </div>
+                  <button onClick={addExperience} disabled={!newExperience.title.trim()} style={{ ...saveBtnStyle, opacity: !newExperience.title.trim() ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Plus size={13} strokeWidth={2.5} /> Add Experience
+                  </button>
+                </div>
+              )}
+            </SectionCard>
+
+            {/* IDENTITY VERIFICATION */}
+            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <vMeta.Icon size={22} strokeWidth={1.75} style={{ color: vMeta.color, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Identity Verification — {vMeta.label}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{vMeta.desc}</p>
+                  </div>
+                </div>
+                <a href="/verification"
+                  style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', textDecoration: 'none', flexShrink: 0 }}>
+                  {verification?.status === 'verified' ? 'View details' : 'Complete verification'} →
+                </a>
+              </div>
             </div>
+            </>
           )}
 
           {/* ── TAB: POSTS ── */}
@@ -921,135 +1052,6 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── TAB: SECURITY ── */}
-          {activeTab === 'security' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-              <PublishSection profile={profile} onPublicChange={(isPublic, username) => setCompletionExtra(c => ({ ...c, isPublic, username }))} />
-
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔐 Change Password</h2>
-                {pwdError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>{pwdError}</div>}
-                {pwdSuccess && <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', fontSize: '13px', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>✓ Password changed!</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '400px' }}>
-                  {[
-                    { label: 'Current Password', key: 'old_password', ph: 'Enter current password' },
-                    { label: 'New Password', key: 'new_password', ph: 'Min 8 characters' },
-                    { label: 'Confirm New Password', key: 'confirm', ph: 'Repeat new password' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label style={labelStyle}>{f.label}</label>
-                      <input type="password" value={(pwdForm as any)[f.key]}
-                        onChange={e => setPwdForm(p => ({ ...p, [f.key]: e.target.value }))}
-                        placeholder={f.ph} style={inputStyle}
-                        onFocus={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.5)' }}
-                        onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)' }} />
-                    </div>
-                  ))}
-                  <button onClick={changePassword}
-                    style={{ padding: '11px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
-                    Update Password
-                  </button>
-                </div>
-              </div>
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>📧 Send emails from Gmail</h2>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
-                  Connect your own Gmail so outreach sends from your address instead of Archon's shared sender. Send-only access — Archon never reads your inbox.
-                </p>
-                {user?.google_connected ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '13px', color: '#34D399' }}>✓ Connected{user.google_email ? ` as ${user.google_email}` : ''}</span>
-                    <button onClick={disconnectGmail} disabled={gmailConnecting}
-                      style={{ padding: '8px 16px', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
-                      {gmailConnecting ? 'Disconnecting…' : 'Disconnect'}
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={connectGmail} disabled={gmailConnecting}
-                    style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: gmailConnecting ? 0.6 : 1 }}>
-                    {gmailConnecting ? 'Redirecting…' : 'Connect Gmail'}
-                  </button>
-                )}
-                {gmailMsg && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '10px 0 0' }}>{gmailMsg}</p>}
-              </div>
-
-              <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
-                <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 16px' }}>Account Information</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {[
-                    { label: 'Member since', value: user ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—' },
-                    { label: 'Last login', value: user?.last_login ? new Date(user.last_login).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'First session' },
-                    { label: 'Account ID', value: `#${user?.id || '—'}` },
-                    { label: 'Role', value: user?.role === 'admin' ? '👑 Administrator' : '👤 Member' },
-                    { label: 'Plan', value: user ? `${user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} — ${plan?.desc}` : '—' },
-                  ].map(item => (
-                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '8px', background: 'var(--bg-input)' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item.label}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)' }}>{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* DANGER ZONE — admins are excluded server-side too */}
-              {user?.role !== 'admin' && (
-                <div style={{ borderRadius: '16px', border: '1px solid rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.04)', padding: '24px', marginTop: '16px' }}>
-                  <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#F87171', margin: '0 0 6px' }}>Danger zone</h2>
-                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
-                    Deactivating pauses your account and keeps your data — contact us to reopen it. Deleting removes your account and all of your pipeline data permanently.
-                  </p>
-
-                  {dangerErr && (
-                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', fontSize: '12.5px', padding: '10px 14px', borderRadius: '8px', marginBottom: '12px' }}>
-                      {dangerErr}
-                    </div>
-                  )}
-
-                  {dangerMode === '' && (
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <button onClick={() => { setDangerMode('deactivate'); setDangerErr('') }}
-                        style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                        Deactivate account
-                      </button>
-                      <button onClick={() => { setDangerMode('delete'); setDangerErr('') }}
-                        style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', cursor: 'pointer' }}>
-                        Delete account
-                      </button>
-                    </div>
-                  )}
-
-                  {dangerMode === 'deactivate' && (
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text)' }}>Deactivate your account and sign out?</span>
-                      <button onClick={deactivateAccount} disabled={dangerBusy}
-                        style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#F59E0B', border: 'none', cursor: 'pointer', opacity: dangerBusy ? 0.6 : 1 }}>
-                        {dangerBusy ? 'Working…' : 'Yes, deactivate'}
-                      </button>
-                      <button onClick={() => setDangerMode('')}
-                        style={{ padding: '9px 16px', borderRadius: '9px', fontSize: '13px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
-                    </div>
-                  )}
-
-                  {dangerMode === 'delete' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '360px' }}>
-                      <label style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>Enter your password to confirm permanent deletion</label>
-                      <input type="password" value={deletePwd} onChange={e => setDeletePwd(e.target.value)} placeholder="Your password" style={inputStyle} />
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={deleteAccount} disabled={dangerBusy}
-                          style={{ padding: '10px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#EF4444', border: 'none', cursor: 'pointer', opacity: dangerBusy ? 0.6 : 1 }}>
-                          {dangerBusy ? 'Deleting…' : 'Permanently delete'}
-                        </button>
-                        <button onClick={() => { setDangerMode(''); setDeletePwd('') }}
-                          style={{ padding: '10px 16px', borderRadius: '9px', fontSize: '13px', color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

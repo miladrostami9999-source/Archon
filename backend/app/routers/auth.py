@@ -953,7 +953,24 @@ class PortfolioItem(BaseModel):
     url: Optional[str] = ""
     images: List[PortfolioImage] = []
 
+class EducationItem(BaseModel):
+    id: str
+    school: str
+    degree: Optional[str] = ""
+    field: Optional[str] = ""
+    start_year: Optional[str] = ""
+    end_year: Optional[str] = ""
+
+class ExperienceItem(BaseModel):
+    id: str
+    title: str
+    company: Optional[str] = ""
+    start_date: Optional[str] = ""
+    end_date: Optional[str] = ""
+    description: Optional[str] = ""
+
 class ProfileUpdate(BaseModel):
+    headline: Optional[str] = ""
     bio: Optional[str] = ""
     location: Optional[str] = ""
     website: Optional[str] = ""
@@ -963,6 +980,8 @@ class ProfileUpdate(BaseModel):
     skills: List[str] = []
     customSkills: List[str] = []
     portfolio: List[PortfolioItem] = []
+    education: List[EducationItem] = []
+    experience: List[ExperienceItem] = []
     is_public: Optional[bool] = None
     username: Optional[str] = None
 
@@ -1024,6 +1043,7 @@ def update_my_profile(
         current_user.is_public = payload.is_public
 
     profile_data = {
+        "headline": payload.headline,
         "bio": payload.bio,
         "location": payload.location,
         "website": payload.website,
@@ -1033,6 +1053,8 @@ def update_my_profile(
         "skills": payload.skills,
         "customSkills": payload.customSkills,
         "portfolio": [p.dict() for p in payload.portfolio],
+        "education": [e.dict() for e in payload.education],
+        "experience": [e.dict() for e in payload.experience],
     }
     current_user.profile_json = json.dumps(profile_data)
     db.commit()
@@ -1089,14 +1111,17 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     # skimming; both are shown so neither has to be taken on faith.
     satisfaction = round((rating["avg_rating"] / 5) * 100) if rating["avg_rating"] else None
 
-    # Only expose safe, public-facing fields — never email, phone, plan, role
+    # Only expose safe, public-facing fields — never phone, plan, role.
+    # Email is included at Milad's explicit request (2026-08-25); phone stays private.
     return {
         "name": user.name,
         "username": user.username,
+        "email": user.email,
         "is_verified": db.query(UserVerification).filter(
             UserVerification.user_id == user.id, UserVerification.status == "verified",
         ).first() is not None,
         "avatar": data.get("avatar", ""),
+        "headline": data.get("headline", ""),
         "bio": data.get("bio", ""),
         "location": data.get("location", ""),
         "website": data.get("website", ""),
@@ -1104,12 +1129,46 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
         "skills": data.get("skills", []),
         "customSkills": data.get("customSkills", []),
         "portfolio": data.get("portfolio", []),
+        "education": data.get("education", []),
+        "experience": data.get("experience", []),
         "marketplace_rating": rating["avg_rating"],
         "marketplace_review_count": rating["review_count"],
         "marketplace_satisfaction": satisfaction,
         "marketplace_completed_contracts": completed,
         "marketplace_reviews": reviews,
         "user_id": user.id,   # so a viewer can open a message thread
+    }
+
+
+@router.get("/profile/public/{username}/posts")
+def get_public_profile_posts(username: str, limit: int = 20, offset: int = 0, db: Session = Depends(get_db)):
+    from app.models.database import Post, PostLike, PostComment
+
+    user = db.query(User).filter(User.username == username).first()
+    if not user or not user.is_public or not user.is_active:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    query = (
+        db.query(Post)
+        .filter(Post.user_id == user.id, Post.is_deleted.is_(False))
+        .order_by(Post.created_at.desc())
+    )
+    total = query.count()
+    posts = query.offset(offset).limit(limit).all()
+
+    items = [{
+        "id": p.id,
+        "text": p.text,
+        "image_url": p.image_url,
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+        "like_count": db.query(PostLike).filter(PostLike.post_id == p.id).count(),
+        "comment_count": db.query(PostComment).filter(PostComment.post_id == p.id).count(),
+    } for p in posts]
+
+    return {
+        "items": items,
+        "next_offset": offset + limit if offset + limit < total else None,
+        "has_more": offset + limit < total,
     }
 
 
