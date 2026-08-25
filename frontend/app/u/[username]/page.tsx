@@ -65,7 +65,7 @@ export default function PublicProfilePage() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const [messaging, setMessaging] = useState(false)
   const [msgError, setMsgError] = useState('')
-  const [tab, setTab] = useState<'portfolio' | 'posts'>('portfolio')
+  const [tab, setTab] = useState<'profile' | 'posts'>('profile')
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoaded, setPostsLoaded] = useState(false)
 
@@ -180,7 +180,7 @@ export default function PublicProfilePage() {
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '24px', alignItems: 'flex-start' }}>
 
           {/* ── LEFT COLUMN ── */}
-          <aside style={{ width: isMobile ? '100%' : '280px', flexShrink: 0 }}>
+          <div style={{ width: isMobile ? '100%' : '280px', flexShrink: 0 }}>
             <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
               <div style={{ width: '84px', height: '84px', borderRadius: '20px', overflow: 'hidden', margin: '0 auto 14px', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(61,79,224,0.3)' }}>
                 {profile.avatar ? (
@@ -224,66 +224,83 @@ export default function PublicProfilePage() {
               )}
             </div>
 
-            {(profile.education?.length > 0 || profile.experience?.length > 0 || profile.email || profile.website) && (
-              <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
-                {profile.education?.length > 0 && (
-                  <div style={{ marginBottom: '14px' }}>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Education</p>
-                    {profile.education.map(e => (
-                      <div key={e.id} style={{ marginBottom: '6px' }}>
-                        <p style={{ fontSize: '12px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{e.degree || e.school}</p>
-                        <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{e.degree ? e.school : ''}{e.end_year ? `${e.degree ? ' · ' : ''}${e.end_year}` : ''}</p>
-                      </div>
-                    ))}
-                  </div>
+            {(profile.email || profile.website) && (
+              <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {profile.email && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>✉ {profile.email}</span>}
+                {profile.website && (
+                  <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank"
+                    style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
+                    🌐 {profile.website.replace(/^https?:\/\//, '')}
+                  </a>
                 )}
-                {profile.experience?.length > 0 && (
-                  <div style={{ marginBottom: '14px' }}>
-                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Experience</p>
-                    {profile.experience.map(e => (
-                      <div key={e.id} style={{ marginBottom: '6px' }}>
-                        <p style={{ fontSize: '12px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{e.title}</p>
-                        <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: 0 }}>{e.company}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* CONTACT — email + website only; phone stays private */}
-                <div style={{ borderTop: (profile.education?.length > 0 || profile.experience?.length > 0) ? '1px solid var(--border)' : 'none', paddingTop: (profile.education?.length > 0 || profile.experience?.length > 0) ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {profile.email && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>✉ {profile.email}</span>}
-                  {profile.website && (
-                    <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank"
-                      style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
-                      🌐 {profile.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  )}
-                </div>
               </div>
             )}
-          </aside>
+          </div>
 
           {/* ── RIGHT COLUMN ── */}
-          <div style={{ flex: 1, minWidth: '300px' }}>
-            {profile.bio && (
-              <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '16px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Description</p>
-                <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', marginBottom: '16px', width: 'fit-content' }}>
-              {([['portfolio', 'Portfolio'], ['posts', 'Posts']] as const).map(([id, label]) => (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px', marginBottom: '16px', width: isMobile ? '100%' : 'fit-content' }}>
+              {([['profile', 'Profile'], ['posts', 'Posts']] as const).map(([id, label]) => (
                 <button key={id} onClick={() => setTab(id)}
-                  style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: 'pointer', background: tab === id ? 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' : 'transparent', color: tab === id ? 'white' : 'var(--text-muted)' }}>
+                  style={{ flex: isMobile ? 1 : 'none', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: 'pointer', background: tab === id ? 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' : 'transparent', color: tab === id ? 'white' : 'var(--text-muted)' }}>
                   {label}
                 </button>
               ))}
             </div>
 
-            {tab === 'portfolio' && (
-              <PortfolioGrid items={profile.portfolio || []} variant="themed" onSelect={setSelectedProject}
-                emptyTitle="No portfolio items yet" emptySubtitle="Nothing has been shared here yet." />
+            {tab === 'profile' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {profile.bio && (
+                  <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Description</p>
+                    <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
+                  </div>
+                )}
+
+                {allSkills.length > 0 && (
+                  <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Skills & Expertise</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {allSkills.map(skill => (
+                        <span key={skill} style={{ fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.2)', padding: '5px 12px', borderRadius: '999px' }}>
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Portfolio</p>
+                  <PortfolioGrid items={profile.portfolio || []} variant="themed" onSelect={setSelectedProject}
+                    emptyTitle="No portfolio items yet" emptySubtitle="Nothing has been shared here yet." />
+                </div>
+
+                {profile.education?.length > 0 && (
+                  <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Education</p>
+                    {profile.education.map(e => (
+                      <div key={e.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{e.degree || 'Education'}{e.field ? ` · ${e.field}` : ''}</p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{e.school}{(e.start_year || e.end_year) ? ` · ${e.start_year || ''}${e.start_year && e.end_year ? '–' : ''}${e.end_year || ''}` : ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {profile.experience?.length > 0 && (
+                  <div style={{ borderRadius: '20px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Work Experience</p>
+                    {profile.experience.map(e => (
+                      <div key={e.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{e.title}</p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{e.company}{(e.start_date || e.end_date) ? ` · ${e.start_date || ''}${e.start_date && e.end_date ? '–' : ''}${e.end_date || ''}` : ''}</p>
+                        {e.description && <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0', lineHeight: 1.5 }}>{e.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {tab === 'posts' && (
