@@ -572,14 +572,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {allSkills.length > 0 && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {allSkills.slice(0, 6).map(s => (
-                    <span key={s} style={{ fontSize: '10px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.15)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>
-                  ))}
-                  {allSkills.length > 6 && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>+{allSkills.length - 6}</span>}
-                </div>
-              )}
             </div>
 
             <ProfileCompletion
