@@ -7,15 +7,6 @@ import { Mail, Eye, RefreshCw, Search, Pencil, Star, Trash2, Check, X, Sparkles,
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-const TASK_COLORS: Record<string, { border: string; bg: string }> = {
-  email:    { border: 'rgba(61,79,224,0.2)',  bg: 'rgba(61,79,224,0.05)' },
-  review:   { border: 'rgba(139,92,246,0.2)',  bg: 'rgba(139,92,246,0.05)' },
-  followup: { border: 'rgba(245,158,11,0.2)',  bg: 'rgba(245,158,11,0.05)' },
-  research: { border: 'rgba(52,211,153,0.2)',  bg: 'rgba(52,211,153,0.05)' },
-  update:   { border: 'var(--border)',          bg: 'transparent' },
-  personal: { border: 'rgba(236,72,153,0.2)',  bg: 'rgba(236,72,153,0.05)' },
-}
-
 const TASK_ICONS: Record<string, React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>> = {
   email: Mail, review: Eye, followup: RefreshCw,
   research: Search, update: Pencil, personal: Star,
@@ -113,8 +104,8 @@ export default function TasksPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
           <div style={{ borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px', width: '320px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <Trash2 size={22} strokeWidth={1.75} color="#F87171" />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(228,114,111,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Trash2 size={22} strokeWidth={1.75} color="var(--error)" />
               </div>
               <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>Delete this task?</p>
               <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '4px 0 0' }}>This action cannot be undone.</p>
@@ -125,7 +116,7 @@ export default function TasksPage() {
                 Cancel
               </button>
               <button onClick={() => deleteTask(deleteConfirm)}
-                style={{ flex: 1, padding: '8px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'rgba(239,68,68,0.8)', border: 'none', cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: 'var(--error)', border: 'none', cursor: 'pointer' }}>
                 Delete
               </button>
             </div>
@@ -155,8 +146,8 @@ export default function TasksPage() {
               + Add Task
             </button>
             {alreadyGenerated && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: '#34D399', padding: '6px 12px', borderRadius: '8px' }}>
-                <Check size={13} strokeWidth={2} color="#34D399" /> Generated
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', color: 'var(--success)', padding: '6px 12px', borderRadius: '8px' }}>
+                <Check size={13} strokeWidth={2} color="var(--success)" /> Generated
               </span>
             )}
           </div>
@@ -166,7 +157,7 @@ export default function TasksPage() {
 
           {/* ADD TASK */}
           {showAddTask && (
-            <div style={{ borderRadius: '12px', border: '1px solid rgba(236,72,153,0.2)', background: 'rgba(236,72,153,0.04)', padding: '16px', marginBottom: '16px' }}>
+            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--accent)', background: 'var(--accent-dim)', padding: '16px', marginBottom: '16px' }}>
               <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '12px', marginTop: 0 }}><Star size={14} strokeWidth={1.75} color="var(--text-muted)" /> New Personal Task</p>
               <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
                 placeholder="Task title *"
@@ -195,9 +186,9 @@ export default function TasksPage() {
                 <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', margin: 0 }}>{doneTasks}/{totalTasks} · {progress}%</p>
               </div>
               <div style={{ width: '100%', background: 'var(--border)', borderRadius: '999px', height: '6px' }}>
-                <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? '#34D399' : progress >= 60 ? '#3D4FE0' : '#FBBF24' }} />
+                <div style={{ height: '6px', borderRadius: '999px', transition: 'width 0.5s', width: `${progress}%`, background: progress === 100 ? 'var(--success)' : progress >= 60 ? 'var(--accent)' : 'var(--warning)' }} />
               </div>
-              {progress === 100 && <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '12px', color: '#34D399', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}><PartyPopper size={13} strokeWidth={1.75} color="#34D399" /> All done!</p>}
+              {progress === 100 && <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '12px', color: 'var(--success)', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}><PartyPopper size={13} strokeWidth={1.75} color="var(--success)" /> All done!</p>}
             </div>
           )}
 
@@ -213,9 +204,9 @@ export default function TasksPage() {
                   <button key={l} onClick={() => setTaskLang(l)}
                     style={{
                       fontSize: '14px', padding: '8px 20px', borderRadius: '8px',
-                      border: taskLang === l ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)',
-                      background: taskLang === l ? 'rgba(61,79,224,0.15)' : 'var(--bg-input)',
-                      color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
+                      border: taskLang === l ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: taskLang === l ? 'var(--accent-dim)' : 'var(--bg-input)',
+                      color: taskLang === l ? 'var(--accent)' : 'var(--text-muted)',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}>
                     {l === 'en' ? 'English' : 'فارسی'}
@@ -233,26 +224,25 @@ export default function TasksPage() {
                 <>
                   <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginBottom: '8px', marginTop: 0 }}><Sparkles size={11} strokeWidth={1.75} color="var(--text-dim)" /> AI Generated</p>
                   {aiTasks.map((task, i) => {
-                    const colors = TASK_COLORS[task.task_type] || TASK_COLORS.update
                     const TaskIcon = TASK_ICONS[task.task_type]
                     return (
                       <div key={task.id} style={{
-                        borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : colors.border}`,
-                        background: task.is_done ? 'transparent' : colors.bg,
+                        borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
+                        background: task.is_done ? 'transparent' : 'var(--bg-card)',
                         padding: '16px', opacity: task.is_done ? 0.5 : 1, transition: 'all 0.15s',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                           <button onClick={() => toggleDone(task.id)}
                             style={{
-                              width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? '#34D399' : 'var(--border-mid)'}`,
+                              width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? 'var(--success)' : 'var(--border-mid)'}`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
-                              background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
+                              background: task.is_done ? 'var(--success)' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
                             }}>
                             {task.is_done && <Check size={11} strokeWidth={2.5} color="white" />}
                           </button>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ opacity: 0.4, display: 'flex' }}>{TaskIcon && <TaskIcon size={12} strokeWidth={1.75} color="var(--text-muted)" />}</span>
+                              <span style={{ opacity: 0.6, display: 'flex' }}>{TaskIcon && <TaskIcon size={12} strokeWidth={1.75} color="var(--text-muted)" />}</span>
                               <p style={{ fontSize: '14px', fontWeight: 500, flex: 1, margin: 0, color: task.is_done ? 'var(--text-dim)' : 'var(--text)', textDecoration: task.is_done ? 'line-through' : 'none' }}>
                                 {getTitle(task)}
                               </p>
@@ -266,7 +256,7 @@ export default function TasksPage() {
                           </div>
                           <button onClick={() => setDeleteConfirm(task.id)}
                             style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', flexShrink: 0, padding: '4px', transition: 'color 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)' }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
                             <X size={13} strokeWidth={2} />
                           </button>
@@ -282,16 +272,16 @@ export default function TasksPage() {
                   <p style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 4px', marginTop: '16px', marginBottom: '8px' }}><Star size={11} strokeWidth={1.75} color="var(--text-dim)" /> Personal</p>
                   {personalTasks.map(task => (
                     <div key={task.id} style={{
-                      borderRadius: '12px', border: `1px solid ${task.is_done ? 'var(--border)' : 'rgba(236,72,153,0.2)'}`,
-                      background: task.is_done ? 'transparent' : 'rgba(236,72,153,0.05)',
+                      borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
+                      background: task.is_done ? 'transparent' : 'var(--bg-card)',
                       padding: '16px', opacity: task.is_done ? 0.5 : 1, transition: 'all 0.15s',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                         <button onClick={() => toggleDone(task.id)}
                           style={{
-                            width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? '#34D399' : 'rgba(236,72,153,0.4)'}`,
+                            width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${task.is_done ? 'var(--success)' : 'var(--border-mid)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px',
-                            background: task.is_done ? '#34D399' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
+                            background: task.is_done ? 'var(--success)' : 'transparent', cursor: 'pointer', transition: 'all 0.15s',
                           }}>
                           {task.is_done && <Check size={11} strokeWidth={2.5} color="white" />}
                         </button>
@@ -303,7 +293,7 @@ export default function TasksPage() {
                         </div>
                         <button onClick={() => setDeleteConfirm(task.id)}
                           style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '4px', transition: 'color 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.color = '#F87171' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)' }}
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)' }}>
                           <X size={13} strokeWidth={2} />
                         </button>
@@ -320,9 +310,9 @@ export default function TasksPage() {
                       <button key={l} onClick={() => setTaskLang(l)}
                         style={{
                           fontSize: '12px', padding: '6px 16px', borderRadius: '8px',
-                          border: taskLang === l ? '1px solid rgba(61,79,224,0.4)' : '1px solid var(--border)',
-                          background: taskLang === l ? 'rgba(61,79,224,0.15)' : 'var(--bg-input)',
-                          color: taskLang === l ? '#60A5FA' : 'var(--text-muted)',
+                          border: taskLang === l ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          background: taskLang === l ? 'var(--accent-dim)' : 'var(--bg-input)',
+                          color: taskLang === l ? 'var(--accent)' : 'var(--text-muted)',
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}>
                         {l === 'en' ? 'English' : 'فارسی'}
