@@ -1,13 +1,15 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Project, Proposal, Contract, Conversation, Milestone, User
 from app.routers.auth import require_marketplace_beta
 from app.services.marketplace_access import get_user_rating, is_verified
 from app.services import notifications as notif
-from .schemas import ProposalCreate, ProposalAccept
+from .schemas import ProposalCreate, ProposalUpdate, ProposalAccept
+
+MAX_ATTACHMENTS = 10
 
 router = APIRouter(tags=["marketplace-proposals"])
 
@@ -40,6 +42,12 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         highlighted_portfolio = json.loads(pr.highlighted_portfolio) if pr.highlighted_portfolio else []
     except Exception:
         highlighted_portfolio = []
+    try:
+        attachment_urls = json.loads(pr.attachment_urls) if pr.attachment_urls else []
+    except Exception:
+        attachment_urls = []
+    if not attachment_urls and pr.attachment_url:
+        attachment_urls = [pr.attachment_url]  # legacy single-attachment rows
     return {
         "id": pr.id,
         "project_id": pr.project_id,
@@ -54,13 +62,24 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         "freelancer_review_count": rating["review_count"],
         "freelancer_completed_contracts": completed,
         "cover_letter": pr.cover_letter,
-        "attachment_url": pr.attachment_url,
+        "attachment_urls": attachment_urls,
         "highlighted_portfolio": highlighted_portfolio,
         "proposed_amount": pr.proposed_amount,
         "proposed_days": pr.proposed_days,
         "status": pr.status,
         "created_at": pr.created_at.isoformat() if pr.created_at else None,
     }
+
+
+def _project_row_to_dict(pr: Proposal, project: Project, db: Session) -> dict:
+    """A proposal dict with the project it's for stapled on — what the
+    client's cross-project Proposals inbox needs that a single-project list
+    doesn't."""
+    d = _proposal_to_dict(pr, db)
+    d["project_title"] = project.title
+    d["project_currency"] = project.currency
+    d["project_status"] = project.status
+    return d
 
 
 @router.get("/proposals/pending-count")
@@ -101,11 +120,12 @@ def submit_proposal(
     if existing:
         raise HTTPException(status_code=400, detail="You already submitted a proposal for this project")
     highlights = (data.highlighted_portfolio or [])[:4]
+    attachments = (data.attachment_urls or [])[:MAX_ATTACHMENTS]
     proposal = Proposal(
         project_id=project_id,
         freelancer_id=current_user.id,
         cover_letter=data.cover_letter,
-        attachment_url=data.attachment_url,
+        attachment_urls=json.dumps(attachments) if attachments else None,
         highlighted_portfolio=json.dumps([h.dict() for h in highlights]) if highlights else None,
         proposed_amount=data.proposed_amount,
         proposed_days=data.proposed_days,
@@ -142,6 +162,106 @@ def list_proposals(
         .all()
     )
     return [_proposal_to_dict(p, db) for p in proposals]
+
+
+@router.get("/proposals/inbox")
+def proposals_inbox(
+    status: str = Query("pending"),  # pending | all | accepted | rejected | withdrawn
+    sort: str = Query("newest"),     # newest | price_asc | price_desc | best_match
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Every proposal received across every project this account posted as a
+    client — the single inbox Milad asked for, instead of having to open
+    each project and scroll to the bottom to find its proposals."""
+    query = (
+        db.query(Proposal, Project)
+        .join(Project, Project.id == Proposal.project_id)
+        .filter(Project.client_id == current_user.id)
+    )
+    if status != "all":
+        query = query.filter(Proposal.status == status)
+
+    if sort == "price_asc":
+        query = query.order_by(Proposal.proposed_amount.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Proposal.proposed_amount.desc())
+    else:
+        # Also the base ordering for "best_match" below, re-sorted in Python
+        # once ratings are looked up — newest is still a sane fallback order.
+        query = query.order_by(Proposal.created_at.desc())
+
+    rows = query.all()
+
+    if sort == "best_match":
+        # No real matching model yet — approximated from the same signals a
+        # client would actually weigh: rated freelancers first, then a track
+        # record of finished contracts, newest as the final tiebreaker.
+        def score(pr: Proposal):
+            rating = get_user_rating(db, pr.freelancer_id)
+            completed = (
+                db.query(Contract)
+                .filter(Contract.freelancer_id == pr.freelancer_id, Contract.status == "completed")
+                .count()
+            )
+            return (rating["avg_rating"] or 0, completed, pr.created_at)
+        rows = sorted(rows, key=lambda row: score(row[0]), reverse=True)
+
+    return [_project_row_to_dict(pr, project, db) for pr, project in rows]
+
+
+@router.get("/proposals/{proposal_id}")
+def get_proposal(
+    proposal_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    project = db.query(Project).filter(Project.id == proposal.project_id).first()
+    is_owner_freelancer = proposal.freelancer_id == current_user.id
+    is_project_client = project and project.client_id == current_user.id
+    if not (is_owner_freelancer or is_project_client or current_user.role == "admin"):
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    return _proposal_to_dict(proposal, db)
+
+
+@router.patch("/proposals/{proposal_id}")
+def update_proposal(
+    proposal_id: int,
+    data: ProposalUpdate,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """The freelancer revising their own bid — price, cover letter,
+    attachments or highlights — while it's still pending. Once a client has
+    acted on it (accepted/rejected) or it was withdrawn, it's locked."""
+    proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    if proposal.freelancer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your proposal")
+    if proposal.status != "pending":
+        raise HTTPException(status_code=400, detail="Only a pending proposal can be edited")
+
+    if data.cover_letter is not None:
+        proposal.cover_letter = data.cover_letter
+    if data.proposed_amount is not None:
+        proposal.proposed_amount = data.proposed_amount
+    if data.proposed_days is not None:
+        proposal.proposed_days = data.proposed_days
+    if data.attachment_urls is not None:
+        attachments = data.attachment_urls[:MAX_ATTACHMENTS]
+        proposal.attachment_urls = json.dumps(attachments) if attachments else None
+        proposal.attachment_url = None  # fully superseded by the list now
+    if data.highlighted_portfolio is not None:
+        highlights = data.highlighted_portfolio[:4]
+        proposal.highlighted_portfolio = json.dumps([h.dict() for h in highlights]) if highlights else None
+
+    db.commit()
+    db.refresh(proposal)
+    return _proposal_to_dict(proposal, db)
 
 
 @router.post("/proposals/{proposal_id}/withdraw")

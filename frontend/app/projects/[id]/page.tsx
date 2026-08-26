@@ -58,7 +58,7 @@ interface Proposal {
   freelancer_review_count: number
   freelancer_completed_contracts: number
   cover_letter: string | null
-  attachment_url: string | null
+  attachment_urls: string[]
   highlighted_portfolio: { id: string; title: string; image?: string }[]
   proposed_amount: number | null
   proposed_days: number | null
@@ -474,9 +474,13 @@ export default function ProjectDetailPage() {
                                     {p.proposed_days ? ` · ${p.proposed_days} days` : ''}
                                   </div>
                                   {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
-                                  {p.attachment_url && (
-                                    <a href={p.attachment_url} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: p.highlighted_portfolio?.length ? '8px' : 0 }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
+                                  {p.attachment_urls?.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: p.highlighted_portfolio?.length ? '8px' : 0 }}>
+                                      {p.attachment_urls.map((url, i) => (
+                                        <a key={url} href={url} target="_blank" rel="noreferrer"
+                                          style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Attachment {p.attachment_urls.length > 1 ? i + 1 : ''}</a>
+                                      ))}
+                                    </div>
                                   )}
                                   {p.highlighted_portfolio?.length > 0 && (
                                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -522,10 +526,16 @@ export default function ProjectDetailPage() {
                       </span>
                     </div>
                     {project.my_proposal_status === 'pending' && project.my_proposal_id && (
-                      <button onClick={() => withdrawProposal(project.my_proposal_id!)} disabled={busy === project.my_proposal_id}
-                        style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                        {busy === project.my_proposal_id ? '…' : 'Withdraw'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <a href={`/projects/${id}/apply?proposalId=${project.my_proposal_id}`}
+                          style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer', textDecoration: 'none' }}>
+                          Edit
+                        </a>
+                        <button onClick={() => withdrawProposal(project.my_proposal_id!)} disabled={busy === project.my_proposal_id}
+                          style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                          {busy === project.my_proposal_id ? '…' : 'Withdraw'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

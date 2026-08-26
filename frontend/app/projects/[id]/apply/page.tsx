@@ -1,15 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../../components/Sidebar'
 import EmptyState from '../../../components/EmptyState'
 import LoadingState from '../../../components/LoadingState'
 import { useIsMobile } from '../../../hooks/useIsMobile'
-import { ArrowLeft, DollarSign, Calendar, Tag, Paperclip, CheckCircle2, SearchX } from 'lucide-react'
+import { ArrowLeft, DollarSign, Calendar, Tag, Paperclip, CheckCircle2, SearchX, X } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const MAX_HIGHLIGHTS = 4
+const MAX_ATTACHMENTS = 10
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
 
 interface Project {
   id: number
@@ -52,6 +54,8 @@ const label: React.CSSProperties = { display: 'block', fontSize: '11.5px', color
 export default function ApplyToProjectPage() {
   const params = useParams()
   const id = params?.id
+  const searchParams = useSearchParams()
+  const editProposalId = searchParams?.get('proposalId')
   const isMobile = useIsMobile()
 
   const [project, setProject] = useState<Project | null>(null)
@@ -62,7 +66,7 @@ export default function ApplyToProjectPage() {
   const [coverLetter, setCoverLetter] = useState('')
   const [proposedAmount, setProposedAmount] = useState('')
   const [proposedDays, setProposedDays] = useState('')
-  const [attachment, setAttachment] = useState<{ url: string; name: string } | null>(null)
+  const [attachments, setAttachments] = useState<{ url: string; name: string }[]>([])
   const [uploading, setUploading] = useState(false)
   const [selectedHighlights, setSelectedHighlights] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
@@ -73,17 +77,27 @@ export default function ApplyToProjectPage() {
     Promise.all([
       axios.get(`${API}/marketplace/projects/${id}`),
       axios.get(`${API}/auth/profile/me`).catch(() => ({ data: {} })),
+      editProposalId ? axios.get(`${API}/marketplace/proposals/${editProposalId}`).catch(() => null) : Promise.resolve(null),
     ])
-      .then(([pr, prof]) => {
+      .then(([pr, prof, existing]) => {
         setProject(pr.data)
         setPortfolio(prof.data.portfolio || [])
+        if (existing?.data) {
+          const p = existing.data
+          setCoverLetter(p.cover_letter || '')
+          setProposedAmount(p.proposed_amount != null ? String(p.proposed_amount) : '')
+          setProposedDays(p.proposed_days != null ? String(p.proposed_days) : '')
+          setAttachments((p.attachment_urls || []).map((url: string, i: number) => ({ url, name: `Attachment ${i + 1}` })))
+          setSelectedHighlights((p.highlighted_portfolio || []).map((h: any) => h.id))
+        }
       })
       .catch((e) => {
         if (e.response?.status === 404) setNotFound(true)
         else if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard'
       })
       .finally(() => setLoading(false))
-  }, [id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, editProposalId])
 
   const toggleHighlight = (itemId: string) => {
     setSelectedHighlights(sel => {
@@ -93,18 +107,31 @@ export default function ApplyToProjectPage() {
     })
   }
 
-  const uploadAttachment = async (file: File) => {
-    setUploading(true); setError('')
+  const uploadAttachments = async (files: FileList) => {
+    const list = Array.from(files)
+    const room = MAX_ATTACHMENTS - attachments.length
+    if (room <= 0) { setError(`You can attach up to ${MAX_ATTACHMENTS} files`); return }
+    const toUpload = list.slice(0, room)
+    if (list.length > room) setError(`Only the first ${room} file${room === 1 ? '' : 's'} were added — ${MAX_ATTACHMENTS} attachments max`)
+    else setError('')
+    const oversized = toUpload.filter(f => f.size > MAX_ATTACHMENT_BYTES)
+    const valid = toUpload.filter(f => f.size <= MAX_ATTACHMENT_BYTES)
+    if (oversized.length) setError(`${oversized.map(f => f.name).join(', ')} — over the 20MB limit, skipped`)
+    if (!valid.length) return
+    setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const r = await axios.post(`${API}/auth/upload/receipt`, fd)
-      setAttachment({ url: r.data.url, name: file.name })
+      for (const file of valid) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const r = await axios.post(`${API}/auth/upload/receipt`, fd)
+        setAttachments(a => [...a, { url: r.data.url, name: file.name }])
+      }
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'Could not upload the file')
+      setError(e.response?.data?.detail || 'Could not upload a file')
     }
     setUploading(false)
   }
+  const removeAttachment = (url: string) => setAttachments(a => a.filter(x => x.url !== url))
 
   const submit = async () => {
     if (!proposedAmount) { setError('Enter your proposed amount'); return }
@@ -113,13 +140,18 @@ export default function ApplyToProjectPage() {
       const highlights = portfolio
         .filter(p => selectedHighlights.includes(p.id))
         .map(p => ({ id: p.id, title: p.title, image: p.images?.[0]?.data || undefined }))
-      await axios.post(`${API}/marketplace/projects/${id}/proposals`, {
+      const payload = {
         cover_letter: coverLetter.trim() || null,
         proposed_amount: Number(proposedAmount),
         proposed_days: proposedDays ? Number(proposedDays) : null,
-        attachment_url: attachment?.url || null,
+        attachment_urls: attachments.length ? attachments.map(a => a.url) : null,
         highlighted_portfolio: highlights.length ? highlights : null,
-      })
+      }
+      if (editProposalId) {
+        await axios.patch(`${API}/marketplace/proposals/${editProposalId}`, payload)
+      } else {
+        await axios.post(`${API}/marketplace/projects/${id}/proposals`, payload)
+      }
       window.location.href = `/projects/${id}`
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Could not submit proposal')
@@ -128,7 +160,7 @@ export default function ApplyToProjectPage() {
   }
 
   const budget = project ? budgetLabel(project) : null
-  const alreadyBlocked = project && (project.is_owner || project.status !== 'open' || !!project.my_proposal_status)
+  const alreadyBlocked = !editProposalId && project && (project.is_owner || project.status !== 'open' || !!project.my_proposal_status)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
@@ -148,7 +180,7 @@ export default function ApplyToProjectPage() {
               description={project.is_owner ? "You can't propose on your own project." : project.my_proposal_status ? 'You already submitted a proposal for this project.' : 'This project is no longer accepting proposals.'} />
           ) : (
             <>
-              <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 20px' }}>Submit a proposal</h1>
+              <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 20px' }}>{editProposalId ? 'Edit your proposal' : 'Submit a proposal'}</h1>
 
               {/* Job details recap */}
               <div style={card}>
@@ -201,17 +233,25 @@ export default function ApplyToProjectPage() {
                   <textarea rows={5} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} placeholder="Why you're a good fit for this project" style={{ ...input, resize: 'vertical' }} />
                 </div>
                 <div>
-                  <label style={label}>Attachment <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
-                  {attachment ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <a href={attachment.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{attachment.name}</a>
-                      <button onClick={() => setAttachment(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <label style={{ ...label, marginBottom: 0 }}>Attachments <span style={{ color: 'var(--text-dim)' }}>(optional — up to {MAX_ATTACHMENTS} files, 20MB each)</span></label>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{attachments.length}/{MAX_ATTACHMENTS}</span>
+                  </div>
+                  {attachments.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                      {attachments.map(a => (
+                        <div key={a.url} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <a href={a.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Paperclip size={12} strokeWidth={1.75} />{a.name}</a>
+                          <button onClick={() => removeAttachment(a.url)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0, flexShrink: 0 }}><X size={13} strokeWidth={2} /></button>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
+                  )}
+                  {attachments.length < MAX_ATTACHMENTS && (
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach an image or PDF'}
-                      <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f); e.target.value = '' }} />
+                      <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach images or a PDF'}
+                      <input type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
+                        onChange={e => { if (e.target.files?.length) uploadAttachments(e.target.files); e.target.value = '' }} />
                     </label>
                   )}
                 </div>
@@ -261,7 +301,7 @@ export default function ApplyToProjectPage() {
 
               <button onClick={submit} disabled={busy}
                 style={{ width: '100%', padding: '13px', borderRadius: 'var(--radius-md)', fontSize: '14.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
-                {busy ? 'Sending…' : 'Send proposal'}
+                {busy ? 'Sending…' : editProposalId ? 'Save changes' : 'Send proposal'}
               </button>
             </>
           )}

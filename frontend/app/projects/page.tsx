@@ -7,8 +7,9 @@ import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
 import ProjectPreviewDrawer from '../components/ProjectPreviewDrawer'
+import AcceptProposalModal from '../components/AcceptProposalModal'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Calendar, Plus, Briefcase, X, Search, Heart, ShieldCheck, Star, MapPin, Bookmark } from 'lucide-react'
+import { Calendar, Plus, Briefcase, X, Search, Heart, ShieldCheck, Star, MapPin, Bookmark, Paperclip, CheckCircle2, Inbox } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -42,6 +43,29 @@ interface Project {
   my_proposal_id: number | null
 }
 
+interface ProposalRow {
+  id: number
+  project_id: number
+  project_title: string
+  project_currency: string
+  project_status: string
+  freelancer_id: number
+  freelancer_name: string | null
+  freelancer_verified: boolean
+  freelancer_avatar: string
+  freelancer_headline: string
+  freelancer_rating: number | null
+  freelancer_review_count: number
+  freelancer_completed_contracts: number
+  cover_letter: string | null
+  attachment_urls: string[]
+  highlighted_portfolio: { id: string; title: string; image?: string }[]
+  proposed_amount: number | null
+  proposed_days: number | null
+  status: string
+  created_at: string
+}
+
 const EXPERIENCE_META: Record<string, string> = { entry: 'Entry level', intermediate: 'Intermediate', expert: 'Expert' }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
@@ -51,11 +75,11 @@ const STATUS_META: Record<string, { color: string; bg: string; label: string }> 
   cancelled:   { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Cancelled' },
 }
 
-const PROPOSAL_STATUS_META: Record<string, { color: string; label: string }> = {
-  pending:   { color: 'var(--warning)', label: 'Proposal pending' },
-  accepted:  { color: 'var(--success)', label: 'Proposal accepted' },
-  rejected:  { color: 'var(--error)', label: 'Proposal rejected' },
-  withdrawn: { color: 'var(--text-dim)', label: 'Proposal withdrawn' },
+const PROPOSAL_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
+  pending:   { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Proposal pending' },
+  accepted:  { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Proposal accepted' },
+  rejected:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Proposal rejected' },
+  withdrawn: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Proposal withdrawn' },
 }
 
 const budgetLabel = (p: Project) => {
@@ -88,7 +112,7 @@ const formatSpent = (amount: number) => {
 
 export default function ProjectsPage() {
   const isMobile = useIsMobile()
-  const [tab, setTab] = useState<'open' | 'mine' | 'saved'>('open')
+  const [tab, setTab] = useState<'open' | 'mine' | 'saved' | 'proposals'>('open')
   // Which view leads. A client lands on the projects they've posted (where
   // proposals arrive); a freelancer lands on the open board. Either can use
   // both tabs — this only picks the starting one.
@@ -101,6 +125,15 @@ export default function ProjectsPage() {
   const [postMsg, setPostMsg] = useState('')
   const [search, setSearch] = useState('')
   const [now, setNow] = useState(() => Date.now())
+  const [pendingProposalCount, setPendingProposalCount] = useState(0)
+  const [proposalsInbox, setProposalsInbox] = useState<ProposalRow[]>([])
+  const [proposalsLoading, setProposalsLoading] = useState(true)
+  const [proposalsSort, setProposalsSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'best_match'>('newest')
+  const [proposalsStatus, setProposalsStatus] = useState<'pending' | 'all'>('pending')
+  const [acceptTarget, setAcceptTarget] = useState<ProposalRow | null>(null)
+  const [acceptBusy, setAcceptBusy] = useState(false)
+  const [acceptError, setAcceptError] = useState('')
+  const [proposalBusy, setProposalBusy] = useState<number | null>(null)
   const [form, setForm] = useState({
     title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '',
     experience_level: '', location: '', skillsInput: '', skills: [] as string[],
@@ -152,6 +185,52 @@ export default function ProjectsPage() {
       })
       .catch(() => setAccountMode('freelancer'))
   }, [])
+
+  const loadPendingCount = () => {
+    axios.get(`${API}/marketplace/proposals/pending-count`).then(r => setPendingProposalCount(r.data.count)).catch(() => {})
+  }
+  useEffect(() => {
+    loadPendingCount()
+    const poll = setInterval(loadPendingCount, 30000)
+    return () => clearInterval(poll)
+  }, [])
+
+  const loadProposalsInbox = () => {
+    setProposalsLoading(true)
+    axios.get(`${API}/marketplace/proposals/inbox`, { params: { status: proposalsStatus, sort: proposalsSort } })
+      .then(r => setProposalsInbox(r.data))
+      .catch(() => {})
+      .finally(() => setProposalsLoading(false))
+  }
+  useEffect(() => {
+    if (tab !== 'proposals') return
+    loadProposalsInbox()
+    const poll = setInterval(loadProposalsInbox, 15000)
+    return () => clearInterval(poll)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, proposalsSort, proposalsStatus])
+
+  const acceptInboxProposal = async (milestones: { title: string; description?: string; amount: number; due_date?: string }[] | null) => {
+    if (!acceptTarget) return
+    setAcceptBusy(true); setAcceptError('')
+    try {
+      await axios.post(`${API}/marketplace/proposals/${acceptTarget.id}/accept`, milestones ? { milestones } : {})
+      setAcceptTarget(null)
+      loadProposalsInbox()
+      loadPendingCount()
+    } catch (e: any) { setAcceptError(e.response?.data?.detail || 'Could not accept') }
+    setAcceptBusy(false)
+  }
+
+  const rejectInboxProposal = async (proposalId: number) => {
+    setProposalBusy(proposalId)
+    try {
+      await axios.post(`${API}/marketplace/proposals/${proposalId}/reject`)
+      loadProposalsInbox()
+      loadPendingCount()
+    } catch {}
+    setProposalBusy(null)
+  }
 
   const toggleSave = (projectId: number) => {
     setProjects(ps => ps.map(p => p.id === projectId ? { ...p, is_saved: !p.is_saved } : p))
@@ -311,15 +390,129 @@ export default function ProjectsPage() {
                   {t === 'open' ? 'Open board' : t === 'mine' ? 'My projects' : 'Saved'}
                 </button>
               ))}
+              {accountMode === 'client' && (
+                <button onClick={() => setTab('proposals')}
+                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', position: 'relative',
+                    border: '1px solid ' + (tab === 'proposals' ? 'var(--accent)' : 'var(--border)'),
+                    background: tab === 'proposals' ? 'var(--accent-dim)' : 'transparent',
+                    color: tab === 'proposals' ? 'var(--accent)' : 'var(--text-muted)' }}>
+                  <Inbox size={12} strokeWidth={2} /> Proposals
+                  {pendingProposalCount > 0 && (
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'white', background: 'var(--error)', borderRadius: '999px', padding: '1px 6px', lineHeight: 1.4 }}>{pendingProposalCount}</span>
+                  )}
+                </button>
+              )}
             </div>
-            <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
-              <Search size={14} strokeWidth={1.75} color="var(--text-dim)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects by keyword, skill, category…"
-                style={{ ...input, paddingLeft: '32px' }} />
-            </div>
+            {tab === 'proposals' ? (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <select value={proposalsStatus} onChange={e => setProposalsStatus(e.target.value as any)} style={{ ...input, width: 'auto' }}>
+                  <option value="pending">Pending</option>
+                  <option value="all">All</option>
+                </select>
+                <select value={proposalsSort} onChange={e => setProposalsSort(e.target.value as any)} style={{ ...input, width: 'auto' }}>
+                  <option value="newest">Newer</option>
+                  <option value="best_match">Best matches</option>
+                  <option value="price_asc">Lower price</option>
+                  <option value="price_desc">Higher price</option>
+                </select>
+              </div>
+            ) : (
+              <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+                <Search size={14} strokeWidth={1.75} color="var(--text-dim)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects by keyword, skill, category…"
+                  style={{ ...input, paddingLeft: '32px' }} />
+              </div>
+            )}
           </div>
 
-          {loading ? (
+          {tab === 'proposals' ? (
+            proposalsLoading ? (
+              <LoadingState fullPage />
+            ) : proposalsInbox.length === 0 ? (
+              <EmptyState icon={Inbox} title={proposalsStatus === 'pending' ? 'No pending proposals' : 'No proposals yet'}
+                description="Proposals sent to your projects will show up here." />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
+                {proposalsInbox.map(p => {
+                  const pm = PROPOSAL_STATUS_META[p.status] || PROPOSAL_STATUS_META.pending
+                  return (
+                    <div key={p.id} style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px' }}>
+                      <a href={`/projects/${p.project_id}`} style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-block', marginBottom: '10px' }}>{p.project_title} →</a>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0, flex: 1, display: 'flex', gap: '12px' }}>
+                          {(() => {
+                            const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+                            return (
+                              <a href={`/members/${p.freelancer_id}`} title="View profile">
+                                <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
+                                  {p.freelancer_avatar
+                                    ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>{initials}</span>}
+                                </div>
+                              </a>
+                            )
+                          })()}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                              <a href={`/members/${p.freelancer_id}`} style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                {p.freelancer_name || 'Freelancer'}{p.freelancer_verified && <VerifiedBadge size={12} />}
+                              </a>
+                              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--text-dim)', marginBottom: '6px' }}>
+                              {p.freelancer_review_count > 0 ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--warning)' }}><Star size={12} strokeWidth={1.75} fill="currentColor" />{p.freelancer_rating} <span style={{ color: 'var(--text-dim)' }}>({p.freelancer_review_count})</span></span>
+                              ) : (
+                                <span>No reviews yet</span>
+                              )}
+                              {p.freelancer_completed_contracts > 0 && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><CheckCircle2 size={12} strokeWidth={1.75} />{p.freelancer_completed_contracts} completed</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                              {p.proposed_amount?.toLocaleString('en-US')} {p.project_currency}
+                              {p.proposed_days ? ` · ${p.proposed_days} days` : ''}
+                            </div>
+                            {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
+                            {p.attachment_urls?.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: p.highlighted_portfolio?.length ? '8px' : 0 }}>
+                                {p.attachment_urls.map((url, i) => (
+                                  <a key={url} href={url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Attachment {p.attachment_urls.length > 1 ? i + 1 : ''}</a>
+                                ))}
+                              </div>
+                            )}
+                            {p.highlighted_portfolio?.length > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {p.highlighted_portfolio.map(h => (
+                                  <div key={h.id} title={h.title} style={{ width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-input)' }}>
+                                    {h.image
+                                      ? <img src={h.image} alt={h.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'var(--text-dim)', padding: '4px', textAlign: 'center' }}>{h.title}</div>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {p.status === 'pending' && (
+                          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                            <button onClick={() => { setAcceptTarget(p); setAcceptError('') }} disabled={proposalBusy === p.id}
+                              style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
+                              Accept
+                            </button>
+                            <button onClick={() => rejectInboxProposal(p.id)} disabled={proposalBusy === p.id}
+                              style={{ padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                              {proposalBusy === p.id ? '…' : 'Reject'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          ) : loading ? (
             <LoadingState fullPage />
           ) : projects.length === 0 ? (
             <EmptyState icon={tab === 'saved' ? Bookmark : Briefcase}
@@ -418,6 +611,18 @@ export default function ProjectsPage() {
       </div>
       <ProjectPreviewDrawer project={previewProject} onClose={() => setPreviewProject(null)}
         onToggleSave={id => { toggleSave(id); setPreviewProject(p => p ? { ...p, is_saved: !p.is_saved } : p) }} />
+      {acceptTarget && (
+        <AcceptProposalModal
+          freelancerName={acceptTarget.freelancer_name || 'This freelancer'}
+          proposedAmount={acceptTarget.proposed_amount || 0}
+          proposedDays={acceptTarget.proposed_days}
+          currency={acceptTarget.project_currency}
+          busy={acceptBusy}
+          error={acceptError}
+          onAccept={acceptInboxProposal}
+          onClose={() => setAcceptTarget(null)}
+        />
+      )}
     </div>
   )
 }

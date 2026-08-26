@@ -501,7 +501,8 @@ class Proposal(Base):
     cover_letter     = Column(Text)
     # Work samples sent with the bid — a portfolio link or an uploaded file.
     # A cover letter alone rarely wins the job in this trade.
-    attachment_url   = Column(String, nullable=True)
+    attachment_url   = Column(String, nullable=True)  # legacy single-attachment column, kept for old rows
+    attachment_urls  = Column(Text, nullable=True)  # JSON list of URLs, up to 10 — the current attachment field
     proposed_amount  = Column(Float)
     proposed_days    = Column(Integer)
     # Up to 4 portfolio pieces chosen at submission time, snapshotted as
@@ -930,6 +931,9 @@ def init_db():
                 proposal_cols = [c["name"] for c in _inspector.get_columns("mp_proposals")]
                 if "highlighted_portfolio" not in proposal_cols:
                     conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN highlighted_portfolio TEXT"))
+                    conn.commit()
+                if "attachment_urls" not in proposal_cols:
+                    conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN attachment_urls TEXT"))
                     conn.commit()
 
             if _inspector.has_table("waitlist"):

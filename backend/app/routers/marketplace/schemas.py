@@ -40,10 +40,21 @@ class ProposalCreate(BaseModel):
     cover_letter: Optional[str] = None
     proposed_amount: float
     proposed_days: Optional[int] = None
-    attachment_url: Optional[str] = None
+    # Up to 10 attachments, enforced again server-side.
+    attachment_urls: Optional[List[str]] = None
     # Up to 4 portfolio pieces the freelancer chose to show the client with
     # this specific proposal — enforced client-side, snapshotted here so the
     # proposal still reads the same even if the portfolio changes later.
+    highlighted_portfolio: Optional[List[PortfolioHighlight]] = None
+
+
+class ProposalUpdate(BaseModel):
+    """A freelancer revising a proposal that's still pending — same shape as
+    creation, everything optional so only what changed needs to be sent."""
+    cover_letter: Optional[str] = None
+    proposed_amount: Optional[float] = None
+    proposed_days: Optional[int] = None
+    attachment_urls: Optional[List[str]] = None
     highlighted_portfolio: Optional[List[PortfolioHighlight]] = None
 
 
