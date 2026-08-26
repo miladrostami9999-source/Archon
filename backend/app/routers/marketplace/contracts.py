@@ -3,9 +3,11 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from app.models.database import get_db, Contract, User
+from app.models.database import get_db, Contract, Milestone, User
 from app.routers.auth import require_marketplace_beta
-from app.services.marketplace_access import serialize_contract
+from app.services.marketplace_access import serialize_contract, milestone_to_dict
+from app.services import notifications as notif
+from .schemas import MilestoneInput
 
 router = APIRouter(tags=["marketplace-contracts"])
 
@@ -59,3 +61,49 @@ def get_contract(
     if current_user.id not in (contract.client_id, contract.freelancer_id) and current_user.role != "admin":
         raise HTTPException(status_code=404, detail="Contract not found")
     return serialize_contract(contract, current_user.id, db)
+
+
+@router.post("/contracts/{contract_id}/milestones")
+def propose_milestone(
+    contract_id: int,
+    data: MilestoneInput,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """Either party can propose adding scope mid-contract — a chat request
+    turned into something the other side has to explicitly agree to before
+    any money moves, rather than a line item one side can just impose."""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if current_user.id not in (contract.client_id, contract.freelancer_id):
+        raise HTTPException(status_code=403, detail="Only the two parties on this contract can propose milestones")
+    if contract.status != "active":
+        raise HTTPException(status_code=400, detail="This contract isn't active")
+    if (data.amount or 0) <= 0:
+        raise HTTPException(status_code=400, detail="The milestone needs an amount above zero")
+
+    max_order = db.query(Milestone).filter(Milestone.contract_id == contract.id).count()
+    milestone = Milestone(
+        contract_id=contract.id,
+        title=data.title,
+        description=data.description,
+        amount=data.amount,
+        due_date=data.due_date,
+        order_index=max_order,
+        status="proposed",
+        proposed_by=current_user.id,
+    )
+    db.add(milestone)
+    db.flush()
+
+    other_id = contract.freelancer_id if current_user.id == contract.client_id else contract.client_id
+    notif.notify(
+        db, other_id, notif.MILESTONE_PROPOSED,
+        "New milestone proposed",
+        f"{current_user.name} proposed “{milestone.title}” — {milestone.amount:,.0f} {contract.currency}.",
+        f"/contracts/{contract.id}",
+    )
+    db.commit()
+    db.refresh(milestone)
+    return milestone_to_dict(milestone)

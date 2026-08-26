@@ -41,6 +41,7 @@ const STATUS_META: Record<string, { color: string; bg: string; label: string }> 
 }
 
 const MILESTONE_META: Record<string, { color: string; bg: string; label: string }> = {
+  proposed:  { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Awaiting approval' },
   pending:   { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Not funded' },
   funded:    { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Funded' },
   delivered: { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Delivered' },

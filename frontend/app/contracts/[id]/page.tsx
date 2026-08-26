@@ -8,8 +8,9 @@ import ContractChat from '../../components/ContractChat'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import EmptyState from '../../components/EmptyState'
 import LoadingState from '../../components/LoadingState'
+import ProposeMilestoneModal from '../../components/ProposeMilestoneModal'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DollarSign, Paperclip, Check, Star, ArrowLeft, SearchX } from 'lucide-react'
+import { DollarSign, Paperclip, Check, Star, ArrowLeft, SearchX, Plus } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -21,6 +22,7 @@ interface Milestone {
   due_date: string | null
   order_index: number
   status: string
+  proposed_by: number | null
   deliverable_url: string | null
   delivered_at: string | null
   approved_at: string | null
@@ -68,6 +70,7 @@ const CONTRACT_STATUS_META: Record<string, { color: string; bg: string; label: s
 // signed off -> freelancer paid out.
 const MILESTONE_STEPS = ['pending', 'funded', 'delivered', 'approved', 'released']
 const MILESTONE_META: Record<string, { color: string; label: string }> = {
+  proposed:  { color: 'var(--warning)', label: 'Awaiting approval' },
   pending:   { color: 'var(--text-dim)', label: 'Not funded yet' },
   funded:    { color: 'var(--accent)', label: 'Funded' },
   delivered: { color: 'var(--warning)', label: 'Delivered' },
@@ -93,6 +96,7 @@ export default function ContractDetailPage() {
   const [busy, setBusy] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [showProposeMilestone, setShowProposeMilestone] = useState(false)
 
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewRating, setReviewRating] = useState(0)
@@ -232,6 +236,25 @@ export default function ContractDetailPage() {
     setBusy(null)
   }
 
+  const acceptMilestoneProposal = async (milestoneId: number) => {
+    setBusy(milestoneId); setMsg('')
+    try {
+      await axios.post(`${API}/marketplace/milestones/${milestoneId}/accept-proposal`)
+      setMsg('Milestone accepted')
+      load()
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not accept') }
+    setBusy(null)
+  }
+
+  const rejectMilestoneProposal = async (milestoneId: number) => {
+    setBusy(milestoneId); setMsg('')
+    try {
+      await axios.post(`${API}/marketplace/milestones/${milestoneId}/reject-proposal`)
+      load()
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not decline') }
+    setBusy(null)
+  }
+
   const input: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)',
     border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px',
@@ -272,9 +295,17 @@ export default function ContractDetailPage() {
 
               {msg && <p style={{ fontSize: '12.5px', color: /submitted|approved/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
 
-              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '10px' }}>
-                Milestones
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: 0 }}>
+                  Milestones
+                </p>
+                {contract.status === 'active' && contract.viewer_role !== 'observer' && (
+                  <button onClick={() => setShowProposeMilestone(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: 'var(--radius-md)', fontSize: '11.5px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
+                    <Plus size={12} strokeWidth={2} /> Propose milestone
+                  </button>
+                )}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
                 {contract.milestones.map(m => {
                   const mm = MILESTONE_META[m.status] || MILESTONE_META.pending
@@ -309,6 +340,21 @@ export default function ContractDetailPage() {
                       )}
 
                       {/* ── ACTIONS ── */}
+                      {m.status === 'proposed' && m.proposed_by !== currentUserId && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => acceptMilestoneProposal(m.id)} disabled={busy === m.id}
+                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
+                            {busy === m.id ? '…' : 'Accept'}
+                          </button>
+                          <button onClick={() => rejectMilestoneProposal(m.id)} disabled={busy === m.id}
+                            style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                      {m.status === 'proposed' && m.proposed_by === currentUserId && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>Waiting for the other party to respond.</p>
+                      )}
                       {isClient && m.status === 'pending' && !panelOpen && (
                         <button onClick={() => openFund(m)}
                           style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
@@ -534,13 +580,21 @@ export default function ContractDetailPage() {
 
               {currentUserId && contract.viewer_role !== 'observer' && (
                 <div style={{ paddingBottom: '32px' }}>
-                  <ContractChat contractId={contract.id} currentUserId={currentUserId} />
+                  <ContractChat contractId={contract.id} currentUserId={currentUserId} currency={contract.currency} />
                 </div>
               )}
             </>
           )}
         </div>
       </main>
+      {showProposeMilestone && contract && (
+        <ProposeMilestoneModal
+          contractId={contract.id}
+          currency={contract.currency}
+          onClose={() => setShowProposeMilestone(false)}
+          onProposed={load}
+        />
+      )}
     </div>
   )
 }

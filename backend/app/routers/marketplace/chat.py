@@ -187,6 +187,7 @@ def list_conversations(
             "contract_id": cv.contract_id,
             "project_title": project.title if project else "Direct message",
             "contract_status": contract.status if contract else None,
+            "contract_currency": contract.currency if contract else None,
             "other_party_id": other_id,
             "other_party_name": other.name if other else None,
             "other_party_verified": is_verified(db, other_id),

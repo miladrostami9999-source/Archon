@@ -35,7 +35,7 @@ def verified_user_ids(db: Session, user_ids: list) -> set:
     return {r[0] for r in rows}
 
 
-def _milestone_to_dict(m: Milestone) -> dict:
+def milestone_to_dict(m: Milestone) -> dict:
     return {
         "id": m.id,
         "title": m.title,
@@ -44,10 +44,15 @@ def _milestone_to_dict(m: Milestone) -> dict:
         "due_date": m.due_date.isoformat() if m.due_date else None,
         "order_index": m.order_index,
         "status": m.status,
+        "proposed_by": m.proposed_by,
         "deliverable_url": m.deliverable_url,
         "delivered_at": m.delivered_at.isoformat() if m.delivered_at else None,
         "approved_at": m.approved_at.isoformat() if m.approved_at else None,
     }
+
+
+# Kept as an alias — several modules already imported the old private name.
+_milestone_to_dict = milestone_to_dict
 
 
 def get_user_rating(db: Session, user_id: int) -> dict:

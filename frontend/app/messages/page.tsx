@@ -19,6 +19,7 @@ interface Conversation {
   contract_id: number | null
   project_title: string
   contract_status: string
+  contract_currency: string | null
   other_party_id: number
   other_party_name: string | null
   other_party_verified: boolean
@@ -190,7 +191,8 @@ export default function MessagesPage() {
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Keyed so switching threads remounts with fresh state instead of
             briefly showing the previous conversation's messages. */}
-        <ContractChat key={active.conversation_id} conversationId={active.conversation_id} currentUserId={currentUserId} fill />
+        <ContractChat key={active.conversation_id} conversationId={active.conversation_id} currentUserId={currentUserId} fill
+          milestoneContractId={active.contract_id} currency={active.contract_currency || 'USD'} />
       </div>
     </div>
   ) : (

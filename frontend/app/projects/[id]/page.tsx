@@ -7,6 +7,7 @@ import MarketplaceBeta from '../../components/MarketplaceBeta'
 import VerifiedBadge from '../../components/VerifiedBadge'
 import EmptyState from '../../components/EmptyState'
 import LoadingState from '../../components/LoadingState'
+import AcceptProposalModal from '../../components/AcceptProposalModal'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft, SearchX, Inbox, Ban, X, Users, FileText } from 'lucide-react'
 
@@ -200,14 +201,18 @@ export default function ProjectDetailPage() {
     setBusy(null)
   }
 
-  const acceptProposal = async (proposalId: number) => {
-    if (!window.confirm('Accept this proposal? A contract will be created and every other proposal on this project will be rejected.')) return
-    setBusy(proposalId); setMsg('')
+  const [acceptTarget, setAcceptTarget] = useState<Proposal | null>(null)
+  const [acceptError, setAcceptError] = useState('')
+
+  const acceptProposal = async (milestones: { title: string; description?: string; amount: number; due_date?: string }[] | null) => {
+    if (!acceptTarget) return
+    setBusy(acceptTarget.id); setAcceptError('')
     try {
-      await axios.post(`${API}/marketplace/proposals/${proposalId}/accept`, {})
+      await axios.post(`${API}/marketplace/proposals/${acceptTarget.id}/accept`, milestones ? { milestones } : {})
+      setAcceptTarget(null)
       setMsg('Proposal accepted — contract created')
       load()
-    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not accept') }
+    } catch (e: any) { setAcceptError(e.response?.data?.detail || 'Could not accept') }
     setBusy(null)
   }
 
@@ -460,7 +465,7 @@ export default function ProjectDetailPage() {
                               </div>
                               {p.status === 'pending' && (
                                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                                  <button onClick={() => acceptProposal(p.id)} disabled={busy === p.id}
+                                  <button onClick={() => { setAcceptTarget(p); setAcceptError('') }} disabled={busy === p.id}
                                     style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
                                     {busy === p.id ? '…' : 'Accept'}
                                   </button>
@@ -538,6 +543,18 @@ export default function ProjectDetailPage() {
           )}
         </div>
       </main>
+      {acceptTarget && (
+        <AcceptProposalModal
+          freelancerName={acceptTarget.freelancer_name || 'This freelancer'}
+          proposedAmount={acceptTarget.proposed_amount || 0}
+          proposedDays={acceptTarget.proposed_days}
+          currency={project?.currency || 'USD'}
+          busy={busy === acceptTarget.id}
+          error={acceptError}
+          onAccept={acceptProposal}
+          onClose={() => setAcceptTarget(null)}
+        />
+      )}
     </div>
   )
 }

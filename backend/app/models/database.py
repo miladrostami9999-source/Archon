@@ -514,10 +514,15 @@ class Milestone(Base):
     amount         = Column(Float, nullable=False)
     due_date       = Column(DateTime, nullable=True)
     order_index    = Column(Integer, default=0)
-    # pending (not yet funded) | funded (client paid, admin approved receipt) |
+    # proposed (added mid-contract, awaiting the other party's say-so) |
+    # pending (agreed, not yet funded) | funded (client paid, admin approved receipt) |
     # delivered (freelancer submitted work) | approved (client accepted) |
     # released (admin paid the freelancer out) | disputed
     status         = Column(String, default="pending", index=True)
+    # Who added this milestone after the contract was already running — null
+    # for the milestones agreed at contract creation, since both sides signed
+    # off on those together by the act of accepting the proposal.
+    proposed_by    = Column(Integer, ForeignKey("users.id"), nullable=True)
     deliverable_url = Column(String, nullable=True)
     delivered_at   = Column(DateTime, nullable=True)
     approved_at    = Column(DateTime, nullable=True)
@@ -891,6 +896,12 @@ def init_db():
                     conn.commit()
                 if "experience_level" not in project_cols:
                     conn.execute(_text("ALTER TABLE mp_projects ADD COLUMN experience_level VARCHAR"))
+                    conn.commit()
+
+            if _inspector.has_table("mp_milestones"):
+                milestone_cols = [c["name"] for c in _inspector.get_columns("mp_milestones")]
+                if "proposed_by" not in milestone_cols:
+                    conn.execute(_text("ALTER TABLE mp_milestones ADD COLUMN proposed_by INTEGER"))
                     conn.commit()
 
             if _inspector.has_table("waitlist"):

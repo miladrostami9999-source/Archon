@@ -20,6 +20,64 @@ def _get_milestone_and_contract(db: Session, milestone_id: int):
     return m, c
 
 
+@router.post("/{milestone_id}/accept-proposal")
+def accept_milestone_proposal(
+    milestone_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """The other party signing off on a mid-contract milestone someone
+    proposed — folds its amount into the contract total (re-checked against
+    the beta cap, same as at contract creation) and makes it fundable."""
+    from app.services.marketplace_limits import check_contract_amount
+
+    m, c = _get_milestone_and_contract(db, milestone_id)
+    if current_user.id not in (c.client_id, c.freelancer_id):
+        raise HTTPException(status_code=403, detail="Only the two parties on this contract can decide on it")
+    if m.status != "proposed":
+        raise HTTPException(status_code=400, detail="This milestone isn't awaiting a decision")
+    if current_user.id == m.proposed_by:
+        raise HTTPException(status_code=400, detail="You can't accept your own proposal — the other party has to")
+
+    new_total = (c.total_amount or 0) + m.amount
+    check_contract_amount(db, new_total, c.currency)
+    c.total_amount = new_total
+    m.status = "pending"
+    notif.notify(
+        db, m.proposed_by, notif.MILESTONE_PROPOSAL_DECIDED,
+        "Milestone accepted",
+        f"“{m.title}” was accepted and added to the contract.",
+        f"/contracts/{c.id}",
+    )
+    db.commit()
+    return {"message": "Milestone accepted"}
+
+
+@router.post("/{milestone_id}/reject-proposal")
+def reject_milestone_proposal(
+    milestone_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    m, c = _get_milestone_and_contract(db, milestone_id)
+    if current_user.id not in (c.client_id, c.freelancer_id):
+        raise HTTPException(status_code=403, detail="Only the two parties on this contract can decide on it")
+    if m.status != "proposed":
+        raise HTTPException(status_code=400, detail="This milestone isn't awaiting a decision")
+    if current_user.id == m.proposed_by:
+        raise HTTPException(status_code=400, detail="You can't decide on your own proposal — the other party has to")
+
+    notif.notify(
+        db, m.proposed_by, notif.MILESTONE_PROPOSAL_DECIDED,
+        "Milestone declined",
+        f"“{m.title}” was declined.",
+        f"/contracts/{c.id}",
+    )
+    db.delete(m)
+    db.commit()
+    return {"message": "Milestone proposal declined"}
+
+
 @router.post("/{milestone_id}/fund")
 def fund_milestone(
     milestone_id: int,
