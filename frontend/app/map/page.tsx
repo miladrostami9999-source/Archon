@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { FeatureLocked } from '../components/AccessLock'
 import { Plus, Minus, Home, Map as MapIcon, X, Flame, CloudSun, Snowflake } from 'lucide-react'
 import {
@@ -96,6 +97,7 @@ interface CountryData {
 }
 
 export default function MapPage() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
   const [mapData, setMapData] = useState<CountryData[]>([])
   const [loading, setLoading] = useState(true)

@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -20,6 +21,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function AddCompany() {
+  useRequireFreelancerMode()
   const router = useRouter()
   const isMobile = useIsMobile()
 

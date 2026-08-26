@@ -4,7 +4,7 @@ import { useState, useEffect, type ReactElement } from 'react'
 import {
   Home, CheckSquare, BarChart3, Map, FileText, Briefcase, FileCheck2,
   MessageCircle, Rss, Search, ShieldCheck, Users, ArrowUpCircle, CreditCard, UserPlus,
-  Clock, IdCard,
+  Clock, IdCard, LayoutDashboard, Wallet, Settings, Repeat,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 
@@ -38,6 +38,10 @@ const ICONS: Record<string, ReactElement> = {
   upgrade:   <ArrowUpCircle size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
   payments:  <CreditCard size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
   waitlist:  <UserPlus size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  overview:  <LayoutDashboard size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  billing:   <Wallet size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  verify:    <IdCard size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
+  settings:  <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} />,
 }
 
 // Hamburger icon
@@ -76,6 +80,8 @@ export default function Sidebar() {
   const [pendingProposals, setPendingProposals] = useState(0)
   const [verifyStatus, setVerifyStatus] = useState<string | null>(null)
   const [pendingVerifications, setPendingVerifications] = useState(0)
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client'>('freelancer')
+  const [switchingMode, setSwitchingMode] = useState(false)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -127,9 +133,28 @@ export default function Sidebar() {
         const enabled = !!d.marketplace_beta_enabled
         setMarketplaceEnabled(enabled)
         localStorage.setItem('archon-marketplace-enabled', String(enabled))
+        setAccountMode(d.account_mode === 'client' ? 'client' : 'freelancer')
       })
       .catch(() => {})
   }, [user])
+
+  const switchMode = async () => {
+    const next = accountMode === 'client' ? 'freelancer' : 'client'
+    setSwitchingMode(true)
+    try {
+      const token = localStorage.getItem('archon-token') || ''
+      await fetch(`${API}/auth/me/account-mode`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_mode: next }),
+      })
+      const stored = localStorage.getItem('archon-user')
+      if (stored) { try { const u = JSON.parse(stored); u.account_mode = next; localStorage.setItem('archon-user', JSON.stringify(u)) } catch {} }
+      window.location.href = next === 'client' ? '/client' : '/dashboard'
+    } catch {
+      setSwitchingMode(false)
+    }
+  }
 
   // Marketplace notification badges — unread messages, and proposals waiting
   // on a decision. Polled on the same cadence as the admin badges.
@@ -202,7 +227,22 @@ export default function Sidebar() {
   const sbg = 'var(--bg-sidebar)'
 
   const isAdmin = user?.role === 'admin'
-  const workspaceItems = [
+  // Client mode is a different job entirely — hiring, not lead-gen — so it
+  // gets its own short nav instead of the CRM tools, matching how Upwork
+  // gives a hiring account a completely different dashboard from a
+  // freelancer one. Admins keep the full freelancer nav regardless of mode
+  // (their own PATCH .../account-mode is just a personal preference, never
+  // a restriction on what they can reach).
+  const clientItems = [
+    { label: 'Overview',  iconKey: 'overview',  href: '/client' },
+    { label: 'Projects',  iconKey: 'projects',  href: '/projects', badge: pendingProposals },
+    { label: 'Contracts', iconKey: 'contracts', href: '/contracts' },
+    { label: 'Messages',  iconKey: 'messages',  href: '/messages', badge: unreadMessages },
+    { label: 'Billing',   iconKey: 'billing',   href: '/client/billing' },
+    { label: 'Identity Verification', iconKey: 'verify', href: '/verification' },
+    { label: 'Account Settings', iconKey: 'settings', href: '/profile/security' },
+  ]
+  const workspaceItems = (accountMode === 'client' && !isAdmin) ? clientItems : [
     { label: 'Home',       iconKey: 'home',      href: '/dashboard' },
     { label: 'Tasks',      iconKey: 'tasks',     href: '/tasks' },
     { label: 'Analytics',  iconKey: 'analytics', href: '/analytics' },
@@ -296,7 +336,9 @@ export default function Sidebar() {
 
       {/* NAV */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>Workspace</p>
+        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>
+          {accountMode === 'client' && !isAdmin ? 'Client' : 'Workspace'}
+        </p>
         {workspaceItems.map(item => <NavItem key={item.href} item={item} />)}
 
         {adminItems.length > 0 && (
@@ -331,10 +373,20 @@ export default function Sidebar() {
                 {verifyStatus === 'pending' ? 'Verification in review' : 'Verify your identity'}
               </span>
               <span style={{ display: 'block', fontSize: '10.5px', color: td, lineHeight: 1.4, marginTop: '1px' }}>
-                {verifyStatus === 'pending' ? "We'll let you know shortly" : 'Needed before you can be paid'}
+                {verifyStatus === 'pending' ? "We'll let you know shortly" : (accountMode === 'client' && !isAdmin) ? 'Builds trust with freelancers' : 'Needed before you can be paid'}
               </span>
             </span>
           </a>
+        )}
+
+        {/* Switch Account — the whole point of the client/freelancer split:
+            one click to change which dashboard leads, without logging out. */}
+        {user && (
+          <button onClick={switchMode} disabled={switchingMode}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '8px 10px', borderRadius: 'var(--radius-md)', marginBottom: '10px', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, opacity: switchingMode ? 0.6 : 1 }}>
+            <Repeat size={13} strokeWidth={1.75} />
+            {switchingMode ? 'Switching…' : accountMode === 'client' ? 'Switch to Freelancer' : 'Switch to Client'}
+          </button>
         )}
 
         {/* Quiet utility row — plain text/icon, background only on hover,

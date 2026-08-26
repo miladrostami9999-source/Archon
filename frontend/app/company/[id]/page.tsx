@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../../hooks/useRequireMode'
 import {
   LayoutGrid, StickyNote, History as HistoryIcon, Mail, Pencil,
   Flame, CloudSun, Snowflake, Trash2, Send, Paperclip, FileText, X, CheckCircle2, AlertTriangle,
@@ -63,6 +64,7 @@ const card: React.CSSProperties = {
 }
 
 export default function CompanyDetail() {
+  useRequireFreelancerMode()
   const { id } = useParams()
   const isMobile = useIsMobile()
 

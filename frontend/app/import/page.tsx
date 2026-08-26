@@ -3,11 +3,13 @@ import { useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { ArrowLeft, Download, FileText, CheckCircle2, SkipForward, XCircle, Upload, Loader2, Lightbulb } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export default function ImportPage() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)

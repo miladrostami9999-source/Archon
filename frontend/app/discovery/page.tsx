@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { Target, Flame, Building2, Trophy, Crosshair, Search, Microscope, Check, CircleCheck, Paperclip, DollarSign, ArrowLeft } from 'lucide-react'
 import InlineStatus from '../components/InlineStatus'
 
@@ -178,6 +179,7 @@ const PRESETS: { label: string; icon: React.ComponentType<{ size?: number; strok
 ]
 
 export default function LeadHunter() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
 
   const [catalog, setCatalog] = useState<Catalog | null>(null)

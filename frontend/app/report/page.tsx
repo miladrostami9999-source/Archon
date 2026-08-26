@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { BarChart3, RefreshCw, Target, Clock, Mail, Sparkles, TrendingUp, Lock, Copy, CheckCircle2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -25,6 +26,7 @@ const SECTIONS = [
 ] as const
 
 export default function WeeklyReport() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
   const [lang, setLang] = useState<'en' | 'fa'>('en')
   const [report, setReport] = useState<Report | null>(null)

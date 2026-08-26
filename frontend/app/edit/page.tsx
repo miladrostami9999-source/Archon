@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { ArrowLeft } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -267,6 +268,7 @@ function EditForm() {
 }
 
 export default function EditCompany() {
+  useRequireFreelancerMode()
   return (
     <Suspense fallback={
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)' }}>

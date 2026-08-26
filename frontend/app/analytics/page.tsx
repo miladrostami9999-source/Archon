@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import ReplyTrendChart from '../components/ReplyTrendChart'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import {
   Building2, Zap, MessageCircle, Trophy, Mail as MailIcon, Target, Hourglass, Handshake,
   Flame, CloudSun, Snowflake, Gauge, CheckSquare, MessageSquareText,
@@ -53,6 +54,7 @@ const SECTIONS = [
 ]
 
 export default function Analytics() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
 
   const [data, setData] = useState<Analytics | null>(null)

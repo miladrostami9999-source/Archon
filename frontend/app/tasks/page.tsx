@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import { Mail, Eye, RefreshCw, Search, Pencil, Star, Trash2, Check, X, Sparkles, PartyPopper, Sun } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -23,6 +24,7 @@ interface Task {
 }
 
 export default function TasksPage() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
 
   const [tasks, setTasks] = useState<Task[]>([])

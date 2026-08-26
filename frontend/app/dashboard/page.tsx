@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import UsageWidget from '../components/UsageWidget'
+import { useRequireFreelancerMode } from '../hooks/useRequireMode'
 import {
   Search, SlidersHorizontal, Sparkles, List as ListIcon, LayoutGrid, ArrowUpDown, Bell, Plus, X, ArrowRight,
   Flame, CloudSun, Snowflake, Lock, Star, Trophy, ArrowDownAZ, Calendar, Globe2, CheckCircle2, Circle,
@@ -244,6 +245,7 @@ function KanbanColumn({ status, companies, onFavorite, onClick, isOver }: {
 
 // ─── MAIN DASHBOARD ────────────────────────────────────────────────────────
 export default function Dashboard() {
+  useRequireFreelancerMode()
   const isMobile = useIsMobile()
   const { access } = useAccess()
   const [unlocking, setUnlocking] = useState<number | null>(null)

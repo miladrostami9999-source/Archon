@@ -39,15 +39,19 @@ function Field({ name, field, placeholder, wide, v, set, locked, input, label }:
   )
 }
 
-const STATUS_META: Record<string, { color: string; bg: string; label: string; blurb: string }> = {
+const STATUS_META: Record<string, { color: string; bg: string; label: string; blurb: string; blurbClient: string }> = {
   unverified: { color: 'var(--text-muted)', bg: 'var(--bg-input)', label: 'Not verified',
-                blurb: 'Fill these in and submit them — we check them once, then payouts can go out without further back-and-forth.' },
+                blurb: 'Fill these in and submit them — we check them once, then payouts can go out without further back-and-forth.',
+                blurbClient: 'Fill these in and submit them — we check them once, and the badge shows on your job posts from then on.' },
   pending:    { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'In review',
-                blurb: "We're checking your details. You'll get a notification either way." },
+                blurb: "We're checking your details. You'll get a notification either way.",
+                blurbClient: "We're checking your details. You'll get a notification either way." },
   verified:   { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Verified',
-                blurb: "You're all set — payouts can be sent to the account below." },
+                blurb: "You're all set — payouts can be sent to the account below.",
+                blurbClient: "You're all set — freelancers see you as a verified client." },
   rejected:   { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Needs a change',
-                blurb: 'Something needs correcting before we can verify you.' },
+                blurb: 'Something needs correcting before we can verify you.',
+                blurbClient: 'Something needs correcting before we can verify you.' },
 }
 
 export default function VerificationPage() {
@@ -57,12 +61,16 @@ export default function VerificationPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [msg, setMsg] = useState('')
+  // A client sends money, never receives it — the payout fields below don't
+  // apply to them, so this page becomes a pure identity check in that mode.
+  const [isClientMode, setIsClientMode] = useState(false)
 
   const load = () => {
     axios.get(`${API}/marketplace/verification/me`)
       .then(r => setV(r.data))
       .catch(() => { window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
+    axios.get(`${API}/auth/me`).then(r => setIsClientMode(r.data.account_mode === 'client')).catch(() => {})
   }
   useEffect(() => { load() }, [])
 
@@ -123,12 +131,13 @@ export default function VerificationPage() {
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Identity &amp; payout details</h1>
+            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{isClientMode ? 'Identity verification' : 'Identity & payout details'}</h1>
             <BetaTag />
           </div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px', lineHeight: 1.6 }}>
-            Money leaves Archon by hand, so a payout needs a real name, a real account, and a way to reach you if a
-            transfer bounces. Only you and an admin can ever see this — none of it appears on your public profile.
+            {isClientMode
+              ? 'Verified clients build trust with freelancers before a contract starts. Only you and an admin can ever see this — none of it appears on your public profile.'
+              : 'Money leaves Archon by hand, so a payout needs a real name, a real account, and a way to reach you if a transfer bounces. Only you and an admin can ever see this — none of it appears on your public profile.'}
           </p>
 
           {loading || !v || !sm ? (
@@ -144,7 +153,7 @@ export default function VerificationPage() {
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{sm.blurb}</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{isClientMode ? sm.blurbClient : sm.blurb}</p>
                 {v.admin_note && (
                   <p style={{ fontSize: '12px', color: '#F87171', margin: '6px 0 0' }}>“{v.admin_note}”</p>
                 )}
@@ -180,18 +189,20 @@ export default function VerificationPage() {
                 </div>
               </div>
 
-              <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '16px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '4px' }}>Where to pay you</p>
-                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
-                  The account must be in your own name — we can&apos;t send a payout to a third party.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                  <Field name="Bank" field="bank_name" placeholder="e.g. Mellat" v={v} set={set} locked={locked} input={input} label={label} />
-                  <Field name="Account holder" field="account_holder" v={v} set={set} locked={locked} input={input} label={label} />
-                  <Field name="Card number (شماره کارت)" field="card_number" placeholder="6104…" v={v} set={set} locked={locked} input={input} label={label} />
-                  <Field name="IBAN / Sheba (شماره شبا)" field="iban" placeholder="IR…" v={v} set={set} locked={locked} input={input} label={label} />
+              {!isClientMode && (
+                <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '16px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '4px' }}>Where to pay you</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 14px' }}>
+                    The account must be in your own name — we can&apos;t send a payout to a third party.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                    <Field name="Bank" field="bank_name" placeholder="e.g. Mellat" v={v} set={set} locked={locked} input={input} label={label} />
+                    <Field name="Account holder" field="account_holder" v={v} set={set} locked={locked} input={input} label={label} />
+                    <Field name="Card number (شماره کارت)" field="card_number" placeholder="6104…" v={v} set={set} locked={locked} input={input} label={label} />
+                    <Field name="IBAN / Sheba (شماره شبا)" field="iban" placeholder="IR…" v={v} set={set} locked={locked} input={input} label={label} />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {!locked && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingBottom: '32px' }}>
