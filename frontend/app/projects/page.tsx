@@ -6,6 +6,7 @@ import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
+import ProjectPreviewDrawer from '../components/ProjectPreviewDrawer'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react'
 
@@ -68,6 +69,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showPost, setShowPost] = useState(false)
+  const [previewProject, setPreviewProject] = useState<Project | null>(null)
   const [posting, setPosting] = useState(false)
   const [postMsg, setPostMsg] = useState('')
   const [form, setForm] = useState({
@@ -261,6 +263,7 @@ export default function ProjectsPage() {
                 const proposalMeta = p.my_proposal_status ? PROPOSAL_STATUS_META[p.my_proposal_status] : null
                 return (
                   <a key={p.id} href={`/projects/${p.id}`}
+                    onClick={e => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); setPreviewProject(p) } }}
                     style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
@@ -314,6 +317,7 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+      <ProjectPreviewDrawer project={previewProject} onClose={() => setPreviewProject(null)} />
     </div>
   )
 }
