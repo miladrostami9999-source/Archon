@@ -6,8 +6,8 @@ import ReplyTrendChart from '../components/ReplyTrendChart'
 import { useIsMobile } from '../hooks/useIsMobile'
 import {
   Building2, Zap, MessageCircle, Trophy, Mail as MailIcon, Target, Hourglass, Handshake,
-  Flame, CloudSun, Snowflake, Gauge, Compass, CheckSquare, MessageSquareText,
-  LayoutDashboard, TrendingUp, GitBranch, Search, Activity, Globe2,
+  Flame, CloudSun, Snowflake, Gauge, CheckSquare, MessageSquareText,
+  LayoutDashboard, TrendingUp, GitBranch, Activity, Globe2,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -26,23 +26,6 @@ interface Analytics {
   pipeline_velocity_days: number | null
   task_completion: { done: number; total: number }
   tone_performance: { tone: string; sent: number; replied: number; reply_rate: number }[]
-}
-
-interface DiscoveryHuntRow {
-  name: string; runs: number; found_total: number; added_total: number
-  conversion_pct: number; last_run_at: string | null
-}
-
-const STATUS_META: Record<string, { color: string; label: string }> = {
-  new:      { color: '#3D4FE0', label: 'New' },
-  reviewed: { color: '#8B5CF6', label: 'Reviewed' },
-  ready:    { color: '#F59E0B', label: 'Ready' },
-  sent:     { color: '#F97316', label: 'Sent' },
-  waiting:  { color: '#64748B', label: 'Waiting' },
-  replied:  { color: '#34D399', label: 'Replied' },
-  meeting:  { color: '#14B8A6', label: 'Meeting' },
-  client:   { color: '#10B981', label: 'Client' },
-  archive:  { color: '#EF4444', label: 'Archive' },
 }
 
 interface EmailAnalytics {
@@ -65,7 +48,6 @@ const SECTIONS = [
   { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
   { id: 'reply-trend', label: 'Reply Trend', Icon: TrendingUp },
   { id: 'pipeline', label: 'Pipeline', Icon: GitBranch },
-  { id: 'leadgen', label: 'Lead Generation', Icon: Search },
   { id: 'activity', label: 'My Activity', Icon: Activity },
   { id: 'catalog', label: 'Catalog', Icon: Globe2 },
 ]
@@ -75,7 +57,6 @@ export default function Analytics() {
 
   const [data, setData] = useState<Analytics | null>(null)
   const [email, setEmail] = useState<EmailAnalytics | null>(null)
-  const [hunts, setHunts] = useState<DiscoveryHuntRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -83,7 +64,6 @@ export default function Analytics() {
       .then(res => { setData(res.data); setLoading(false) })
       .catch(() => setLoading(false))
     axios.get(`${API}/auth/email-analytics`, { headers: headers() }).then(r => setEmail(r.data)).catch(() => {})
-    axios.get(`${API}/companies/analytics/discovery-roi`, { headers: headers() }).then(r => setHunts(r.data || [])).catch(() => {})
   }, [])
 
   if (loading) return (
@@ -164,6 +144,26 @@ export default function Analytics() {
               ))}
             </div>
 
+            {/* Quick Insights — second row, same prominence as the KPI cards above */}
+            <div style={card}>
+              <h2 style={sectionHeader}>Quick Insights</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px' }}>
+                {[
+                  { icon: MailIcon, label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
+                  { icon: Target, label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
+                  { icon: Hourglass, label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
+                  { icon: Handshake, label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
+                ].map(item => (
+                  <div key={item.label} style={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '12px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 4px', display: 'flex', justifyContent: 'center' }}><item.icon size={18} strokeWidth={1.5} color="var(--text-muted)" /></p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{item.value}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{item.label}</p>
+                    <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Heat + Score distribution — where the pipeline's quality actually sits */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <div style={card}>
@@ -220,60 +220,17 @@ export default function Analytics() {
           </section>
 
           {/* ══════ PIPELINE ══════ */}
-          <section id="pipeline" style={{ scrollMarginTop: '90px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <section id="pipeline" style={{ scrollMarginTop: '90px' }}>
             <div style={card}>
-              <h2 style={sectionHeader}>Pipeline Funnel</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {Object.entries(data.status_counts)
-                  .filter(([, v]) => v > 0)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([status, count]) => {
-                    const meta = STATUS_META[status]
-                    const pct = Math.round((count / data.total_companies) * 100)
-                    return (
-                      <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '96px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: meta?.color || '#64748B', flexShrink: 0 }} />
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{meta?.label || status}</span>
-                        </div>
-                        <div style={{ flex: 1, background: 'var(--border)', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', borderRadius: '999px', background: meta?.color || '#64748B', width: `${pct}%`, opacity: 0.8, transition: 'width 0.5s' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '56px', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>{count}</span>
-                          <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{pct}%</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-              {data.pipeline_velocity_days !== null && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                  <Gauge size={14} strokeWidth={1.75} color="var(--text-muted)" />
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pipeline velocity — average time a moved company has spent in its current stage:</span>
-                  <span className="mono" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{data.pipeline_velocity_days}d</span>
+              <h2 style={sectionHeader}>Pipeline Velocity</h2>
+              {data.pipeline_velocity_days !== null ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Gauge size={20} strokeWidth={1.5} color="var(--text-muted)" />
+                  <span className="mono" style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>{data.pipeline_velocity_days}d</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>average time a moved company has spent in its current stage</span>
                 </div>
-              )}
-            </div>
-          </section>
-
-          {/* ══════ LEAD GENERATION ══════ */}
-          <section id="leadgen" style={{ scrollMarginTop: '90px' }}>
-            <div style={card}>
-              <h2 style={{ ...sectionHeader, display: 'flex', alignItems: 'center', gap: '7px' }}><Compass size={13} strokeWidth={1.75} /> Lead Hunter ROI</h2>
-              {hunts.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>No saved hunts yet — run one from Lead Hunter to see conversion here.</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {hunts.map(h => (
-                    <div key={h.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</span>
-                      <span className="mono" style={{ fontSize: '11px', color: 'var(--text-dim)', flexShrink: 0 }}>{h.runs} run{h.runs === 1 ? '' : 's'}</span>
-                      <span className="mono" style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>{h.found_total} found → {h.added_total} added</span>
-                      <span className="mono" style={{ fontSize: '12px', fontWeight: 700, color: h.conversion_pct >= 20 ? 'var(--success)' : 'var(--text-muted)', width: '48px', textAlign: 'right', flexShrink: 0 }}>{h.conversion_pct}%</span>
-                    </div>
-                  ))}
-                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>No moved companies yet.</p>
               )}
             </div>
           </section>
@@ -335,25 +292,6 @@ export default function Analytics() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-
-            <div style={card}>
-              <h2 style={sectionHeader}>Quick Insights</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '10px' }}>
-                {[
-                  { icon: MailIcon, label: 'Outreach Rate', value: data.total_companies > 0 ? `${Math.round(((data.emails.sent || 0) / data.total_companies) * 100)}%` : '0%', desc: 'companies emailed' },
-                  { icon: Target, label: 'Hot Leads', value: data.status_counts.ready || 0, desc: 'ready to contact' },
-                  { icon: Hourglass, label: 'Awaiting Reply', value: data.status_counts.waiting || 0, desc: 'need follow-up' },
-                  { icon: Handshake, label: 'In Meeting', value: data.status_counts.meeting || 0, desc: 'active discussions' },
-                ].map(item => (
-                  <div key={item.label} style={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '12px', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 4px', display: 'flex', justifyContent: 'center' }}><item.icon size={18} strokeWidth={1.5} color="var(--text-muted)" /></p>
-                    <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{item.value}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{item.label}</p>
-                    <p style={{ fontSize: '9px', color: 'var(--text-dim)', margin: '2px 0 0' }}>{item.desc}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </section>

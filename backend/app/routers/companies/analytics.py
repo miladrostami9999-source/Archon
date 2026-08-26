@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.models.database import get_db, Company, Campaign, UserCompanyState, User, DailyTask, DiscoveryHunt
+from app.models.database import get_db, Company, Campaign, UserCompanyState, User, DailyTask
 from app.routers.auth import get_current_user
 
 router = APIRouter()
@@ -52,16 +52,21 @@ def get_analytics(current_user: User = Depends(get_current_user), db: Session = 
     replied_emails = db.query(Campaign).filter(Campaign.user_id == uid, Campaign.status == "replied").count()
 
     # ── Heat distribution — hot/warm/cold across this user's own pipeline ──
-    heat_rows = dict(
-        db.query(UserCompanyState.heat_level, func.count(UserCompanyState.id))
-        .filter(UserCompanyState.user_id == uid)
-        .group_by(UserCompanyState.heat_level).all()
-    )
-    heat_counts = {
-        "hot": int(heat_rows.get("hot", 0)),
-        "warm": int(heat_rows.get("warm", 0)),
-        "cold": int(heat_rows.get("cold", 0)),
-    }
+    # Derived live with the same heat_for() the rest of the app uses (see
+    # company_to_dict), not read straight off the stored column: a stored
+    # non-cold value only gets overwritten by the "Recalculate Heat" admin
+    # tool, so reading it directly here showed numbers that silently drifted
+    # out of sync with what recalculating (or any other page) actually shows.
+    from app.services.scoring import heat_for, parse_signals
+
+    heat_counts = {"hot": 0, "warm": 0, "cold": 0}
+    pipeline_rows = db.query(
+        UserCompanyState.status, UserCompanyState.updated_at,
+        Company.opportunity_score, Company.signals,
+    ).join(Company, Company.id == UserCompanyState.company_id).filter(UserCompanyState.user_id == uid).all()
+    for status, updated_at, score, signals in pipeline_rows:
+        live_heat = heat_for(status, score, parse_signals(signals), updated_at)
+        heat_counts[live_heat] = heat_counts.get(live_heat, 0) + 1
 
     # ── Score distribution — where this user's touched companies land ──
     touched_ids = [r[0] for r in db.query(UserCompanyState.company_id).filter(UserCompanyState.user_id == uid).all()]
@@ -204,20 +209,3 @@ def get_reply_trend(interval: str = "day", current_user: User = Depends(get_curr
                 m = 1; y += 1
 
     return {"interval": interval, "points": points}
-
-
-@router.get("/analytics/discovery-roi")
-def get_discovery_roi(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Lead-hunting ROI per saved hunt — all fields are already aggregated on
-    the DiscoveryHunt row itself, so this is a plain read, no new query cost."""
-    hunts = db.query(DiscoveryHunt).filter(DiscoveryHunt.user_id == current_user.id).order_by(
-        DiscoveryHunt.last_run_at.desc().nullslast()
-    ).all()
-    return [{
-        "name": h.name,
-        "runs": h.runs,
-        "found_total": h.found_total,
-        "added_total": h.added_total,
-        "conversion_pct": round((h.added_total / h.found_total) * 100) if h.found_total else 0,
-        "last_run_at": h.last_run_at.isoformat() if h.last_run_at else None,
-    } for h in hunts]
