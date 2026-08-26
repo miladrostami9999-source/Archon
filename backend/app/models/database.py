@@ -509,6 +509,10 @@ class Proposal(Base):
     # [{"id","title","image"}] — shown to the client alongside the proposal.
     highlighted_portfolio = Column(Text, nullable=True)
     status           = Column(String, default="pending", index=True)  # pending | accepted | rejected | withdrawn
+    # When the client first opened this proposal's full detail — the
+    # notification badge counts pending-and-unseen, not just pending, so
+    # looking at a proposal clears it the way an unread message does.
+    seen_at          = Column(DateTime, nullable=True)
     created_at       = Column(DateTime, default=datetime.utcnow)
 
 
@@ -946,6 +950,9 @@ def init_db():
                     conn.commit()
                 if "attachment_urls" not in proposal_cols:
                     conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN attachment_urls TEXT"))
+                    conn.commit()
+                if "seen_at" not in proposal_cols:
+                    conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN seen_at TIMESTAMP"))
                     conn.commit()
 
             if _inspector.has_table("waitlist"):

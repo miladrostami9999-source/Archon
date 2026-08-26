@@ -580,7 +580,7 @@ export default function ContractDetailPage() {
 
               {currentUserId && contract.viewer_role !== 'observer' && (
                 <div style={{ paddingBottom: '32px' }}>
-                  <ContractChat contractId={contract.id} currentUserId={currentUserId} currency={contract.currency} />
+                  <ContractChat contractId={contract.id} currentUserId={currentUserId} />
                 </div>
               )}
             </>

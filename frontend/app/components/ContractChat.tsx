@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { Paperclip, ListPlus } from 'lucide-react'
-import ProposeMilestoneModal from './ProposeMilestoneModal'
+import { Paperclip } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 5000
@@ -27,7 +26,7 @@ interface ChatMessage {
  * ceiling) to filling whatever height it's given — which is what the
  * Messages page wants, since there the thread *is* the page.
  */
-export default function ContractChat({ contractId, conversationId, currentUserId, fill = false, milestoneContractId, currency = 'USD' }: {
+export default function ContractChat({ contractId, conversationId, currentUserId, fill = false }: {
   /** Address the thread by contract (contract page) or by conversation
    *  (Messages page, where a thread may be a plain direct message with no
    *  contract behind it). Exactly one is expected. */
@@ -35,25 +34,16 @@ export default function ContractChat({ contractId, conversationId, currentUserId
   conversationId?: number
   currentUserId: number
   fill?: boolean
-  /** The contract this thread is attached to, for the "Propose milestone"
-   *  action — needed separately from `contractId` because on the Messages
-   *  page the thread is addressed by conversation, not by contract, but a
-   *  contract may still sit behind it. */
-  milestoneContractId?: number | null
-  currency?: string
 }) {
   const base = conversationId
     ? `${API}/marketplace/conversations/${conversationId}`
     : `${API}/marketplace/contracts/${contractId}`
-  const effectiveContractId = contractId ?? milestoneContractId ?? null
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [attachment, setAttachment] = useState<{ url: string; name: string } | null>(null)
   const [uploading, setUploading] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [showProposeMilestone, setShowProposeMilestone] = useState(false)
-  const [proposedNotice, setProposedNotice] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const firstLoad = useRef(true)
 
@@ -155,13 +145,6 @@ export default function ContractChat({ contractId, conversationId, currentUserId
 
       <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
         {error && <p style={{ fontSize: '11.5px', color: 'var(--error)', margin: '0 0 6px' }}>{error}</p>}
-        {proposedNotice && <p style={{ fontSize: '11.5px', color: 'var(--success)', margin: '0 0 6px' }}>{proposedNotice}</p>}
-        {effectiveContractId && (
-          <button onClick={() => setShowProposeMilestone(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '8px', padding: '5px 11px', borderRadius: 'var(--radius-md)', fontSize: '11.5px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
-            <ListPlus size={13} strokeWidth={1.75} /> Propose milestone
-          </button>
-        )}
         {attachment && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--success)' }}><Paperclip size={12} strokeWidth={1.75} /> {attachment.name}</span>
@@ -196,15 +179,6 @@ export default function ContractChat({ contractId, conversationId, currentUserId
           </button>
         </div>
       </div>
-
-      {showProposeMilestone && effectiveContractId && (
-        <ProposeMilestoneModal
-          contractId={effectiveContractId}
-          currency={currency}
-          onClose={() => setShowProposeMilestone(false)}
-          onProposed={() => setProposedNotice('Milestone proposed — waiting for the other party to respond.')}
-        />
-      )}
     </div>
   )
 }

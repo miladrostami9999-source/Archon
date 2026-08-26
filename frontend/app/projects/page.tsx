@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
+import RoleTag from '../components/RoleTag'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
 import ProjectPreviewDrawer from '../components/ProjectPreviewDrawer'
@@ -64,6 +65,7 @@ interface ProposalRow {
   proposed_amount: number | null
   proposed_days: number | null
   status: string
+  seen_at: string | null
   created_at: string
 }
 
@@ -441,40 +443,48 @@ export default function ProjectsPage() {
               <EmptyState icon={Inbox} title={proposalsStatus === 'pending' ? 'No pending proposals' : 'No proposals yet'}
                 description="Proposals sent to your projects will show up here." />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '32px' }}>
-                {proposalsInbox.map(p => {
-                  const pm = PROPOSAL_STATUS_META[p.status] || PROPOSAL_STATUS_META.pending
-                  const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-                  return (
-                    <div key={p.id} onClick={() => setPreviewProposal(p)}
-                      style={{ cursor: 'pointer', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', transition: 'border-color 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
-                        {p.freelancer_avatar
-                          ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <span style={{ fontSize: '13px', fontWeight: 700, color: 'white' }}>{initials}</span>}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                          <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            {p.freelancer_name || 'Freelancer'}{p.freelancer_verified && <VerifiedBadge size={12} />}
-                          </span>
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
+              <>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: '0 0 10px' }}>
+                  {proposalsInbox.length} {proposalsInbox.length === 1 ? 'proposal' : 'proposals'} {proposalsStatus === 'pending' ? 'pending' : 'total'} in this tab
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '32px' }}>
+                  {proposalsInbox.map(p => {
+                    const pm = PROPOSAL_STATUS_META[p.status] || PROPOSAL_STATUS_META.pending
+                    const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+                    const unseen = p.status === 'pending' && !p.seen_at
+                    return (
+                      <div key={p.id} onClick={() => setPreviewProposal(p)}
+                        style={{ cursor: 'pointer', borderRadius: 'var(--radius-lg)', border: '1px solid ' + (unseen ? 'var(--accent)' : 'var(--border)'), background: 'var(--bg-card)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', transition: 'border-color 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = unseen ? 'var(--accent)' : 'var(--border)' }}>
+                        {unseen && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />}
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
+                          {p.freelancer_avatar
+                            ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <span style={{ fontSize: '13px', fontWeight: 700, color: 'white' }}>{initials}</span>}
                         </div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {p.project_title}
-                          {p.freelancer_review_count > 0 && <> · <Star size={10} strokeWidth={1.75} style={{ display: 'inline', verticalAlign: '-1px', color: 'var(--warning)' }} fill="currentColor" /> {p.freelancer_rating} ({p.freelancer_review_count})</>}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              {p.freelancer_name || 'Freelancer'}{p.freelancer_verified && <VerifiedBadge size={12} />}
+                            </span>
+                            <span style={{ fontSize: '9.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: 'var(--text-dim)', background: 'var(--bg-tag)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Freelancer</span>
+                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.project_title}
+                            {p.freelancer_review_count > 0 && <> · <Star size={10} strokeWidth={1.75} style={{ display: 'inline', verticalAlign: '-1px', color: 'var(--warning)' }} fill="currentColor" /> {p.freelancer_rating} ({p.freelancer_review_count})</>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.proposed_amount?.toLocaleString('en-US')} {p.project_currency}</div>
+                          {p.proposed_days ? <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{p.proposed_days} days</div> : null}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{p.proposed_amount?.toLocaleString('en-US')} {p.project_currency}</div>
-                        {p.proposed_days ? <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{p.proposed_days} days</div> : null}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              </>
             )
           ) : loading ? (
             <LoadingState fullPage />
@@ -557,6 +567,7 @@ export default function ProjectsPage() {
                         <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
                           style={{ marginLeft: 'auto', cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           {p.client_name || 'a client'}{p.client_verified && <VerifiedBadge size={11} />}
+                          <RoleTag role="client" />
                         </span>
                       )}
                     </div>
@@ -581,6 +592,10 @@ export default function ProjectsPage() {
         onAccept={id => { const p = proposalsInbox.find(x => x.id === id); if (p) { setAcceptTarget(p); setAcceptError('') } }}
         onReject={id => { rejectInboxProposal(id); setPreviewProposal(null) }}
         busy={proposalBusy === previewProposal?.id}
+        onSeen={() => {
+          loadPendingCount()
+          setProposalsInbox(rows => rows.map(r => r.id === previewProposal?.id ? { ...r, seen_at: new Date().toISOString() } : r))
+        }}
       />
       {acceptTarget && (
         <AcceptProposalModal

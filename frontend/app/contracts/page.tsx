@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar'
+import RoleTag from '../components/RoleTag'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
@@ -116,6 +117,7 @@ export default function ContractsPage() {
                           With{' '}
                           <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${c.viewer_role === 'client' ? c.freelancer_id : c.client_id}` }}
                             style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={11} />}</span>
+                          {' '}<RoleTag role={c.viewer_role === 'client' ? 'freelancer' : 'client'} />
                           {' '}· {c.total_amount?.toLocaleString('en-US')} {c.currency}
                         </div>
                       </div>

@@ -8,6 +8,7 @@ import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
 import ThreadDetailsPanel from '../components/ThreadDetailsPanel'
+import RoleTag from '../components/RoleTag'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react'
 
@@ -147,6 +148,7 @@ export default function MessagesPage() {
                   <span style={{ fontSize: '13px', fontWeight: c.unread > 0 ? 700 : 600, color: 'var(--text)', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.other_party_name || 'Unknown'}</span>
                     {c.other_party_verified && <VerifiedBadge size={12} />}
+                    {c.viewer_role !== 'peer' && <RoleTag role={c.viewer_role === 'client' ? 'freelancer' : 'client'} />}
                   </span>
                   <span style={{ fontSize: '10px', color: 'var(--text-dim)', marginLeft: 'auto', flexShrink: 0 }}>{relative(c.last_message_at)}</span>
                 </div>
@@ -197,8 +199,7 @@ export default function MessagesPage() {
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Keyed so switching threads remounts with fresh state instead of
             briefly showing the previous conversation's messages. */}
-        <ContractChat key={active.conversation_id} conversationId={active.conversation_id} currentUserId={currentUserId} fill
-          milestoneContractId={active.contract_id} currency={active.contract_currency || 'USD'} />
+        <ContractChat key={active.conversation_id} conversationId={active.conversation_id} currentUserId={currentUserId} fill />
       </div>
     </div>
   ) : (

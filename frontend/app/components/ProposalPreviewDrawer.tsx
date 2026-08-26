@@ -25,6 +25,7 @@ interface ProposalRow {
   proposed_amount: number | null
   proposed_days: number | null
   status: string
+  seen_at?: string | null
 }
 
 const PROPOSAL_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
@@ -45,13 +46,17 @@ const section: React.CSSProperties = { padding: '18px 24px', borderTop: '1px sol
  * their track record, the full cover letter, every attachment and
  * portfolio highlight, plus a way to talk to them before committing. */
 export default function ProposalPreviewDrawer({
-  proposal, onClose, onAccept, onReject, busy,
+  proposal, onClose, onAccept, onReject, busy, onSeen,
 }: {
   proposal: ProposalRow | null
   onClose: () => void
   onAccept: (id: number) => void
   onReject: (id: number) => void
   busy: boolean
+  /** Fires once the proposal has been marked seen server-side, so the
+   *  parent can refresh its pending-count badge without waiting for the
+   *  next poll. */
+  onSeen?: () => void
 }) {
   const [messaging, setMessaging] = useState(false)
 
@@ -61,6 +66,14 @@ export default function ProposalPreviewDrawer({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [proposal, onClose])
+
+  // Opening the drawer is "reading" the proposal — clears the unseen badge
+  // the same way opening a message thread clears its unread count.
+  useEffect(() => {
+    if (!proposal || proposal.seen_at) return
+    axios.post(`${API}/marketplace/proposals/${proposal.id}/seen`).then(() => onSeen?.()).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposal?.id])
 
   if (!proposal) return null
 
@@ -106,6 +119,7 @@ export default function ProposalPreviewDrawer({
                 <a href={`/members/${proposal.freelancer_id}`} style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                   {proposal.freelancer_name || 'Freelancer'}{proposal.freelancer_verified && <VerifiedBadge size={13} />}
                 </a>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: 'var(--text-dim)', background: 'var(--bg-tag)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Freelancer</span>
                 <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 9px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
               </div>
               {proposal.freelancer_headline && <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 6px' }}>{proposal.freelancer_headline}</p>}

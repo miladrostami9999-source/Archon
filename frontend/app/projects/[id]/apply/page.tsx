@@ -11,7 +11,7 @@ import { ArrowLeft, DollarSign, Calendar, Tag, Paperclip, CheckCircle2, SearchX,
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const MAX_HIGHLIGHTS = 4
 const MAX_ATTACHMENTS = 10
-const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
+const MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
 interface Project {
   id: number
@@ -66,7 +66,7 @@ export default function ApplyToProjectPage() {
   const [coverLetter, setCoverLetter] = useState('')
   const [proposedAmount, setProposedAmount] = useState('')
   const [proposedDays, setProposedDays] = useState('')
-  const [attachments, setAttachments] = useState<{ url: string; name: string }[]>([])
+  const [attachments, setAttachments] = useState<{ url: string; name: string; size?: number }[]>([])
   const [uploading, setUploading] = useState(false)
   const [selectedHighlights, setSelectedHighlights] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
@@ -111,12 +111,22 @@ export default function ApplyToProjectPage() {
     const list = Array.from(files)
     const room = MAX_ATTACHMENTS - attachments.length
     if (room <= 0) { setError(`You can attach up to ${MAX_ATTACHMENTS} files`); return }
-    const toUpload = list.slice(0, room)
+    let toUpload = list.slice(0, room)
     if (list.length > room) setError(`Only the first ${room} file${room === 1 ? '' : 's'} were added — ${MAX_ATTACHMENTS} attachments max`)
     else setError('')
-    const oversized = toUpload.filter(f => f.size > MAX_ATTACHMENT_BYTES)
-    const valid = toUpload.filter(f => f.size <= MAX_ATTACHMENT_BYTES)
-    if (oversized.length) setError(`${oversized.map(f => f.name).join(', ')} — over the 20MB limit, skipped`)
+
+    // The 25MB cap is on the combined size of everything attached this
+    // session, not per file — so it's enforced cumulatively as each file is
+    // queued, stopping as soon as the running total would tip over.
+    const usedBytes = attachments.reduce((a, x) => a + (x.size || 0), 0)
+    let remaining = MAX_TOTAL_ATTACHMENT_BYTES - usedBytes
+    const valid: File[] = []
+    const skipped: string[] = []
+    for (const f of toUpload) {
+      if (f.size <= remaining) { valid.push(f); remaining -= f.size }
+      else skipped.push(f.name)
+    }
+    if (skipped.length) setError(`${skipped.join(', ')} — would exceed the 25MB combined limit, skipped`)
     if (!valid.length) return
     setUploading(true)
     try {
@@ -124,7 +134,7 @@ export default function ApplyToProjectPage() {
         const fd = new FormData()
         fd.append('file', file)
         const r = await axios.post(`${API}/auth/upload/receipt`, fd)
-        setAttachments(a => [...a, { url: r.data.url, name: file.name }])
+        setAttachments(a => [...a, { url: r.data.url, name: file.name, size: file.size }])
       }
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Could not upload a file')
@@ -234,7 +244,7 @@ export default function ApplyToProjectPage() {
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <label style={{ ...label, marginBottom: 0 }}>Attachments <span style={{ color: 'var(--text-dim)' }}>(optional — up to {MAX_ATTACHMENTS} files, 20MB each)</span></label>
+                    <label style={{ ...label, marginBottom: 0 }}>Attachments <span style={{ color: 'var(--text-dim)' }}>(optional — up to {MAX_ATTACHMENTS} files, 25MB combined)</span></label>
                     <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{attachments.length}/{MAX_ATTACHMENTS}</span>
                   </div>
                   {attachments.length > 0 && (

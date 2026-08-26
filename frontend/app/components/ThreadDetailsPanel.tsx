@@ -3,17 +3,24 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import {
   ArrowUpRight, Calendar, CheckCircle2, Circle, Clock, DollarSign,
-  MapPin, Star, Briefcase, Palette,
+  MapPin, Star, Briefcase, Palette, Plus,
 } from 'lucide-react'
 import VerifiedBadge from './VerifiedBadge'
 import LoadingState from './LoadingState'
+import ProposeMilestoneModal from './ProposeMilestoneModal'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface Milestone {
   id: number; title: string; description: string | null; amount: number
   due_date: string | null; status: string; deliverable_url: string | null
+  proposed_by: number | null
 }
+
+// Ordered so the step tracker reads left-to-right as the money/work
+// actually moves — matches the Activity-style progress on the full
+// contract page, just compact enough for the sidebar.
+const MILESTONE_STEPS = ['pending', 'funded', 'delivered', 'approved', 'released']
 
 interface ContractDetail {
   id: number; project_id: number; project_title: string | null
@@ -77,17 +84,36 @@ export default function ThreadDetailsPanel({
   const [contract, setContract] = useState<ContractDetail | null>(null)
   const [member, setMember] = useState<MemberAbout | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showPropose, setShowPropose] = useState(false)
+  const [milestoneBusy, setMilestoneBusy] = useState<number | null>(null)
+
+  const loadContract = () => {
+    if (!contractId) return
+    axios.get(`${API}/marketplace/contracts/${contractId}`)
+      .then(r => setContract(r.data)).catch(() => {}).finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     setLoading(true); setContract(null); setMember(null)
     if (contractId) {
-      axios.get(`${API}/marketplace/contracts/${contractId}`)
-        .then(r => setContract(r.data)).catch(() => {}).finally(() => setLoading(false))
+      loadContract()
     } else {
       axios.get(`${API}/marketplace/members/${otherPartyId}`)
         .then(r => setMember(r.data)).catch(() => {}).finally(() => setLoading(false))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractId, otherPartyId])
+
+  const acceptMilestoneProposal = async (id: number) => {
+    setMilestoneBusy(id)
+    try { await axios.post(`${API}/marketplace/milestones/${id}/accept-proposal`); loadContract() } catch {}
+    setMilestoneBusy(null)
+  }
+  const rejectMilestoneProposal = async (id: number) => {
+    setMilestoneBusy(id)
+    try { await axios.post(`${API}/marketplace/milestones/${id}/reject-proposal`); loadContract() } catch {}
+    setMilestoneBusy(null)
+  }
 
   const card: React.CSSProperties = { borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px' }
 
@@ -106,6 +132,7 @@ export default function ThreadDetailsPanel({
     const progressPct = contract.total_amount ? Math.min(100, Math.round((released / contract.total_amount) * 100)) : 0
 
     return (
+      <>
       <div style={{ width: '300px', flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--bg-main)', overflowY: 'auto', padding: '16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
@@ -165,14 +192,27 @@ export default function ThreadDetailsPanel({
             </div>
           </div>
 
-          {/* Milestones */}
-          {contract.milestones.length > 0 && (
-            <div style={card}>
-              <p style={sectionLabel}>Milestones ({contract.milestones.length})</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {contract.milestones.map(m => {
+          {/* Milestones — the compact equivalent of Upwork's Activity tab:
+              every milestone in order, each with its own step tracker. */}
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <p style={{ ...sectionLabel, margin: 0 }}>Milestones {contract.milestones.length > 0 ? `(${contract.milestones.length})` : ''}</p>
+              {contract.status === 'active' && contract.viewer_role !== 'observer' && (
+                <button onClick={() => setShowPropose(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: 'var(--radius-sm)', fontSize: '10.5px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
+                  <Plus size={11} strokeWidth={2} /> Propose
+                </button>
+              )}
+            </div>
+            {contract.milestones.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>No milestones yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {contract.milestones.map((m, i) => {
                   const mm = MILESTONE_META[m.status] || MILESTONE_META.pending
+                  const stepIdx = MILESTONE_STEPS.indexOf(m.status)
                   const isDone = m.status === 'released' || m.status === 'approved'
+                  const canDecide = m.status === 'proposed' && m.proposed_by !== currentUserId
                   return (
                     <div key={m.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                       {isDone
@@ -180,24 +220,57 @@ export default function ThreadDetailsPanel({
                         : <Circle size={14} strokeWidth={1.75} color="var(--text-dim)" style={{ marginTop: '1px', flexShrink: 0 }} />}
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                          <span style={{ fontSize: '12.5px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
+                          <span style={{ fontSize: '12.5px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i + 1}. {m.title}</span>
                           <span className="mono" style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0 }}>{m.amount.toLocaleString('en-US')}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', marginBottom: stepIdx >= 0 ? '5px' : 0 }}>
                           <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', color: mm.color, background: mm.bg }}>{mm.label}</span>
                           {m.due_date && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', color: 'var(--text-dim)' }}><Clock size={10} strokeWidth={1.75} />{new Date(m.due_date).toLocaleDateString()}</span>
                           )}
                         </div>
+                        {/* Step tracker — only meaningful once the milestone
+                            is actually in the funded pipeline. */}
+                        {stepIdx >= 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            {MILESTONE_STEPS.map((step, si) => (
+                              <div key={step} style={{ flex: 1, height: '3px', borderRadius: '2px', background: si <= stepIdx ? mm.color : 'var(--border)' }} />
+                            ))}
+                          </div>
+                        )}
+                        {canDecide && (
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                            <button onClick={() => acceptMilestoneProposal(m.id)} disabled={milestoneBusy === m.id}
+                              style={{ padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '10.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#34D399,#10B981)', border: 'none', cursor: 'pointer' }}>
+                              Accept
+                            </button>
+                            <button onClick={() => rejectMilestoneProposal(m.id)} disabled={milestoneBusy === m.id}
+                              style={{ padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                        {m.status === 'proposed' && m.proposed_by === currentUserId && (
+                          <p style={{ fontSize: '10.5px', color: 'var(--text-dim)', margin: '4px 0 0' }}>Waiting for the other party.</p>
+                        )}
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
+      {showPropose && (
+        <ProposeMilestoneModal
+          contractId={contract.id}
+          currency={contract.currency}
+          onClose={() => setShowPropose(false)}
+          onProposed={loadContract}
+        />
+      )}
+      </>
     )
   }
 

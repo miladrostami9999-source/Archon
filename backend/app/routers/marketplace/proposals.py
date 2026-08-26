@@ -67,6 +67,7 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         "proposed_amount": pr.proposed_amount,
         "proposed_days": pr.proposed_days,
         "status": pr.status,
+        "seen_at": pr.seen_at.isoformat() if pr.seen_at else None,
         "created_at": pr.created_at.isoformat() if pr.created_at else None,
     }
 
@@ -87,15 +88,36 @@ def pending_proposal_count(
     current_user: User = Depends(require_marketplace_beta),
     db: Session = Depends(get_db),
 ):
-    """Proposals waiting on this account's decision, for the sidebar badge —
-    i.e. pending bids on projects they posted."""
+    """Unseen pending proposals, for the sidebar badge — opening one in the
+    inbox drawer clears it from this count, the same way an unread message
+    disappears once you've read it. `pending` status alone would never
+    shrink until a decision is made, which reads as a stuck badge."""
     count = (
         db.query(Proposal)
         .join(Project, Project.id == Proposal.project_id)
-        .filter(Project.client_id == current_user.id, Proposal.status == "pending")
+        .filter(Project.client_id == current_user.id, Proposal.status == "pending", Proposal.seen_at.is_(None))
         .count()
     )
     return {"count": count}
+
+
+@router.post("/proposals/{proposal_id}/seen")
+def mark_proposal_seen(
+    proposal_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    proposal = db.query(Proposal).filter(Proposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    project = db.query(Project).filter(Project.id == proposal.project_id).first()
+    if not project or project.client_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can view this proposal")
+    if not proposal.seen_at:
+        from datetime import datetime
+        proposal.seen_at = datetime.utcnow()
+        db.commit()
+    return {"message": "Marked as seen"}
 
 
 @router.post("/projects/{project_id}/proposals")
