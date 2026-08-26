@@ -6,6 +6,7 @@ import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
+import ContractPreviewDrawer from '../components/ContractPreviewDrawer'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { FileCheck2 } from 'lucide-react'
 
@@ -21,12 +22,17 @@ interface Milestone {
 interface Contract {
   id: number
   project_title: string | null
+  project_description: string | null
+  project_deadline: string | null
+  project_category: string | null
   client_id: number
   client_name: string | null
   client_verified: boolean
+  client_avatar: string
   freelancer_id: number
   freelancer_name: string | null
   freelancer_verified: boolean
+  freelancer_avatar: string
   total_amount: number | null
   currency: string
   status: string
@@ -46,6 +52,7 @@ export default function ContractsPage() {
   const isMobile = useIsMobile()
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
+  const [previewContract, setPreviewContract] = useState<Contract | null>(null)
 
   useEffect(() => {
     axios.get(`${API}/marketplace/contracts`)
@@ -85,6 +92,7 @@ export default function ContractsPage() {
                 const fundedCount = c.milestones.filter(m => m.status !== 'pending').length
                 return (
                   <a key={c.id} href={`/contracts/${c.id}`}
+                    onClick={e => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); setPreviewContract(c) } }}
                     style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
@@ -113,6 +121,7 @@ export default function ContractsPage() {
           )}
         </div>
       </div>
+      <ContractPreviewDrawer contract={previewContract} onClose={() => setPreviewContract(null)} />
     </div>
   )
 }
