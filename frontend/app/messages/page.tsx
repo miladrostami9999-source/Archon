@@ -7,6 +7,7 @@ import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
+import ThreadDetailsPanel from '../components/ThreadDetailsPanel'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react'
 
@@ -215,6 +216,9 @@ export default function MessagesPage() {
               {ConversationList}
             </div>
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>{Thread}</div>
+            {active && currentUserId && (
+              <ThreadDetailsPanel contractId={active.contract_id} otherPartyId={active.other_party_id} currentUserId={currentUserId} />
+            )}
           </>
         )}
       </main>

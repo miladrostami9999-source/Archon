@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 
 
@@ -11,6 +11,8 @@ class ProjectCreate(BaseModel):
     budget_max: Optional[float] = None
     currency: str = "USD"
     deadline: Optional[datetime] = None
+    skills: Optional[List[str]] = None
+    experience_level: Optional[str] = None  # entry | intermediate | expert
 
 
 class ProjectUpdate(BaseModel):
@@ -22,6 +24,8 @@ class ProjectUpdate(BaseModel):
     currency: Optional[str] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = None  # open | in_progress | completed | cancelled
+    skills: Optional[List[str]] = None
+    experience_level: Optional[str] = None
 
 
 class ProposalCreate(BaseModel):

@@ -7,7 +7,7 @@ import VerifiedBadge from '../components/VerifiedBadge'
 import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { DollarSign, Calendar, Plus, Briefcase } from 'lucide-react'
+import { DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -20,16 +20,23 @@ interface Project {
   budget_max: number | null
   currency: string
   deadline: string | null
+  deadline_days_left: number | null
   status: string
+  skills: string[]
+  experience_level: string | null
   created_at: string
+  days_open: number
   client_id: number
   client_name: string | null
   client_verified: boolean
+  client_posted_projects_count: number
   is_owner: boolean
   proposal_count: number
   my_proposal_status: string | null
   my_proposal_id: number | null
 }
+
+const EXPERIENCE_META: Record<string, string> = { entry: 'Entry level', intermediate: 'Intermediate', expert: 'Expert' }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
   open:        { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Open' },
@@ -65,7 +72,15 @@ export default function ProjectsPage() {
   const [postMsg, setPostMsg] = useState('')
   const [form, setForm] = useState({
     title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '',
+    experience_level: '', skillsInput: '', skills: [] as string[],
   })
+
+  const addSkill = () => {
+    const s = form.skillsInput.trim()
+    if (s && !form.skills.includes(s)) setForm(f => ({ ...f, skills: [...f.skills, s], skillsInput: '' }))
+    else setForm(f => ({ ...f, skillsInput: '' }))
+  }
+  const removeSkill = (s: string) => setForm(f => ({ ...f, skills: f.skills.filter(x => x !== s) }))
 
   const load = () => {
     setLoading(true)
@@ -98,8 +113,10 @@ export default function ProjectsPage() {
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         currency: form.currency,
         deadline: form.deadline || null,
+        skills: form.skills.length ? form.skills : null,
+        experience_level: form.experience_level || null,
       })
-      setForm({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '' })
+      setForm({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', skillsInput: '', skills: [] })
       setShowPost(false)
       setTab('mine')
       load()
@@ -179,6 +196,35 @@ export default function ProjectsPage() {
                   <input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} style={input} />
                 </div>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <label style={label}>Experience level</label>
+                  <select value={form.experience_level} onChange={e => setForm(f => ({ ...f, experience_level: e.target.value }))} style={input}>
+                    <option value="">Not specified</option>
+                    <option value="entry">Entry level</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="expert">Expert</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={label}>Skills needed</label>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: form.skills.length ? '8px' : 0 }}>
+                    <input value={form.skillsInput} onChange={e => setForm(f => ({ ...f, skillsInput: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill() } }}
+                      placeholder="e.g. 3D Rendering, Vray — press Enter" style={input} />
+                  </div>
+                  {form.skills.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {form.skills.map(s => (
+                        <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 6px 3px 9px', borderRadius: '999px' }}>
+                          {s}
+                          <button onClick={() => removeSkill(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0 }}><X size={11} strokeWidth={2} /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button onClick={submitPost} disabled={posting}
                   style={{ padding: '9px 20px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
@@ -230,9 +276,21 @@ export default function ProjectsPage() {
                             {p.description}
                           </p>
                         )}
+                        {p.skills?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
+                            {p.skills.slice(0, 5).map(s => <span key={s} style={{ fontSize: '10.5px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>)}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-dim)' }}>
                           {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12} strokeWidth={1.75} />{budget}</span>}
-                          {p.deadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} strokeWidth={1.75} />{new Date(p.deadline).toLocaleDateString()}</span>}
+                          {p.deadline && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: p.deadline_days_left != null && p.deadline_days_left <= 3 ? 'var(--warning)' : 'var(--text-dim)' }}>
+                              <Calendar size={12} strokeWidth={1.75} />{new Date(p.deadline).toLocaleDateString()}
+                            </span>
+                          )}
+                          {p.experience_level && EXPERIENCE_META[p.experience_level] && (
+                            <span>{EXPERIENCE_META[p.experience_level]}</span>
+                          )}
                           {!p.is_owner && (
                             <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
                               style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

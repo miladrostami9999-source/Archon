@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -11,6 +13,8 @@ router = APIRouter(prefix="/projects", tags=["marketplace-projects"])
 
 
 def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
+    from datetime import datetime
+
     client = db.query(User).filter(User.id == p.client_id).first()
     proposal_count = db.query(Proposal).filter(Proposal.project_id == p.id).count()
     my_proposal = (
@@ -18,6 +22,13 @@ def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
         .filter(Proposal.project_id == p.id, Proposal.freelancer_id == viewer_id)
         .first()
     )
+    posted_projects_count = db.query(Project).filter(Project.client_id == p.client_id).count()
+    try:
+        skills = json.loads(p.skills) if p.skills else []
+    except Exception:
+        skills = []
+    days_open = (datetime.utcnow() - p.created_at).days if p.created_at else 0
+    deadline_days_left = (p.deadline - datetime.utcnow()).days if p.deadline else None
     return {
         "id": p.id,
         "title": p.title,
@@ -27,11 +38,17 @@ def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
         "budget_max": p.budget_max,
         "currency": p.currency,
         "deadline": p.deadline.isoformat() if p.deadline else None,
+        "deadline_days_left": deadline_days_left,
         "status": p.status,
+        "skills": skills,
+        "experience_level": p.experience_level,
         "created_at": p.created_at.isoformat() if p.created_at else None,
+        "days_open": days_open,
         "client_id": p.client_id,
         "client_name": client.name if client else None,
         "client_verified": is_verified(db, p.client_id),
+        "client_posted_projects_count": posted_projects_count,
+        "client_member_since": client.created_at.isoformat() if client and client.created_at else None,
         "is_owner": p.client_id == viewer_id,
         "proposal_count": proposal_count,
         "my_proposal_status": my_proposal.status if my_proposal else None,
@@ -54,6 +71,8 @@ def create_project(
         budget_max=data.budget_max,
         currency=data.currency,
         deadline=data.deadline,
+        skills=json.dumps(data.skills) if data.skills else None,
+        experience_level=data.experience_level,
         status="open",
     )
     db.add(project)
@@ -147,10 +166,12 @@ def update_project(
         raise HTTPException(status_code=404, detail="Project not found")
     if project.client_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only the project owner can edit it")
-    for field in ("title", "description", "category", "budget_min", "budget_max", "currency", "deadline", "status"):
+    for field in ("title", "description", "category", "budget_min", "budget_max", "currency", "deadline", "status", "experience_level"):
         value = getattr(data, field)
         if value is not None:
             setattr(project, field, value)
+    if data.skills is not None:
+        project.skills = json.dumps(data.skills)
     db.commit()
     db.refresh(project)
     return _project_to_dict(project, db, current_user.id)

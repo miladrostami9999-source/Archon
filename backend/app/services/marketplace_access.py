@@ -7,6 +7,8 @@ freelancer distinction the plan called for; the milestone fund/deliver/
 approve actions themselves land in a later phase, but the shape here is
 built to carry them without a rework.
 """
+import json
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -77,16 +79,32 @@ def serialize_contract(contract: Contract, viewer_id: int, db: Session) -> dict:
         viewer_role = "freelancer"
     else:
         viewer_role = "observer"  # e.g. an admin looking in, not a party to it
+
+    def _avatar(u):
+        if not u or not u.profile_json:
+            return ""
+        try:
+            return json.loads(u.profile_json).get("avatar", "") or ""
+        except Exception:
+            return ""
+
     return {
         "id": contract.id,
         "project_id": contract.project_id,
         "project_title": project.title if project else None,
+        "project_description": project.description if project else None,
+        "project_deadline": project.deadline.isoformat() if project and project.deadline else None,
+        "project_category": project.category if project else None,
         "client_id": contract.client_id,
         "client_name": client.name if client else None,
         "client_verified": is_verified(db, contract.client_id),
+        "client_avatar": _avatar(client),
+        "client_member_since": client.created_at.isoformat() if client and client.created_at else None,
         "freelancer_id": contract.freelancer_id,
         "freelancer_name": freelancer.name if freelancer else None,
         "freelancer_verified": is_verified(db, contract.freelancer_id),
+        "freelancer_avatar": _avatar(freelancer),
+        "freelancer_member_since": freelancer.created_at.isoformat() if freelancer and freelancer.created_at else None,
         "total_amount": contract.total_amount,
         "currency": contract.currency,
         "status": contract.status,

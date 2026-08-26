@@ -472,6 +472,8 @@ class Project(Base):
     currency    = Column(String, default="USD")
     deadline    = Column(DateTime, nullable=True)
     status      = Column(String, default="open", index=True)  # open | in_progress | completed | cancelled
+    skills      = Column(Text, nullable=True)  # JSON list of strings, e.g. ["3D Rendering","Vray"]
+    experience_level = Column(String, nullable=True)  # entry | intermediate | expert
     created_at  = Column(DateTime, default=datetime.utcnow)
 
 
@@ -882,6 +884,15 @@ def init_db():
                 conn.execute(_text("ALTER TABLE users ADD COLUMN plan_status VARCHAR DEFAULT 'active'"))
                 conn.execute(_text("UPDATE users SET plan_status = 'active' WHERE plan_status IS NULL"))
                 conn.commit()
+            if _inspector.has_table("mp_projects"):
+                project_cols = [c["name"] for c in _inspector.get_columns("mp_projects")]
+                if "skills" not in project_cols:
+                    conn.execute(_text("ALTER TABLE mp_projects ADD COLUMN skills TEXT"))
+                    conn.commit()
+                if "experience_level" not in project_cols:
+                    conn.execute(_text("ALTER TABLE mp_projects ADD COLUMN experience_level VARCHAR"))
+                    conn.commit()
+
             if _inspector.has_table("waitlist"):
                 waitlist_cols = [c["name"] for c in _inspector.get_columns("waitlist")]
                 if "password_hash" not in waitlist_cols:
