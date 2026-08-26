@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Target, Flame, Building2, Trophy, Crosshair, Search, Microscope, Check, CircleCheck, Paperclip, DollarSign, ArrowLeft } from 'lucide-react'
+import InlineStatus from '../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
@@ -462,11 +463,10 @@ export default function LeadHunter() {
                 )}
 
                 {msg && (
-                  <p style={{
-                    fontSize: '12.5px', margin: 0, padding: '10px 14px', borderRadius: '10px',
+                  <div style={{
+                    margin: 0, padding: '10px 14px', borderRadius: '10px',
                     background: 'var(--bg-card)', border: '1px solid var(--border)',
-                    color: msg.startsWith('✓') ? '#34D399' : msg.startsWith('✗') ? '#F87171' : 'var(--text-muted)',
-                  }}>{msg}</p>
+                  }}><InlineStatus text={msg} /></div>
                 )}
 
                 {/* ══ STAGE 1: SETUP ══ */}

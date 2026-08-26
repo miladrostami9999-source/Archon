@@ -6,6 +6,7 @@ import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Paperclip, Coins, CreditCard, Landmark, AlertTriangle, Check, X } from 'lucide-react'
+import InlineStatus from '../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -246,7 +247,7 @@ export default function MarketplaceAdminPage() {
             ))}
           </div>
 
-          {msg && <p style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171', marginBottom: '14px' }}>{msg}</p>}
+          {msg && <div style={{ marginBottom: '14px' }}><InlineStatus text={msg} /></div>}
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>

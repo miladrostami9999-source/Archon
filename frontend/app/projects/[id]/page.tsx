@@ -5,8 +5,10 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import MarketplaceBeta from '../../components/MarketplaceBeta'
 import VerifiedBadge from '../../components/VerifiedBadge'
+import EmptyState from '../../components/EmptyState'
+import LoadingState from '../../components/LoadingState'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft } from 'lucide-react'
+import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft, SearchX, Inbox, Ban } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -51,16 +53,16 @@ interface Proposal {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  open:        { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Open' },
-  in_progress: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'In progress' },
-  completed:   { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
-  cancelled:   { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Cancelled' },
+  open:        { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Open' },
+  in_progress: { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'In progress' },
+  completed:   { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
+  cancelled:   { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Cancelled' },
 }
 
 const PROPOSAL_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  pending:   { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'Pending' },
-  accepted:  { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Accepted' },
-  rejected:  { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Rejected' },
+  pending:   { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Pending' },
+  accepted:  { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Accepted' },
+  rejected:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Rejected' },
   withdrawn: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Withdrawn' },
 }
 
@@ -231,11 +233,9 @@ export default function ProjectDetailPage() {
           <MarketplaceBeta />
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
+            <LoadingState fullPage />
           ) : notFound || !project ? (
-            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-              Project not found.
-            </div>
+            <EmptyState icon={SearchX} title="Project not found" description="It may have been removed or the link is incorrect." />
           ) : editing ? (
             /* ── EDIT ── same fields as posting, so nothing is lost by
                correcting a project after the fact. */
@@ -293,11 +293,11 @@ export default function ProjectDetailPage() {
                 {project.is_owner && (
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '10px' }}>
                     <button onClick={startEdit}
-                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#60A5FA', background: 'rgba(61,79,224,0.1)', border: '1px solid rgba(61,79,224,0.25)', cursor: 'pointer' }}>
+                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
                       Edit
                     </button>
                     <button onClick={deleteProject} disabled={busy === 'submit'}
-                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#F87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.22)', cursor: 'pointer' }}>
+                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--error)', background: 'rgba(228,114,111,0.08)', border: '1px solid rgba(228,114,111,0.22)', cursor: 'pointer' }}>
                       Delete
                     </button>
                   </div>
@@ -314,7 +314,7 @@ export default function ProjectDetailPage() {
                   {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={13} strokeWidth={1.75} />{budget}</span>}
                   {project.deadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={13} strokeWidth={1.75} />Due {new Date(project.deadline).toLocaleDateString()}</span>}
                   {!project.is_owner && (
-                    <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={11} />}</a></span>
+                    <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={11} />}</a></span>
                   )}
                 </div>
               </div>
@@ -327,9 +327,7 @@ export default function ProjectDetailPage() {
                     Proposals ({proposals.length})
                   </p>
                   {proposals.length === 0 ? (
-                    <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>
-                      No proposals yet.
-                    </div>
+                    <EmptyState icon={Inbox} compact title="No proposals yet" description="Freelancer proposals for this project will show up here." />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
                       {proposals.map(p => {
@@ -343,7 +341,7 @@ export default function ProjectDetailPage() {
                                 {(() => {
                                   const initials = (p.freelancer_name || 'F').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
                                   const avatarEl = (
-                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid rgba(61,79,224,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
                                       {p.freelancer_avatar
                                         ? <img src={p.freelancer_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         : <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>{initials}</span>}
@@ -355,7 +353,7 @@ export default function ProjectDetailPage() {
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
                                     <a href={`/members/${p.freelancer_id}`}
-                                      style={{ fontSize: '13.5px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                       {p.freelancer_name || 'Freelancer'}{p.freelancer_verified && <VerifiedBadge size={12} />}
                                     </a>
                                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', color: pm.color, background: pm.bg }}>{pm.label}</span>
@@ -381,7 +379,7 @@ export default function ProjectDetailPage() {
                                   {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
                                   {p.attachment_url && (
                                     <a href={p.attachment_url} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '12px', color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
+                                      style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
                                   )}
                                 </div>
                               </div>
@@ -405,9 +403,7 @@ export default function ProjectDetailPage() {
                   )}
                 </>
               ) : project.status !== 'open' ? (
-                <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)', fontSize: '13.5px' }}>
-                  This project is no longer accepting proposals.
-                </div>
+                <EmptyState icon={Ban} compact title="Not accepting proposals" description="This project is no longer open for proposals." />
               ) : project.my_proposal_status ? (
                 <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>

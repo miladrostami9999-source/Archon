@@ -5,8 +5,10 @@ import Sidebar from '../components/Sidebar'
 import ContractChat from '../components/ContractChat'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
+import EmptyState from '../components/EmptyState'
+import LoadingState from '../components/LoadingState'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const POLL_MS = 10000
@@ -89,7 +91,7 @@ export default function MessagesPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
           <h1 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Messages</h1>
           {totalUnread > 0 && (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'white', background: '#EF4444', padding: '1px 7px', borderRadius: '999px' }}>{totalUnread}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'white', background: 'var(--error)', padding: '1px 7px', borderRadius: '999px' }}>{totalUnread}</span>
           )}
           <BetaTag />
         </div>
@@ -97,9 +99,9 @@ export default function MessagesPage() {
           {(['all', 'unread'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               style={{ padding: '4px 12px', borderRadius: '7px', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                border: '1px solid ' + (filter === f ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
-                background: filter === f ? 'rgba(61,79,224,0.15)' : 'transparent',
-                color: filter === f ? '#60A5FA' : 'var(--text-muted)' }}>
+                border: '1px solid ' + (filter === f ? 'var(--accent)' : 'var(--border)'),
+                background: filter === f ? 'var(--accent-dim)' : 'transparent',
+                color: filter === f ? 'var(--accent)' : 'var(--text-muted)' }}>
               {f}{f === 'unread' && totalUnread > 0 ? ` (${totalUnread})` : ''}
             </button>
           ))}
@@ -108,13 +110,13 @@ export default function MessagesPage() {
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {loading ? (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '20px 16px' }}>Loading…</p>
+          <div style={{ padding: '30px 0' }}><LoadingState /></div>
         ) : shown.length === 0 ? (
-          <p style={{ fontSize: '13px', color: 'var(--text-dim)', padding: '24px 16px', textAlign: 'center', lineHeight: 1.6 }}>
-            {filter === 'unread'
-              ? 'Nothing unread.'
-              : 'No conversations yet. A thread opens automatically once a proposal is accepted and a contract starts.'}
-          </p>
+          <div style={{ padding: '20px 16px' }}>
+            <EmptyState compact icon={MessageCircle}
+              title={filter === 'unread' ? 'Nothing unread' : 'No conversations yet'}
+              description={filter === 'unread' ? undefined : 'A thread opens automatically once a proposal is accepted and a contract starts.'} />
+          </div>
         ) : shown.map(c => {
           const on = c.conversation_id === selected
           const initials = (c.other_party_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
@@ -123,8 +125,8 @@ export default function MessagesPage() {
               style={{
                 width: '100%', display: 'flex', gap: '10px', alignItems: 'center', textAlign: 'left',
                 padding: '12px 16px', border: 'none', cursor: 'pointer',
-                borderLeft: `3px solid ${on ? '#3D4FE0' : 'transparent'}`,
-                background: on ? 'rgba(61,79,224,0.08)' : 'transparent',
+                borderLeft: `3px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                background: on ? 'var(--accent-dim)' : 'transparent',
                 borderBottom: '1px solid var(--border)',
               }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
@@ -148,7 +150,7 @@ export default function MessagesPage() {
                     {c.last_message ? `${c.last_message_mine ? 'You: ' : ''}${c.last_message}` : 'No messages yet'}
                   </span>
                   {c.unread > 0 && (
-                    <span style={{ flexShrink: 0, minWidth: '17px', height: '17px', padding: '0 5px', borderRadius: '999px', background: '#EF4444', color: 'white', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ flexShrink: 0, minWidth: '17px', height: '17px', padding: '0 5px', borderRadius: '999px', background: 'var(--error)', color: 'white', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {c.unread}
                     </span>
                   )}
@@ -170,7 +172,7 @@ export default function MessagesPage() {
         )}
         <div style={{ minWidth: 0 }}>
           <a href={`/members/${active.other_party_id}`}
-            style={{ fontSize: '14px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             {active.other_party_name}{active.other_party_verified && <VerifiedBadge size={13} />}
           </a>
           <p style={{ fontSize: '11.5px', color: 'var(--text-dim)', margin: 0 }}>
@@ -179,7 +181,7 @@ export default function MessagesPage() {
         </div>
         {active.contract_id && (
           <a href={`/contracts/${active.contract_id}`}
-            style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#60A5FA', textDecoration: 'none', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             Open contract <ArrowRight size={13} strokeWidth={1.75} />
           </a>
         )}

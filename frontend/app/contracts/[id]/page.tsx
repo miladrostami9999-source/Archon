@@ -6,8 +6,10 @@ import Sidebar from '../../components/Sidebar'
 import MarketplaceBeta from '../../components/MarketplaceBeta'
 import ContractChat from '../../components/ContractChat'
 import VerifiedBadge from '../../components/VerifiedBadge'
+import EmptyState from '../../components/EmptyState'
+import LoadingState from '../../components/LoadingState'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DollarSign, Paperclip, Check, Star, ArrowLeft } from 'lucide-react'
+import { DollarSign, Paperclip, Check, Star, ArrowLeft, SearchX } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -55,9 +57,9 @@ interface Contract {
 }
 
 const CONTRACT_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  active:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Active' },
-  completed: { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
-  disputed:  { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Disputed' },
+  active:    { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Active' },
+  completed: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
+  disputed:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
 }
 
@@ -67,11 +69,11 @@ const CONTRACT_STATUS_META: Record<string, { color: string; bg: string; label: s
 const MILESTONE_STEPS = ['pending', 'funded', 'delivered', 'approved', 'released']
 const MILESTONE_META: Record<string, { color: string; label: string }> = {
   pending:   { color: 'var(--text-dim)', label: 'Not funded yet' },
-  funded:    { color: '#60A5FA', label: 'Funded' },
-  delivered: { color: '#FBBF24', label: 'Delivered' },
-  approved:  { color: '#34D399', label: 'Approved' },
+  funded:    { color: 'var(--accent)', label: 'Funded' },
+  delivered: { color: 'var(--warning)', label: 'Delivered' },
+  approved:  { color: 'var(--success)', label: 'Approved' },
   released:  { color: '#A78BFA', label: 'Paid out' },
-  disputed:  { color: '#F87171', label: 'Disputed' },
+  disputed:  { color: 'var(--error)', label: 'Disputed' },
 }
 
 export default function ContractDetailPage() {
@@ -251,11 +253,9 @@ export default function ContractDetailPage() {
           <MarketplaceBeta />
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
+            <LoadingState fullPage />
           ) : notFound || !contract || !sm ? (
-            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-              Contract not found.
-            </div>
+            <EmptyState icon={SearchX} title="Contract not found" description="It may have been removed or the link is incorrect." />
           ) : (
             <>
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '18px' }}>
@@ -265,7 +265,7 @@ export default function ContractDetailPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: 'var(--text-dim)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={13} strokeWidth={1.75} />{contract.total_amount?.toLocaleString('en-US')} {contract.currency}</span>
-                  <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: '#60A5FA', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={12} />}</a></span>
+                  <span>With <a href={`/members/${contract.viewer_role === 'client' ? contract.freelancer_id : contract.client_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={12} />}</a></span>
                   <span style={{ textTransform: 'capitalize' }}>You're the {contract.viewer_role}</span>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function ContractDetailPage() {
                           <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</span>
                           {m.description && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{m.description}</p>}
                           {m.deliverable_url && (
-                            <a href={m.deliverable_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '12px', color: '#60A5FA', textDecoration: 'none' }}>
+                            <a href={m.deliverable_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '12px', color: 'var(--accent)', textDecoration: 'none' }}>
                               <Paperclip size={12} strokeWidth={1.75} />View delivered work
                             </a>
                           )}
@@ -342,8 +342,8 @@ export default function ContractDetailPage() {
                         <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                           {/* Send the money first, then record it here. */}
                           {pay && (pay.card_number || pay.paypal_email) ? (
-                            <div style={{ borderRadius: '10px', border: '1px solid rgba(61,79,224,0.25)', background: 'rgba(61,79,224,0.06)', padding: '12px 14px', marginBottom: '14px' }}>
-                              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#60A5FA', margin: '0 0 8px' }}>
+                            <div style={{ borderRadius: '10px', border: '1px solid var(--accent-dim)', background: 'rgba(61,79,224,0.06)', padding: '12px 14px', marginBottom: '14px' }}>
+                              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 8px' }}>
                                 Step 1 — transfer {m.amount.toLocaleString('en-US')} {contract.currency}
                               </p>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -355,7 +355,7 @@ export default function ContractDetailPage() {
                                       {pay.card_holder && <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{pay.card_holder}</div>}
                                     </div>
                                     <button onClick={() => copy('card', pay.card_number)}
-                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'card' ? 'var(--success)' : 'var(--accent)', background: 'transparent', border: `1px solid ${copied === 'card' ? 'rgba(63,185,131,0.4)' : 'var(--accent-dim)'}` }}>
                                       {copied === 'card' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={11} strokeWidth={2} />Copied</span> : 'Copy'}
                                     </button>
                                   </div>
@@ -367,7 +367,7 @@ export default function ContractDetailPage() {
                                       <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{pay.paypal_email}</div>
                                     </div>
                                     <button onClick={() => copy('paypal', pay.paypal_email)}
-                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? '#34D399' : '#60A5FA', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(52,211,153,0.4)' : 'rgba(61,79,224,0.3)'}` }}>
+                                      style={{ fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '7px', cursor: 'pointer', color: copied === 'paypal' ? 'var(--success)' : 'var(--accent)', background: 'transparent', border: `1px solid ${copied === 'paypal' ? 'rgba(63,185,131,0.4)' : 'var(--accent-dim)'}` }}>
                                       {copied === 'paypal' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={11} strokeWidth={2} />Copied</span> : 'Copy'}
                                     </button>
                                   </div>
@@ -379,7 +379,7 @@ export default function ContractDetailPage() {
                               </p>
                             </div>
                           ) : (
-                            <div style={{ borderRadius: '10px', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.07)', padding: '10px 12px', marginBottom: '14px', fontSize: '12px', color: '#FBBF24', lineHeight: 1.6 }}>
+                            <div style={{ borderRadius: '10px', border: '1px solid rgba(221,162,63,0.3)', background: 'rgba(221,162,63,0.07)', padding: '10px 12px', marginBottom: '14px', fontSize: '12px', color: 'var(--warning)', lineHeight: 1.6 }}>
                               No payment details are configured yet — an admin needs to add them in the Admin Panel before anyone can fund a milestone.
                             </div>
                           )}

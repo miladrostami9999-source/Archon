@@ -4,7 +4,10 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
+import EmptyState from '../components/EmptyState'
+import LoadingState from '../components/LoadingState'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { FileCheck2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -33,9 +36,9 @@ interface Contract {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  active:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Active' },
-  completed: { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
-  disputed:  { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Disputed' },
+  active:    { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Active' },
+  completed: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
+  disputed:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
 }
 
@@ -52,14 +55,16 @@ export default function ContractsPage() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)' }}>
       <Sidebar />
-      <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>My Contracts</h1>
-            <BetaTag />
-          </div>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
+
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', gap: '8px', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
+          <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>My Contracts</h1>
+          <BetaTag />
+        </div>
+
+        <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', maxWidth: '860px', margin: '0 auto' }}>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
             Every contract you're party to, whether you're the client or the freelancer.
           </p>
@@ -67,11 +72,10 @@ export default function ContractsPage() {
           <MarketplaceBeta />
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
+            <LoadingState fullPage />
           ) : contracts.length === 0 ? (
-            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-              No contracts yet. Accepting a proposal on a project you posted, or having your proposal accepted, creates one.
-            </div>
+            <EmptyState icon={FileCheck2} title="No contracts yet"
+              description="Accepting a proposal on a project you posted, or having your proposal accepted, creates one." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
               {contracts.map(c => {
@@ -81,8 +85,8 @@ export default function ContractsPage() {
                 const fundedCount = c.milestones.filter(m => m.status !== 'pending').length
                 return (
                   <a key={c.id} href={`/contracts/${c.id}`}
-                    style={{ display: 'block', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
+                    style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -94,7 +98,7 @@ export default function ContractsPage() {
                         <div style={{ fontSize: '12.5px', color: 'var(--text-dim)' }}>
                           With{' '}
                           <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${c.viewer_role === 'client' ? c.freelancer_id : c.client_id}` }}
-                            style={{ cursor: 'pointer', color: '#60A5FA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={11} />}</span>
+                            style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{otherParty || 'the other party'}{otherPartyVerified && <VerifiedBadge size={11} />}</span>
                           {' '}· {c.total_amount?.toLocaleString('en-US')} {c.currency}
                         </div>
                       </div>
@@ -108,7 +112,7 @@ export default function ContractsPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   )
 }

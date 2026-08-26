@@ -5,6 +5,7 @@ import Sidebar from '../../components/Sidebar'
 import AdminSideNav from '../../components/AdminSideNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { DatabaseBackup, CircleCheck, CircleX, Circle, Pencil, Trash2, AlertOctagon, AlertTriangle, Info } from 'lucide-react'
+import InlineStatus from '../../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('archon-token') || '' : ''
@@ -165,7 +166,7 @@ export default function SystemHealthPage() {
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: backing ? 0.6 : 1 }}>
                   <DatabaseBackup size={15} strokeWidth={1.5} /> {backing ? 'Backing up…' : 'Run backup now'}
                 </button>
-                {backMsg && <p style={{ fontSize: '11.5px', color: backMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)', margin: '8px 0 0' }}>{backMsg}</p>}
+                {backMsg && <div style={{ marginTop: '8px' }}><InlineStatus text={backMsg} size={11.5} /></div>}
               </div>
 
               <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>

@@ -7,6 +7,7 @@ import GrowthChart from '../components/GrowthChart'
 import AdminUsersPanel from '../components/AdminUsersPanel'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Upload, Download, RefreshCw, Flame, BookOpen, AlertTriangle, Users as UsersIcon } from 'lucide-react'
+import InlineStatus from '../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -223,7 +224,7 @@ export default function AdminPanel() {
                     {tool.label}
                   </button>
                   {'msg' in tool && tool.msg && (
-                    <p style={{ fontSize: '11px', color: tool.msg.startsWith('✗') ? 'var(--error)' : 'var(--success)', marginTop: '8px', marginBottom: 0, textAlign: 'center' }}>{tool.msg}</p>
+                    <div style={{ marginTop: '8px', textAlign: 'center' }}><InlineStatus text={tool.msg} size={11} /></div>
                   )}
                 </div>
               ))}

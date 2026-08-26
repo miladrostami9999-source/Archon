@@ -5,6 +5,7 @@ import Sidebar from '../../components/Sidebar'
 import AdminSideNav from '../../components/AdminSideNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import AdminSettingsDrawer from '../../components/AdminSettingsDrawer'
+import InlineStatus from '../../components/InlineStatus'
 import { BarChart3, Globe2, Trash2, Megaphone, CreditCard, Flag } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -327,7 +328,7 @@ export default function AdminSettingsPage() {
                   </div>
                 ))}
               </div>
-              {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)', marginTop: '12px', marginBottom: 0 }}>{limitMsg}</p>}
+              {limitMsg && <div style={{ marginTop: '12px' }}><InlineStatus text={limitMsg} /></div>}
             </AdminSettingsDrawer>
 
             <AdminSettingsDrawer title="Duplicate Countries" open={openDrawer === 'countries'} onClose={() => setOpenDrawer(null)}>
@@ -377,7 +378,7 @@ export default function AdminSettingsPage() {
                   Merge
                 </button>
               </div>
-              {mergeMsg && <p style={{ fontSize: '12px', color: mergeMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)', margin: '0' }}>{mergeMsg}</p>}
+              {mergeMsg && <InlineStatus text={mergeMsg} />}
             </AdminSettingsDrawer>
 
             <AdminSettingsDrawer title="Bulk Delete Companies" open={openDrawer === 'bulkDelete'} onClose={() => setOpenDrawer(null)}>
@@ -420,7 +421,7 @@ export default function AdminSettingsPage() {
                   style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'var(--error)', background: 'rgba(198,69,69,0.1)', border: '1px solid rgba(198,69,69,0.3)', cursor: 'pointer', opacity: (bulkDeleting || bulkPreview === 0) ? 0.5 : 1 }}>
                   {bulkDeleting ? 'Deleting…' : 'Delete matching companies'}
                 </button>
-                {bulkMsg && <span style={{ fontSize: '12px', color: bulkMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)' }}>{bulkMsg}</span>}
+                {bulkMsg && <InlineStatus text={bulkMsg} />}
               </div>
             </AdminSettingsDrawer>
 
@@ -483,7 +484,7 @@ export default function AdminSettingsPage() {
                   style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: (bcSending || bcPreview === 0 || !bcTitle.trim()) ? 0.5 : 1 }}>
                   {bcSending ? 'Sending…' : 'Send broadcast'}
                 </button>
-                {bcMsg && <span style={{ fontSize: '12px', color: bcMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)' }}>{bcMsg}</span>}
+                {bcMsg && <InlineStatus text={bcMsg} />}
               </div>
             </AdminSettingsDrawer>
 
@@ -538,7 +539,7 @@ export default function AdminSettingsPage() {
                 style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: savingInstr ? 0.6 : 1 }}>
                 {savingInstr ? 'Saving…' : 'Save instructions'}
               </button>
-              {limitMsg && <p style={{ fontSize: '12px', color: limitMsg.startsWith('✓') ? 'var(--success)' : 'var(--error)', marginTop: '10px', marginBottom: 0 }}>{limitMsg}</p>}
+              {limitMsg && <div style={{ marginTop: '10px' }}><InlineStatus text={limitMsg} /></div>}
             </AdminSettingsDrawer>
 
             <AdminSettingsDrawer title="Feature Flags" open={openDrawer === 'flags'} onClose={() => setOpenDrawer(null)}>

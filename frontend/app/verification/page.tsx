@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import { BetaTag } from '../components/MarketplaceBeta'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Paperclip } from 'lucide-react'
+import InlineStatus from '../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -149,7 +150,7 @@ export default function VerificationPage() {
                 )}
               </div>
 
-              {msg && <p style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171', marginBottom: '14px' }}>{msg}</p>}
+              {msg && <div style={{ marginBottom: '14px' }}><InlineStatus text={msg} /></div>}
 
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '14px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '14px' }}>Who you are</p>

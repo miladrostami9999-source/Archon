@@ -4,6 +4,7 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Paperclip } from 'lucide-react'
+import InlineStatus from '../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -91,7 +92,7 @@ export default function PaymentsPage() {
           </p>
 
           {msg && (
-            <div style={{ fontSize: '12.5px', color: msg.startsWith('✓') ? '#34D399' : '#F87171', marginBottom: '14px' }}>{msg}</div>
+            <div style={{ marginBottom: '14px' }}><InlineStatus text={msg} /></div>
           )}
 
           {loading ? (

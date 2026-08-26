@@ -4,8 +4,10 @@ import axios from 'axios'
 import Sidebar from '../components/Sidebar'
 import MarketplaceBeta, { BetaTag } from '../components/MarketplaceBeta'
 import VerifiedBadge from '../components/VerifiedBadge'
+import EmptyState from '../components/EmptyState'
+import LoadingState from '../components/LoadingState'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { DollarSign, Calendar, Plus } from 'lucide-react'
+import { DollarSign, Calendar, Plus, Briefcase } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -30,16 +32,16 @@ interface Project {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  open:        { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)', label: 'Open' },
-  in_progress: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'In progress' },
-  completed:   { color: '#34D399', bg: 'rgba(52,211,153,0.12)', label: 'Completed' },
-  cancelled:   { color: '#F87171', bg: 'rgba(248,113,113,0.12)', label: 'Cancelled' },
+  open:        { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Open' },
+  in_progress: { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'In progress' },
+  completed:   { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
+  cancelled:   { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Cancelled' },
 }
 
 const PROPOSAL_STATUS_META: Record<string, { color: string; label: string }> = {
-  pending:   { color: '#FBBF24', label: 'Proposal pending' },
-  accepted:  { color: '#34D399', label: 'Proposal accepted' },
-  rejected:  { color: '#F87171', label: 'Proposal rejected' },
+  pending:   { color: 'var(--warning)', label: 'Proposal pending' },
+  accepted:  { color: 'var(--success)', label: 'Proposal accepted' },
+  rejected:  { color: 'var(--error)', label: 'Proposal rejected' },
   withdrawn: { color: 'var(--text-dim)', label: 'Proposal withdrawn' },
 }
 
@@ -109,27 +111,28 @@ export default function ProjectsPage() {
 
   const input: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)',
-    border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px',
+    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '9px 11px',
     fontSize: '13px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit',
   }
   const label: React.CSSProperties = { display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)' }}>
       <Sidebar />
-      <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', height: '100vh', overflowY: 'auto', padding: isMobile ? '72px 16px 32px' : '32px 40px' }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', minWidth: 0, marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflowY: 'auto' }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Projects</h1>
-              <BetaTag />
-            </div>
-            <button onClick={() => setShowPost(s => !s)}
-              style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
-              {showPost ? 'Cancel' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Plus size={14} strokeWidth={2} />Post a Project</span>}
-            </button>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 16px' : '0 32px', height: '56px', background: 'var(--bg-main)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Projects</h1>
+            <BetaTag />
           </div>
+          <button onClick={() => setShowPost(s => !s)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+            {showPost ? 'Cancel' : <><Plus size={14} strokeWidth={2} /> {isMobile ? 'Post' : 'Post a Project'}</>}
+          </button>
+        </div>
+
+        <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', maxWidth: '860px', margin: '0 auto' }}>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 18px' }}>
             {accountMode === 'client'
               ? 'Post a project to get proposals from freelancers. You can also browse the open board and propose on other people’s work.'
@@ -139,7 +142,7 @@ export default function ProjectsPage() {
           <MarketplaceBeta />
 
           {showPost && (
-            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px', marginBottom: '20px' }}>
+            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px', marginBottom: '20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={label}>Title</label>
@@ -178,7 +181,7 @@ export default function ProjectsPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button onClick={submitPost} disabled={posting}
-                  style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
+                  style={{ padding: '9px 20px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: posting ? 0.6 : 1 }}>
                   {posting ? 'Posting…' : 'Post project'}
                 </button>
                 {postMsg && <span style={{ fontSize: '12.5px', color: 'var(--error)' }}>{postMsg}</span>}
@@ -189,21 +192,21 @@ export default function ProjectsPage() {
           <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
             {(['open', 'mine'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-                  border: '1px solid ' + (tab === t ? 'rgba(61,79,224,0.4)' : 'var(--border)'),
-                  background: tab === t ? 'rgba(61,79,224,0.15)' : 'transparent',
-                  color: tab === t ? '#60A5FA' : 'var(--text-muted)' }}>
+                style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+                  border: '1px solid ' + (tab === t ? 'var(--accent)' : 'var(--border)'),
+                  background: tab === t ? 'var(--accent-dim)' : 'transparent',
+                  color: tab === t ? 'var(--accent)' : 'var(--text-muted)' }}>
                 {t === 'open' ? 'Open board' : 'My projects'}
               </button>
             ))}
           </div>
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading…</p>
+            <LoadingState fullPage />
           ) : projects.length === 0 ? (
-            <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-              {tab === 'open' ? 'No open projects right now.' : "You haven't posted any projects yet."}
-            </div>
+            <EmptyState icon={Briefcase}
+              title={tab === 'open' ? 'No open projects right now' : "You haven't posted any projects yet"}
+              description={tab === 'open' ? 'Check back soon, or post your own project to get started.' : 'Post a project to start receiving proposals from freelancers.'} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
               {projects.map(p => {
@@ -212,8 +215,8 @@ export default function ProjectsPage() {
                 const proposalMeta = p.my_proposal_status ? PROPOSAL_STATUS_META[p.my_proposal_status] : null
                 return (
                   <a key={p.id} href={`/projects/${p.id}`}
-                    style={{ display: 'block', borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(61,79,224,0.35)' }}
+                    style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -232,7 +235,7 @@ export default function ProjectsPage() {
                           {p.deadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} strokeWidth={1.75} />{new Date(p.deadline).toLocaleDateString()}</span>}
                           {!p.is_owner && (
                             <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
-                              style={{ cursor: 'pointer', color: '#60A5FA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               Posted by {p.client_name || 'a client'}{p.client_verified && <VerifiedBadge size={11} />}
                             </span>
                           )}
@@ -252,7 +255,7 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
