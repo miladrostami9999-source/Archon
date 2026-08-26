@@ -13,6 +13,7 @@ class ProjectCreate(BaseModel):
     deadline: Optional[datetime] = None
     skills: Optional[List[str]] = None
     experience_level: Optional[str] = None  # entry | intermediate | expert
+    location: Optional[str] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -26,6 +27,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = None  # open | in_progress | completed | cancelled
     skills: Optional[List[str]] = None
     experience_level: Optional[str] = None
+    location: Optional[str] = None
 
 
 class ProposalCreate(BaseModel):

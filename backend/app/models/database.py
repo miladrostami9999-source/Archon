@@ -474,7 +474,23 @@ class Project(Base):
     status      = Column(String, default="open", index=True)  # open | in_progress | completed | cancelled
     skills      = Column(Text, nullable=True)  # JSON list of strings, e.g. ["3D Rendering","Vray"]
     experience_level = Column(String, nullable=True)  # entry | intermediate | expert
+    location    = Column(String, nullable=True)
     created_at  = Column(DateTime, default=datetime.utcnow)
+
+
+class ProjectSave(Base):
+    """A freelancer bookmarking a project to look at later — the heart/save
+    icon on a job card. Its own table rather than a column on Project since
+    it's a many-to-many (many users can save the same project)."""
+    __tablename__ = "mp_project_saves"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("mp_projects.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "project_id", name="uq_project_save"),
+    )
 
 
 class Proposal(Base):
@@ -896,6 +912,9 @@ def init_db():
                     conn.commit()
                 if "experience_level" not in project_cols:
                     conn.execute(_text("ALTER TABLE mp_projects ADD COLUMN experience_level VARCHAR"))
+                    conn.commit()
+                if "location" not in project_cols:
+                    conn.execute(_text("ALTER TABLE mp_projects ADD COLUMN location VARCHAR"))
                     conn.commit()
 
             if _inspector.has_table("mp_milestones"):

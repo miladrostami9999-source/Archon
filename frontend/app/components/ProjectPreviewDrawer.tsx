@@ -1,6 +1,6 @@
 'use client'
 import { useEffect } from 'react'
-import { X, ArrowRight, DollarSign, Calendar, Users, FileText, BarChart3 } from 'lucide-react'
+import { X, ArrowRight, DollarSign, Calendar, Users, FileText, BarChart3, MapPin, Star, ShieldCheck, Heart } from 'lucide-react'
 import VerifiedBadge from './VerifiedBadge'
 
 interface Project {
@@ -16,12 +16,17 @@ interface Project {
   status: string
   skills: string[]
   experience_level: string | null
+  location: string | null
   days_open: number
   client_id: number
   client_name: string | null
   client_verified: boolean
   client_posted_projects_count: number
+  client_rating: number | null
+  client_review_count: number
+  client_total_spent: number
   is_owner: boolean
+  is_saved: boolean
   proposal_count: number
   my_proposal_status: string | null
 }
@@ -59,7 +64,7 @@ const section: React.CSSProperties = { padding: '18px 24px', borderTop: '1px sol
  * split into clearly divided sections (per Milad's feedback that the first
  * pass felt cramped and undifferentiated). The list already has the full
  * project object per row, so this needs no fetch of its own. */
-export default function ProjectPreviewDrawer({ project, onClose }: { project: Project | null; onClose: () => void }) {
+export default function ProjectPreviewDrawer({ project, onClose, onToggleSave }: { project: Project | null; onClose: () => void; onToggleSave?: (projectId: number) => void }) {
   useEffect(() => {
     if (!project) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -84,9 +89,17 @@ export default function ProjectPreviewDrawer({ project, onClose }: { project: Pr
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quick preview</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex', borderRadius: 'var(--radius-sm)' }}>
-            <X size={18} strokeWidth={1.5} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {!project.is_owner && onToggleSave && (
+              <button onClick={() => onToggleSave(project.id)} title={project.is_saved ? 'Remove from saved' : 'Save project'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', color: project.is_saved ? 'var(--error)' : 'var(--text-muted)' }}>
+                <Heart size={18} strokeWidth={1.75} fill={project.is_saved ? 'currentColor' : 'none'} />
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex', borderRadius: 'var(--radius-sm)' }}>
+              <X size={18} strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -137,6 +150,11 @@ export default function ProjectPreviewDrawer({ project, onClose }: { project: Pr
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 <BarChart3 size={15} strokeWidth={1.75} color="var(--text-dim)" />Posted {project.days_open === 0 ? 'today' : `${project.days_open}d ago`}
               </span>
+              {project.location && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <MapPin size={15} strokeWidth={1.75} color="var(--text-dim)" />{project.location}
+                </span>
+              )}
             </div>
           </div>
 
@@ -151,6 +169,23 @@ export default function ProjectPreviewDrawer({ project, onClose }: { project: Pr
                 <FileText size={15} strokeWidth={1.75} color="var(--text-dim)" />
                 {project.client_posted_projects_count} {project.client_posted_projects_count === 1 ? 'project posted' : 'projects posted'} by this client
               </span>
+              {project.client_verified && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={15} strokeWidth={1.75} color="var(--accent)" />Payment verified
+                </span>
+              )}
+              {project.client_rating != null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <Star size={15} strokeWidth={1.75} fill="currentColor" color="var(--warning)" />
+                  {project.client_rating.toFixed(1)} rating{project.client_review_count > 0 ? ` (${project.client_review_count} reviews)` : ''}
+                </span>
+              )}
+              {project.client_total_spent > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <DollarSign size={15} strokeWidth={1.75} color="var(--text-dim)" />
+                  {project.client_total_spent >= 1000 ? `$${Math.floor(project.client_total_spent / 1000)}K+ spent` : `$${Math.round(project.client_total_spent)}+ spent`}
+                </span>
+              )}
               {!project.is_owner && (
                 <span onClick={() => { window.location.href = `/members/${project.client_id}` }}
                   style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>

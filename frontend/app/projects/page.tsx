@@ -8,7 +8,7 @@ import EmptyState from '../components/EmptyState'
 import LoadingState from '../components/LoadingState'
 import ProjectPreviewDrawer from '../components/ProjectPreviewDrawer'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { DollarSign, Calendar, Plus, Briefcase, X } from 'lucide-react'
+import { Calendar, Plus, Briefcase, X, Search, Heart, ShieldCheck, Star, MapPin, Bookmark } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -25,13 +25,18 @@ interface Project {
   status: string
   skills: string[]
   experience_level: string | null
+  location: string | null
   created_at: string
   days_open: number
   client_id: number
   client_name: string | null
   client_verified: boolean
   client_posted_projects_count: number
+  client_rating: number | null
+  client_review_count: number
+  client_total_spent: number
   is_owner: boolean
+  is_saved: boolean
   proposal_count: number
   my_proposal_status: string | null
   my_proposal_id: number | null
@@ -59,9 +64,31 @@ const budgetLabel = (p: Project) => {
   return `${(p.budget_min || p.budget_max)!.toLocaleString('en-US')} ${p.currency}`
 }
 
+// Precise, ticking "posted X ago" — refined down to minutes for a fresh
+// post, exactly the granularity a live marketplace board needs so a
+// two-minute-old listing doesn't read the same as a two-day-old one.
+const relativeTime = (iso: string, now: number) => {
+  const diffMs = now - new Date(iso).getTime()
+  const m = Math.floor(diffMs / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d} day${d === 1 ? '' : 's'} ago`
+  const mo = Math.floor(d / 30)
+  return `${mo} month${mo === 1 ? '' : 's'} ago`
+}
+
+const formatSpent = (amount: number) => {
+  if (amount <= 0) return null
+  if (amount >= 1000) return `$${Math.floor(amount / 1000)}K+ spent`
+  return `$${Math.round(amount)}+ spent`
+}
+
 export default function ProjectsPage() {
   const isMobile = useIsMobile()
-  const [tab, setTab] = useState<'open' | 'mine'>('open')
+  const [tab, setTab] = useState<'open' | 'mine' | 'saved'>('open')
   // Which view leads. A client lands on the projects they've posted (where
   // proposals arrive); a freelancer lands on the open board. Either can use
   // both tabs — this only picks the starting one.
@@ -72,9 +99,11 @@ export default function ProjectsPage() {
   const [previewProject, setPreviewProject] = useState<Project | null>(null)
   const [posting, setPosting] = useState(false)
   const [postMsg, setPostMsg] = useState('')
+  const [search, setSearch] = useState('')
+  const [now, setNow] = useState(() => Date.now())
   const [form, setForm] = useState({
     title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '',
-    experience_level: '', skillsInput: '', skills: [] as string[],
+    experience_level: '', location: '', skillsInput: '', skills: [] as string[],
   })
 
   const addSkill = () => {
@@ -85,13 +114,34 @@ export default function ProjectsPage() {
   const removeSkill = (s: string) => setForm(f => ({ ...f, skills: f.skills.filter(x => x !== s) }))
 
   const load = () => {
-    setLoading(true)
-    axios.get(`${API}/marketplace/projects`, { params: tab === 'mine' ? { mine: true } : {} })
+    const params: Record<string, any> = {}
+    if (tab === 'mine') params.mine = true
+    else if (tab === 'saved') params.saved = true
+    if (search.trim()) params.q = search.trim()
+    axios.get(`${API}/marketplace/projects`, { params })
       .then(r => setProjects(r.data))
       .catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [tab])
+  // Debounced so keystrokes don't each fire a request; also the vehicle for
+  // "posted X ago" and proposal counts to stay live without a manual reload.
+  useEffect(() => {
+    setLoading(true)
+    const t = setTimeout(load, search ? 350 : 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, search])
+
+  useEffect(() => {
+    const poll = setInterval(load, 30000)
+    return () => clearInterval(poll)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, search])
+
+  useEffect(() => {
+    const clock = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(clock)
+  }, [])
 
   useEffect(() => {
     axios.get(`${API}/auth/me`)
@@ -102,6 +152,13 @@ export default function ProjectsPage() {
       })
       .catch(() => setAccountMode('freelancer'))
   }, [])
+
+  const toggleSave = (projectId: number) => {
+    setProjects(ps => ps.map(p => p.id === projectId ? { ...p, is_saved: !p.is_saved } : p))
+    axios.post(`${API}/marketplace/projects/${projectId}/save`).catch(() => {
+      setProjects(ps => ps.map(p => p.id === projectId ? { ...p, is_saved: !p.is_saved } : p))
+    })
+  }
 
   const submitPost = async () => {
     if (!form.title.trim()) { setPostMsg('Title is required'); return }
@@ -117,8 +174,9 @@ export default function ProjectsPage() {
         deadline: form.deadline || null,
         skills: form.skills.length ? form.skills : null,
         experience_level: form.experience_level || null,
+        location: form.location.trim() || null,
       })
-      setForm({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', skillsInput: '', skills: [] })
+      setForm({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', location: '', skillsInput: '', skills: [] })
       setShowPost(false)
       setTab('mine')
       load()
@@ -176,7 +234,7 @@ export default function ProjectsPage() {
                 <label style={label}>Description</label>
                 <textarea rows={4} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What do you need done?" style={{ ...input, resize: 'vertical' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={label}>Budget min</label>
                   <input type="number" value={form.budget_min} onChange={e => setForm(f => ({ ...f, budget_min: e.target.value }))} placeholder="0" style={input} />
@@ -198,7 +256,7 @@ export default function ProjectsPage() {
                   <input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} style={input} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={label}>Experience level</label>
                   <select value={form.experience_level} onChange={e => setForm(f => ({ ...f, experience_level: e.target.value }))} style={input}>
@@ -209,23 +267,27 @@ export default function ProjectsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={label}>Skills needed</label>
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: form.skills.length ? '8px' : 0 }}>
-                    <input value={form.skillsInput} onChange={e => setForm(f => ({ ...f, skillsInput: e.target.value }))}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill() } }}
-                      placeholder="e.g. 3D Rendering, Vray — press Enter" style={input} />
-                  </div>
-                  {form.skills.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {form.skills.map(s => (
-                        <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 6px 3px 9px', borderRadius: '999px' }}>
-                          {s}
-                          <button onClick={() => removeSkill(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0 }}><X size={11} strokeWidth={2} /></button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <label style={label}>Location <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
+                  <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Remote, or Dubai, UAE" style={input} />
                 </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={label}>Skills needed</label>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: form.skills.length ? '8px' : 0 }}>
+                  <input value={form.skillsInput} onChange={e => setForm(f => ({ ...f, skillsInput: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill() } }}
+                    placeholder="e.g. 3D Rendering, Vray — press Enter" style={input} />
+                </div>
+                {form.skills.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {form.skills.map(s => (
+                      <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 6px 3px 9px', borderRadius: '999px' }}>
+                        {s}
+                        <button onClick={() => removeSkill(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0 }}><X size={11} strokeWidth={2} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button onClick={submitPost} disabled={posting}
@@ -237,79 +299,116 @@ export default function ProjectsPage() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-            {(['open', 'mine'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-                  border: '1px solid ' + (tab === t ? 'var(--accent)' : 'var(--border)'),
-                  background: tab === t ? 'var(--accent-dim)' : 'transparent',
-                  color: tab === t ? 'var(--accent)' : 'var(--text-muted)' }}>
-                {t === 'open' ? 'Open board' : 'My projects'}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {(['open', 'mine', 'saved'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    border: '1px solid ' + (tab === t ? 'var(--accent)' : 'var(--border)'),
+                    background: tab === t ? 'var(--accent-dim)' : 'transparent',
+                    color: tab === t ? 'var(--accent)' : 'var(--text-muted)' }}>
+                  {t === 'saved' && <Bookmark size={12} strokeWidth={2} />}
+                  {t === 'open' ? 'Open board' : t === 'mine' ? 'My projects' : 'Saved'}
+                </button>
+              ))}
+            </div>
+            <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+              <Search size={14} strokeWidth={1.75} color="var(--text-dim)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects by keyword, skill, category…"
+                style={{ ...input, paddingLeft: '32px' }} />
+            </div>
           </div>
 
           {loading ? (
             <LoadingState fullPage />
           ) : projects.length === 0 ? (
-            <EmptyState icon={Briefcase}
-              title={tab === 'open' ? 'No open projects right now' : "You haven't posted any projects yet"}
-              description={tab === 'open' ? 'Check back soon, or post your own project to get started.' : 'Post a project to start receiving proposals from freelancers.'} />
+            <EmptyState icon={tab === 'saved' ? Bookmark : Briefcase}
+              title={search ? 'No projects match your search' : tab === 'open' ? 'No open projects right now' : tab === 'saved' ? 'No saved projects yet' : "You haven't posted any projects yet"}
+              description={search ? 'Try a different keyword.' : tab === 'open' ? 'Check back soon, or post your own project to get started.' : tab === 'saved' ? 'Save a project from the open board to find it here later.' : 'Post a project to start receiving proposals from freelancers.'} />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '32px' }}>
               {projects.map(p => {
                 const sm = STATUS_META[p.status] || STATUS_META.open
                 const budget = budgetLabel(p)
                 const proposalMeta = p.my_proposal_status ? PROPOSAL_STATUS_META[p.my_proposal_status] : null
+                const spent = formatSpent(p.client_total_spent)
                 return (
                   <a key={p.id} href={`/projects/${p.id}`}
                     onClick={e => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { e.preventDefault(); setPreviewProject(p) } }}
-                    style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '16px 18px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+                    style={{ display: 'block', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '18px 20px', textDecoration: 'none', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text)' }}>{p.title}</span>
-                          <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
-                          {p.category && <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>{p.category}</span>}
-                        </div>
-                        {p.description && (
-                          <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                            {p.description}
-                          </p>
-                        )}
-                        {p.skills?.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
-                            {p.skills.slice(0, 5).map(s => <span key={s} style={{ fontSize: '10.5px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '999px' }}>{s}</span>)}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-dim)' }}>
-                          {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12} strokeWidth={1.75} />{budget}</span>}
-                          {p.deadline && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: p.deadline_days_left != null && p.deadline_days_left <= 3 ? 'var(--warning)' : 'var(--text-dim)' }}>
-                              <Calendar size={12} strokeWidth={1.75} />{new Date(p.deadline).toLocaleDateString()}
-                            </span>
-                          )}
-                          {p.experience_level && EXPERIENCE_META[p.experience_level] && (
-                            <span>{EXPERIENCE_META[p.experience_level]}</span>
-                          )}
-                          {!p.is_owner && (
-                            <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
-                              style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              Posted by {p.client_name || 'a client'}{p.client_verified && <VerifiedBadge size={11} />}
-                            </span>
-                          )}
-                        </div>
+
+                    {/* Top row: freshness + proposal count on the left, save on the right */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>
+                          Posted {relativeTime(p.created_at, now)} · {p.proposal_count} {p.proposal_count === 1 ? 'proposal' : 'proposals'}
+                        </span>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        {p.is_owner ? (
-                          <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{p.proposal_count} {p.proposal_count === 1 ? 'proposal' : 'proposals'}</span>
-                        ) : proposalMeta ? (
-                          <span style={{ fontSize: '11.5px', fontWeight: 600, color: proposalMeta.color }}>{proposalMeta.label}</span>
-                        ) : null}
-                      </div>
+                      {!p.is_owner && (
+                        <button onClick={e => { e.preventDefault(); e.stopPropagation(); toggleSave(p.id) }}
+                          title={p.is_saved ? 'Remove from saved' : 'Save project'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', color: p.is_saved ? 'var(--error)' : 'var(--text-dim)', flexShrink: 0 }}>
+                          <Heart size={17} strokeWidth={1.75} fill={p.is_saved ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
                     </div>
+
+                    {/* Title, larger than everything else on the card */}
+                    <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', lineHeight: 1.35 }}>{p.title}</h3>
+
+                    {/* Terms subline */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                      <span>Fixed-price</span>
+                      {p.experience_level && EXPERIENCE_META[p.experience_level] && <><span>·</span><span>{EXPERIENCE_META[p.experience_level]}</span></>}
+                      {budget && <><span>·</span><span>Est. Budget: {budget}</span></>}
+                    </div>
+
+                    {p.description && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 10px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        {p.description}
+                      </p>
+                    )}
+
+                    {p.skills?.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                        {p.skills.slice(0, 6).map(s => <span key={s} style={{ fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 10px', borderRadius: '999px' }}>{s}</span>)}
+                      </div>
+                    )}
+
+                    {/* Client trust row — the hiring signal a freelancer decides on */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-muted)', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+                      {p.client_verified && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ShieldCheck size={13} strokeWidth={1.75} color="var(--accent)" />Payment verified</span>
+                      )}
+                      {p.client_rating != null && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Star size={13} strokeWidth={1.75} fill="currentColor" color="var(--warning)" />{p.client_rating.toFixed(1)}{p.client_review_count > 0 ? ` (${p.client_review_count})` : ''}</span>
+                      )}
+                      {spent && <span>{spent}</span>}
+                      {p.location && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={13} strokeWidth={1.75} color="var(--text-dim)" />{p.location}</span>
+                      )}
+                      {proposalMeta && <span style={{ color: proposalMeta.color, fontWeight: 600, marginLeft: 'auto' }}>{proposalMeta.label}</span>}
+                      {p.is_owner && (
+                        <span onClick={e => { e.preventDefault() }} style={{ marginLeft: 'auto', color: 'var(--text)', fontWeight: 600 }}>
+                          {p.proposal_count} {p.proposal_count === 1 ? 'proposal' : 'proposals'}
+                        </span>
+                      )}
+                      {!p.is_owner && !proposalMeta && (
+                        <span onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `/members/${p.client_id}` }}
+                          style={{ marginLeft: 'auto', cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {p.client_name || 'a client'}{p.client_verified && <VerifiedBadge size={11} />}
+                        </span>
+                      )}
+                    </div>
+
+                    {p.deadline && (
+                      <div style={{ marginTop: '8px', fontSize: '11.5px', color: p.deadline_days_left != null && p.deadline_days_left <= 3 ? 'var(--warning)' : 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={12} strokeWidth={1.75} />Due {new Date(p.deadline).toLocaleDateString()}
+                      </div>
+                    )}
                   </a>
                 )
               })}
@@ -317,7 +416,8 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
-      <ProjectPreviewDrawer project={previewProject} onClose={() => setPreviewProject(null)} />
+      <ProjectPreviewDrawer project={previewProject} onClose={() => setPreviewProject(null)}
+        onToggleSave={id => { toggleSave(id); setPreviewProject(p => p ? { ...p, is_saved: !p.is_saved } : p) }} />
     </div>
   )
 }

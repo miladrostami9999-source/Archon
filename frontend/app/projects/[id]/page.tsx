@@ -9,7 +9,7 @@ import EmptyState from '../../components/EmptyState'
 import LoadingState from '../../components/LoadingState'
 import AcceptProposalModal from '../../components/AcceptProposalModal'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft, SearchX, Inbox, Ban, X, Users, FileText } from 'lucide-react'
+import { DollarSign, Calendar, Star, CheckCircle2, Paperclip, ArrowLeft, SearchX, Inbox, Ban, X, Users, FileText, MapPin, ShieldCheck, Heart } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -26,13 +26,18 @@ interface Project {
   status: string
   skills: string[]
   experience_level: string | null
+  location: string | null
   created_at: string
   days_open: number
   client_id: number
   client_name: string | null
   client_verified: boolean
   client_posted_projects_count: number
+  client_rating: number | null
+  client_review_count: number
+  client_total_spent: number
   is_owner: boolean
+  is_saved: boolean
   proposal_count: number
   my_proposal_status: string | null
   my_proposal_id: number | null
@@ -88,7 +93,7 @@ export default function ProjectDetailPage() {
   const [sample, setSample] = useState<{ url: string; name: string } | null>(null)
   const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', skillsInput: '', skills: [] as string[] })
+  const [editForm, setEditForm] = useState({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', location: '', skillsInput: '', skills: [] as string[] })
 
   const addSkill = () => {
     const s = editForm.skillsInput.trim()
@@ -108,6 +113,7 @@ export default function ProjectDetailPage() {
       currency: project.currency,
       deadline: project.deadline ? project.deadline.slice(0, 10) : '',
       experience_level: project.experience_level || '',
+      location: project.location || '',
       skillsInput: '',
       skills: project.skills || [],
     })
@@ -128,6 +134,7 @@ export default function ProjectDetailPage() {
         deadline: editForm.deadline || null,
         skills: editForm.skills,
         experience_level: editForm.experience_level || null,
+        location: editForm.location.trim() || null,
       })
       setEditing(false)
       setMsg('Project updated')
@@ -145,6 +152,16 @@ export default function ProjectDetailPage() {
     } catch (e: any) {
       setMsg(e.response?.data?.detail || 'Could not delete')
       setBusy(null)
+    }
+  }
+
+  const toggleSave = async () => {
+    if (!project) return
+    setProject(p => p ? { ...p, is_saved: !p.is_saved } : p)
+    try {
+      await axios.post(`${API}/marketplace/projects/${id}/save`)
+    } catch {
+      setProject(p => p ? { ...p, is_saved: !p.is_saved } : p)
     }
   }
 
@@ -299,7 +316,7 @@ export default function ProjectDetailPage() {
                   <input type="date" value={editForm.deadline} onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))} style={input} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={label}>Experience level</label>
                   <select value={editForm.experience_level} onChange={e => setEditForm(f => ({ ...f, experience_level: e.target.value }))} style={input}>
@@ -310,21 +327,25 @@ export default function ProjectDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={label}>Skills needed</label>
-                  <input value={editForm.skillsInput} onChange={e => setEditForm(f => ({ ...f, skillsInput: e.target.value }))}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill() } }}
-                    placeholder="e.g. 3D Rendering, Vray — press Enter" style={{ ...input, marginBottom: editForm.skills.length ? '8px' : 0 }} />
-                  {editForm.skills.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {editForm.skills.map(s => (
-                        <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 6px 3px 9px', borderRadius: '999px' }}>
-                          {s}
-                          <button onClick={() => removeSkill(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0 }}><X size={11} strokeWidth={2} /></button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <label style={label}>Location <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
+                  <input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Remote, or Dubai, UAE" style={input} />
                 </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={label}>Skills needed</label>
+                <input value={editForm.skillsInput} onChange={e => setEditForm(f => ({ ...f, skillsInput: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill() } }}
+                  placeholder="e.g. 3D Rendering, Vray — press Enter" style={{ ...input, marginBottom: editForm.skills.length ? '8px' : 0 }} />
+                {editForm.skills.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {editForm.skills.map(s => (
+                      <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '3px 6px 3px 9px', borderRadius: '999px' }}>
+                        {s}
+                        <button onClick={() => removeSkill(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', padding: 0 }}><X size={11} strokeWidth={2} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <button onClick={saveEdit} disabled={busy === 'submit'}
@@ -341,18 +362,25 @@ export default function ProjectDetailPage() {
           ) : (
             <>
               <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', marginBottom: '18px' }}>
-                {project.is_owner && (
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '10px' }}>
-                    <button onClick={startEdit}
-                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
-                      Edit
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                  {project.is_owner ? (
+                    <>
+                      <button onClick={startEdit}
+                        style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
+                        Edit
+                      </button>
+                      <button onClick={deleteProject} disabled={busy === 'submit'}
+                        style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--error)', background: 'rgba(228,114,111,0.08)', border: '1px solid rgba(228,114,111,0.22)', cursor: 'pointer' }}>
+                        Delete
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={toggleSave} title={project.is_saved ? 'Remove from saved' : 'Save project'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', color: project.is_saved ? 'var(--error)' : 'var(--text-dim)' }}>
+                      <Heart size={18} strokeWidth={1.75} fill={project.is_saved ? 'currentColor' : 'none'} />
                     </button>
-                    <button onClick={deleteProject} disabled={busy === 'submit'}
-                      style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--error)', background: 'rgba(228,114,111,0.08)', border: '1px solid rgba(228,114,111,0.22)', cursor: 'pointer' }}>
-                      Delete
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                   <h1 style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{project.title}</h1>
                   <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: (STATUS_META[project.status] || STATUS_META.open).color, background: (STATUS_META[project.status] || STATUS_META.open).bg }}>
@@ -377,6 +405,9 @@ export default function ProjectDetailPage() {
                   {project.experience_level && EXPERIENCE_META[project.experience_level] && (
                     <span>{EXPERIENCE_META[project.experience_level]}</span>
                   )}
+                  {project.location && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={13} strokeWidth={1.75} />{project.location}</span>
+                  )}
                   {!project.is_owner && (
                     <span>Posted by <a href={`/members/${project.client_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={11} />}</a></span>
                   )}
@@ -397,6 +428,23 @@ export default function ProjectDetailPage() {
                   <Calendar size={13} strokeWidth={1.75} color="var(--text-dim)" />
                   Posted {project.days_open === 0 ? 'today' : `${project.days_open}d ago`}
                 </div>
+                {project.client_verified && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                    <ShieldCheck size={13} strokeWidth={1.75} color="var(--accent)" />Payment verified
+                  </div>
+                )}
+                {project.client_rating != null && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                    <Star size={13} strokeWidth={1.75} fill="currentColor" color="var(--warning)" />
+                    {project.client_rating.toFixed(1)}{project.client_review_count > 0 ? ` (${project.client_review_count})` : ''}
+                  </div>
+                )}
+                {project.client_total_spent > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                    <DollarSign size={13} strokeWidth={1.75} color="var(--text-dim)" />
+                    {project.client_total_spent >= 1000 ? `$${Math.floor(project.client_total_spent / 1000)}K+ spent` : `$${Math.round(project.client_total_spent)}+ spent`}
+                  </div>
+                )}
               </div>
 
               {msg && <p style={{ fontSize: '12.5px', color: /accepted|submitted/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
