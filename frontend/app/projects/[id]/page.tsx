@@ -59,6 +59,7 @@ interface Proposal {
   freelancer_completed_contracts: number
   cover_letter: string | null
   attachment_url: string | null
+  highlighted_portfolio: { id: string; title: string; image?: string }[]
   proposed_amount: number | null
   proposed_days: number | null
   status: string
@@ -89,9 +90,6 @@ export default function ProjectDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [busy, setBusy] = useState<number | 'submit' | null>(null)
   const [msg, setMsg] = useState('')
-  const [form, setForm] = useState({ cover_letter: '', proposed_amount: '', proposed_days: '' })
-  const [sample, setSample] = useState<{ url: string; name: string } | null>(null)
-  const [uploading, setUploading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({ title: '', description: '', category: '', budget_min: '', budget_max: '', currency: 'USD', deadline: '', experience_level: '', location: '', skillsInput: '', skills: [] as string[] })
 
@@ -165,19 +163,6 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const uploadSample = async (file: File) => {
-    setUploading(true); setMsg('')
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const r = await axios.post(`${API}/auth/upload/receipt`, fd)
-      setSample({ url: r.data.url, name: file.name })
-    } catch (e: any) {
-      setMsg(e.response?.data?.detail || 'Could not upload the file')
-    }
-    setUploading(false)
-  }
-
   const load = () => {
     axios.get(`${API}/marketplace/projects/${id}`)
       .then(r => {
@@ -201,22 +186,6 @@ export default function ProjectDetailPage() {
     return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
-
-  const submitProposal = async () => {
-    if (!form.proposed_amount) { setMsg('Proposed amount is required'); return }
-    setBusy('submit'); setMsg('')
-    try {
-      await axios.post(`${API}/marketplace/projects/${id}/proposals`, {
-        cover_letter: form.cover_letter.trim() || null,
-        proposed_amount: Number(form.proposed_amount),
-        proposed_days: form.proposed_days ? Number(form.proposed_days) : null,
-        attachment_url: sample?.url || null,
-      })
-      setMsg('Proposal submitted')
-      load()
-    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not submit proposal') }
-    setBusy(null)
-  }
 
   const [acceptTarget, setAcceptTarget] = useState<Proposal | null>(null)
   const [acceptError, setAcceptError] = useState('')
@@ -507,7 +476,18 @@ export default function ProjectDetailPage() {
                                   {p.cover_letter && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{p.cover_letter}</p>}
                                   {p.attachment_url && (
                                     <a href={p.attachment_url} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
+                                      style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: p.highlighted_portfolio?.length ? '8px' : 0 }}><Paperclip size={12} strokeWidth={1.75} />Work sample</a>
+                                  )}
+                                  {p.highlighted_portfolio?.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                      {p.highlighted_portfolio.map(h => (
+                                        <div key={h.id} title={h.title} style={{ width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-input)' }}>
+                                          {h.image
+                                            ? <img src={h.image} alt={h.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'var(--text-dim)', padding: '4px', textAlign: 'center' }}>{h.title}</div>}
+                                        </div>
+                                      ))}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -550,41 +530,15 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '12px' }}>Submit a proposal</p>
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={label}>Cover letter</label>
-                    <textarea rows={4} value={form.cover_letter} onChange={e => setForm(f => ({ ...f, cover_letter: e.target.value }))} placeholder="Why you're a good fit for this project" style={{ ...input, resize: 'vertical' }} />
+                <div style={{ borderRadius: '14px', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: '0 0 3px' }}>Ready to send a proposal?</p>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0 }}>Set your price, write a cover letter, and pick portfolio pieces to show the client.</p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                    <div>
-                      <label style={label}>Proposed amount ({project.currency})</label>
-                      <input type="number" value={form.proposed_amount} onChange={e => setForm(f => ({ ...f, proposed_amount: e.target.value }))} placeholder="0" style={input} />
-                    </div>
-                    <div>
-                      <label style={label}>Estimated days</label>
-                      <input type="number" value={form.proposed_days} onChange={e => setForm(f => ({ ...f, proposed_days: e.target.value }))} placeholder="0" style={input} />
-                    </div>
-                  </div>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={label}>Work sample <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
-                    {sample ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <a href={sample.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{sample.name}</a>
-                        <button onClick={() => setSample(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
-                      </div>
-                    ) : (
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach an image or PDF'}
-                        <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadSample(f); e.target.value = '' }} />
-                      </label>
-                    )}
-                  </div>
-                  <button onClick={submitProposal} disabled={busy === 'submit'}
-                    style={{ padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: busy === 'submit' ? 0.6 : 1 }}>
-                    {busy === 'submit' ? 'Submitting…' : 'Submit proposal'}
-                  </button>
+                  <a href={`/projects/${id}/apply`}
+                    style={{ padding: '10px 22px', borderRadius: '9px', fontSize: '13.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none', flexShrink: 0 }}>
+                    Apply now
+                  </a>
                 </div>
               )}
             </>

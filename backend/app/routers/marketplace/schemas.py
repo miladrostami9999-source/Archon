@@ -30,11 +30,21 @@ class ProjectUpdate(BaseModel):
     location: Optional[str] = None
 
 
+class PortfolioHighlight(BaseModel):
+    id: str
+    title: str
+    image: Optional[str] = None
+
+
 class ProposalCreate(BaseModel):
     cover_letter: Optional[str] = None
     proposed_amount: float
     proposed_days: Optional[int] = None
     attachment_url: Optional[str] = None
+    # Up to 4 portfolio pieces the freelancer chose to show the client with
+    # this specific proposal — enforced client-side, snapshotted here so the
+    # proposal still reads the same even if the portfolio changes later.
+    highlighted_portfolio: Optional[List[PortfolioHighlight]] = None
 
 
 class MilestoneInput(BaseModel):

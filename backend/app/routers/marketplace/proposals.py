@@ -36,6 +36,10 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         .filter(Contract.freelancer_id == pr.freelancer_id, Contract.status == "completed")
         .count()
     )
+    try:
+        highlighted_portfolio = json.loads(pr.highlighted_portfolio) if pr.highlighted_portfolio else []
+    except Exception:
+        highlighted_portfolio = []
     return {
         "id": pr.id,
         "project_id": pr.project_id,
@@ -51,6 +55,7 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
         "freelancer_completed_contracts": completed,
         "cover_letter": pr.cover_letter,
         "attachment_url": pr.attachment_url,
+        "highlighted_portfolio": highlighted_portfolio,
         "proposed_amount": pr.proposed_amount,
         "proposed_days": pr.proposed_days,
         "status": pr.status,
@@ -95,11 +100,13 @@ def submit_proposal(
     )
     if existing:
         raise HTTPException(status_code=400, detail="You already submitted a proposal for this project")
+    highlights = (data.highlighted_portfolio or [])[:4]
     proposal = Proposal(
         project_id=project_id,
         freelancer_id=current_user.id,
         cover_letter=data.cover_letter,
         attachment_url=data.attachment_url,
+        highlighted_portfolio=json.dumps([h.dict() for h in highlights]) if highlights else None,
         proposed_amount=data.proposed_amount,
         proposed_days=data.proposed_days,
         status="pending",

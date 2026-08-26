@@ -1,6 +1,6 @@
 'use client'
 import { useEffect } from 'react'
-import { X, ArrowRight, DollarSign, Calendar, Users, FileText, BarChart3, MapPin, Star, ShieldCheck, Heart } from 'lucide-react'
+import { X, ArrowUpRight, DollarSign, Calendar, Users, FileText, BarChart3, MapPin, Star, ShieldCheck, Heart, Tag } from 'lucide-react'
 import VerifiedBadge from './VerifiedBadge'
 
 interface Project {
@@ -103,72 +103,76 @@ export default function ProjectPreviewDrawer({ project, onClose, onToggleSave }:
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {/* Header */}
+          {/* Header — status + freshness on one line, like Upwork's job modal */}
           <div style={{ padding: '20px 24px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)' }}>
               <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
-              {project.category && <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{project.category}</span>}
+              <span>Posted {project.days_open === 0 ? 'today' : `${project.days_open}d ago`}</span>
+              {project.category && <><span>·</span><span>{project.category}</span></>}
               {proposalMeta && <span style={{ fontSize: '11.5px', fontWeight: 600, color: proposalMeta.color, marginLeft: 'auto' }}>{proposalMeta.label}</span>}
             </div>
-            <h2 style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1.35 }}>{project.title}</h2>
+            <h2 style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', lineHeight: 1.35 }}>{project.title}</h2>
+            {project.location && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12.5px', color: 'var(--text-dim)' }}>
+                <MapPin size={13} strokeWidth={1.75} />{project.location}
+              </span>
+            )}
+          </div>
+
+          {/* Job details — Upwork's two-box summary row (icon, value, label) */}
+          <div style={{ ...section, display: 'flex', gap: '12px' }}>
+            {budget && (
+              <div style={{ flex: 1, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <DollarSign size={16} strokeWidth={1.75} color="var(--text-dim)" style={{ marginBottom: '6px' }} />
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{budget}</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Fixed-price</div>
+              </div>
+            )}
+            <div style={{ flex: 1, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', padding: '12px 14px' }}>
+              <Tag size={16} strokeWidth={1.75} color="var(--text-dim)" style={{ marginBottom: '6px' }} />
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{project.experience_level && EXPERIENCE_META[project.experience_level] ? EXPERIENCE_META[project.experience_level] : 'Any level'}</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>Experience level</div>
+            </div>
           </div>
 
           {/* Description */}
           {project.description && (
             <div style={section}>
-              <p style={sectionLabel}>Description</p>
+              <p style={sectionLabel}>Summary</p>
               <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{project.description}</p>
             </div>
           )}
 
-          {/* Skills & experience */}
-          {(project.skills?.length > 0 || project.experience_level) && (
+          {/* Skills */}
+          {project.skills?.length > 0 && (
             <div style={section}>
-              <p style={sectionLabel}>Skills & experience</p>
-              {project.skills?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', marginBottom: project.experience_level ? '10px' : 0 }}>
-                  {project.skills.map(s => <span key={s} style={{ fontSize: '12px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '4px 11px', borderRadius: '999px' }}>{s}</span>)}
-                </div>
-              )}
-              {project.experience_level && EXPERIENCE_META[project.experience_level] && (
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{EXPERIENCE_META[project.experience_level]}</span>
-              )}
+              <p style={sectionLabel}>Skills and expertise</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+                {project.skills.map(s => <span key={s} style={{ fontSize: '12px', background: 'var(--bg-tag)', color: 'var(--text-muted)', padding: '4px 11px', borderRadius: '999px' }}>{s}</span>)}
+              </div>
             </div>
           )}
 
-          {/* Budget & timeline */}
+          {/* Activity on this project */}
           <div style={section}>
-            <p style={sectionLabel}>Budget & timeline</p>
+            <p style={sectionLabel}>Activity on this project</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              {budget && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><DollarSign size={15} strokeWidth={1.75} color="var(--text-dim)" />{budget}</span>}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={15} strokeWidth={1.75} color="var(--text-dim)" />{project.proposal_count} {project.proposal_count === 1 ? 'proposal' : 'proposals'}
+              </span>
               {project.deadline && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: project.deadline_days_left != null && project.deadline_days_left <= 3 ? 'var(--warning)' : 'var(--text-muted)' }}>
                   <Calendar size={15} strokeWidth={1.75} color="currentColor" />Due {new Date(project.deadline).toLocaleDateString()}
                   {project.deadline_days_left != null && (project.deadline_days_left >= 0 ? ` (${project.deadline_days_left}d left)` : ' (past due)')}
                 </span>
               )}
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <BarChart3 size={15} strokeWidth={1.75} color="var(--text-dim)" />Posted {project.days_open === 0 ? 'today' : `${project.days_open}d ago`}
-              </span>
-              {project.location && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  <MapPin size={15} strokeWidth={1.75} color="var(--text-dim)" />{project.location}
-                </span>
-              )}
             </div>
           </div>
 
-          {/* Activity & client */}
+          {/* About the client */}
           <div style={section}>
-            <p style={sectionLabel}>Activity & client</p>
+            <p style={sectionLabel}>About the client</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={15} strokeWidth={1.75} color="var(--text-dim)" />{project.proposal_count} {project.proposal_count === 1 ? 'proposal' : 'proposals'}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={15} strokeWidth={1.75} color="var(--text-dim)" />
-                {project.client_posted_projects_count} {project.client_posted_projects_count === 1 ? 'project posted' : 'projects posted'} by this client
-              </span>
               {project.client_verified && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldCheck size={15} strokeWidth={1.75} color="var(--accent)" />Payment verified
@@ -180,26 +184,36 @@ export default function ProjectPreviewDrawer({ project, onClose, onToggleSave }:
                   {project.client_rating.toFixed(1)} rating{project.client_review_count > 0 ? ` (${project.client_review_count} reviews)` : ''}
                 </span>
               )}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={15} strokeWidth={1.75} color="var(--text-dim)" />
+                {project.client_posted_projects_count} {project.client_posted_projects_count === 1 ? 'project posted' : 'projects posted'}
+              </span>
               {project.client_total_spent > 0 && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  <DollarSign size={15} strokeWidth={1.75} color="var(--text-dim)" />
+                  <BarChart3 size={15} strokeWidth={1.75} color="var(--text-dim)" />
                   {project.client_total_spent >= 1000 ? `$${Math.floor(project.client_total_spent / 1000)}K+ spent` : `$${Math.round(project.client_total_spent)}+ spent`}
                 </span>
               )}
               {!project.is_owner && (
                 <span onClick={() => { window.location.href = `/members/${project.client_id}` }}
                   style={{ cursor: 'pointer', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  Posted by {project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={13} />}
+                  {project.client_name || 'a client'}{project.client_verified && <VerifiedBadge size={13} />}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {!project.is_owner && project.status === 'open' && !project.my_proposal_status && (
+            <button onClick={() => { window.location.href = `/projects/${project.id}/apply` }}
+              style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
+              Apply now
+            </button>
+          )}
           <button onClick={() => { window.location.href = `/projects/${project.id}` }}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
-            Open full project <ArrowRight size={16} strokeWidth={2} />
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: 'var(--radius-md)', fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent-dim)', cursor: 'pointer' }}>
+            Open full project <ArrowUpRight size={15} strokeWidth={2} />
           </button>
         </div>
       </div>

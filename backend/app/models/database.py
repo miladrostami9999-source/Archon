@@ -504,6 +504,9 @@ class Proposal(Base):
     attachment_url   = Column(String, nullable=True)
     proposed_amount  = Column(Float)
     proposed_days    = Column(Integer)
+    # Up to 4 portfolio pieces chosen at submission time, snapshotted as
+    # [{"id","title","image"}] — shown to the client alongside the proposal.
+    highlighted_portfolio = Column(Text, nullable=True)
     status           = Column(String, default="pending", index=True)  # pending | accepted | rejected | withdrawn
     created_at       = Column(DateTime, default=datetime.utcnow)
 
@@ -921,6 +924,12 @@ def init_db():
                 milestone_cols = [c["name"] for c in _inspector.get_columns("mp_milestones")]
                 if "proposed_by" not in milestone_cols:
                     conn.execute(_text("ALTER TABLE mp_milestones ADD COLUMN proposed_by INTEGER"))
+                    conn.commit()
+
+            if _inspector.has_table("mp_proposals"):
+                proposal_cols = [c["name"] for c in _inspector.get_columns("mp_proposals")]
+                if "highlighted_portfolio" not in proposal_cols:
+                    conn.execute(_text("ALTER TABLE mp_proposals ADD COLUMN highlighted_portfolio TEXT"))
                     conn.commit()
 
             if _inspector.has_table("waitlist"):
