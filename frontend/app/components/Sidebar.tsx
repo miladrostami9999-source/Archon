@@ -230,9 +230,10 @@ export default function Sidebar() {
   // Client mode is a different job entirely — hiring, not lead-gen — so it
   // gets its own short nav instead of the CRM tools, matching how Upwork
   // gives a hiring account a completely different dashboard from a
-  // freelancer one. Admins keep the full freelancer nav regardless of mode
-  // (their own PATCH .../account-mode is just a personal preference, never
-  // a restriction on what they can reach).
+  // freelancer one. This applies to admins too now — switching to Client
+  // should show the same dashboard a normal client sees, not silently do
+  // nothing; the separate Admin section below stays visible regardless so
+  // moderation tools are never actually out of reach.
   const clientItems = [
     { label: 'Overview',  iconKey: 'overview',  href: '/client' },
     { label: 'Projects',  iconKey: 'projects',  href: '/projects', badge: pendingProposals },
@@ -242,7 +243,7 @@ export default function Sidebar() {
     { label: 'Identity Verification', iconKey: 'verify', href: '/verification' },
     { label: 'Account Settings', iconKey: 'settings', href: '/profile/security' },
   ]
-  const workspaceItems = (accountMode === 'client' && !isAdmin) ? clientItems : [
+  const workspaceItems = accountMode === 'client' ? clientItems : [
     { label: 'Home',       iconKey: 'home',      href: '/dashboard' },
     { label: 'Tasks',      iconKey: 'tasks',     href: '/tasks' },
     { label: 'Analytics',  iconKey: 'analytics', href: '/analytics' },
@@ -337,7 +338,7 @@ export default function Sidebar() {
       {/* NAV */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
         <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: td, padding: '0 4px', marginBottom: '6px', marginTop: 0 }}>
-          {accountMode === 'client' && !isAdmin ? 'Client' : 'Workspace'}
+          {accountMode === 'client' ? 'Client' : 'Workspace'}
         </p>
         {workspaceItems.map(item => <NavItem key={item.href} item={item} />)}
 
@@ -373,7 +374,7 @@ export default function Sidebar() {
                 {verifyStatus === 'pending' ? 'Verification in review' : 'Verify your identity'}
               </span>
               <span style={{ display: 'block', fontSize: '10.5px', color: td, lineHeight: 1.4, marginTop: '1px' }}>
-                {verifyStatus === 'pending' ? "We'll let you know shortly" : (accountMode === 'client' && !isAdmin) ? 'Builds trust with freelancers' : 'Needed before you can be paid'}
+                {verifyStatus === 'pending' ? "We'll let you know shortly" : accountMode === 'client' ? 'Builds trust with freelancers' : 'Needed before you can be paid'}
               </span>
             </span>
           </a>

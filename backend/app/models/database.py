@@ -594,6 +594,12 @@ class Conversation(Base):
     contract_id = Column(Integer, ForeignKey("mp_contracts.id"), nullable=True, index=True)
     user_a_id   = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     user_b_id   = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    # Which hat the starter had on when a direct (non-contract) thread was
+    # opened — 'client' | 'freelancer' | null (legacy rows, or contract
+    # threads where viewer_role already answers this question directly).
+    # Used to keep the Client dashboard's inbox from mixing in a freelancer
+    # conversation and vice versa.
+    context     = Column(String, nullable=True)
     created_at  = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -925,6 +931,12 @@ def init_db():
                 milestone_cols = [c["name"] for c in _inspector.get_columns("mp_milestones")]
                 if "proposed_by" not in milestone_cols:
                     conn.execute(_text("ALTER TABLE mp_milestones ADD COLUMN proposed_by INTEGER"))
+                    conn.commit()
+
+            if _inspector.has_table("mp_conversations"):
+                convo_cols = [c["name"] for c in _inspector.get_columns("mp_conversations")]
+                if "context" not in convo_cols:
+                    conn.execute(_text("ALTER TABLE mp_conversations ADD COLUMN context VARCHAR"))
                     conn.commit()
 
             if _inspector.has_table("mp_proposals"):

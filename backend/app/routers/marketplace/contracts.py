@@ -34,15 +34,23 @@ def marketplace_info(
 @router.get("/contracts")
 def list_contracts(
     status: Optional[str] = None,
+    role: Optional[str] = None,  # 'client' | 'freelancer' — scope to one dashboard's contracts
     current_user: User = Depends(require_marketplace_beta),
     db: Session = Depends(get_db),
 ):
     """Every contract this account is party to, as either client or
     freelancer — the two roles share one inbox rather than two separate
-    lists, since a single account can be both."""
-    query = db.query(Contract).filter(
-        or_(Contract.client_id == current_user.id, Contract.freelancer_id == current_user.id)
-    )
+    lists, since a single account can be both. `role` narrows that to just
+    one side, for the Client dashboard (which has no business showing a
+    contract this account is the freelancer on) and vice versa."""
+    if role == "client":
+        query = db.query(Contract).filter(Contract.client_id == current_user.id)
+    elif role == "freelancer":
+        query = db.query(Contract).filter(Contract.freelancer_id == current_user.id)
+    else:
+        query = db.query(Contract).filter(
+            or_(Contract.client_id == current_user.id, Contract.freelancer_id == current_user.id)
+        )
     if status:
         query = query.filter(Contract.status == status)
     rows = query.order_by(Contract.created_at.desc()).all()

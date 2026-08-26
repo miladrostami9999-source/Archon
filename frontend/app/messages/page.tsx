@@ -52,16 +52,21 @@ export default function MessagesPage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client' | null>(null)
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('archon-user')
       if (stored) setCurrentUserId(JSON.parse(stored).id)
     } catch {}
+    axios.get(`${API}/auth/me`).then(r => setAccountMode(r.data.account_mode === 'client' ? 'client' : 'freelancer')).catch(() => setAccountMode('freelancer'))
   }, [])
 
+  // Scoped to whichever hat is active — a client's inbox has no business
+  // mixing in a conversation this account is the freelancer on.
   const load = (firstTime = false) => {
-    axios.get(`${API}/marketplace/conversations`)
+    if (!accountMode) return
+    axios.get(`${API}/marketplace/conversations`, { params: { role: accountMode } })
       .then(r => {
         setConvos(r.data)
         // Open the newest thread on a desktop first load so the pane isn't
@@ -77,11 +82,12 @@ export default function MessagesPage() {
   }
 
   useEffect(() => {
+    if (!accountMode) return
     load(true)
     const timer = setInterval(() => load(), POLL_MS)
     return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [accountMode])
 
   const shown = filter === 'unread' ? convos.filter(c => c.unread > 0) : convos
   const totalUnread = convos.reduce((a, c) => a + c.unread, 0)

@@ -45,14 +45,14 @@ def _get_contract_for_party(db: Session, contract_id: int, user: User) -> Contra
     return contract
 
 
-def get_or_create_conversation(db: Session, a_id: int, b_id: int, contract_id: int | None = None) -> Conversation:
+def get_or_create_conversation(db: Session, a_id: int, b_id: int, contract_id: int | None = None, context: str | None = None) -> Conversation:
     """Pairs are stored low-id-first so (a,b) and (b,a) can't both exist."""
     a, b = sorted((a_id, b_id))
     q = db.query(Conversation).filter(Conversation.user_a_id == a, Conversation.user_b_id == b)
     q = q.filter(Conversation.contract_id == contract_id) if contract_id else q.filter(Conversation.contract_id.is_(None))
     convo = q.first()
     if not convo:
-        convo = Conversation(user_a_id=a, user_b_id=b, contract_id=contract_id)
+        convo = Conversation(user_a_id=a, user_b_id=b, contract_id=contract_id, context=context)
         db.add(convo)
         db.flush()
     return convo
@@ -150,11 +150,20 @@ def total_unread(
 
 @router.get("/conversations")
 def list_conversations(
+    role: Optional[str] = None,  # 'client' | 'freelancer' — which dashboard is asking
     current_user: User = Depends(require_marketplace_beta),
     db: Session = Depends(get_db),
 ):
     """One row per thread — the inbox behind the Messages page. Newest first,
-    with threads that have no messages yet after them."""
+    with threads that have no messages yet after them.
+
+    `role` keeps the Client dashboard's inbox from mixing in a freelancer
+    conversation and vice versa: contract-backed threads already carry a
+    `viewer_role`; direct threads (no contract) fall back to the hat the
+    starter had on when they opened it (`Conversation.context`), with legacy
+    context-less rows treated as freelancer-side since that's the only mode
+    that existed before this split.
+    """
     convos = (
         db.query(Conversation)
         .filter(or_(Conversation.user_a_id == current_user.id, Conversation.user_b_id == current_user.id))
@@ -182,6 +191,16 @@ def list_conversations(
         contract = db.query(Contract).filter(Contract.id == cv.contract_id).first() if cv.contract_id else None
         project = db.query(Project).filter(Project.id == contract.project_id).first() if contract else None
 
+        viewer_role = ("client" if current_user.id == contract.client_id else "freelancer") if contract else "peer"
+        if role == "client":
+            row_role = viewer_role if contract else (cv.context or "freelancer")
+            if row_role != "client":
+                continue
+        elif role == "freelancer":
+            row_role = viewer_role if contract else (cv.context or "freelancer")
+            if row_role != "freelancer":
+                continue
+
         rows.append({
             "conversation_id": cv.id,
             "contract_id": cv.contract_id,
@@ -193,10 +212,7 @@ def list_conversations(
             "other_party_verified": is_verified(db, other_id),
             "other_party_avatar": _avatar(other),
             "other_party_username": (other.username if other and other.is_public else None),
-            "viewer_role": (
-                ("client" if current_user.id == contract.client_id else "freelancer")
-                if contract else "peer"
-            ),
+            "viewer_role": viewer_role,
             "last_message": (last.body or ("📎 Attachment" if last.attachment_url else "")) if last else None,
             "last_message_at": last.created_at.isoformat() if last and last.created_at else None,
             "last_message_mine": (last.sender_id == current_user.id) if last else None,
@@ -219,7 +235,7 @@ def start_conversation(
     other = db.query(User).filter(User.id == data.user_id, User.is_active.is_(True)).first()
     if not other:
         raise HTTPException(status_code=404, detail="User not found")
-    convo = get_or_create_conversation(db, current_user.id, other.id)
+    convo = get_or_create_conversation(db, current_user.id, other.id, context=current_user.account_mode or "freelancer")
     db.commit()
     return {"conversation_id": convo.id, "other_party_name": other.name}
 

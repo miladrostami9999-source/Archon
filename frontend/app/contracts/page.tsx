@@ -53,13 +53,22 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [previewContract, setPreviewContract] = useState<Contract | null>(null)
+  const [accountMode, setAccountMode] = useState<'freelancer' | 'client' | null>(null)
 
   useEffect(() => {
-    axios.get(`${API}/marketplace/contracts`)
+    axios.get(`${API}/auth/me`).then(r => setAccountMode(r.data.account_mode === 'client' ? 'client' : 'freelancer')).catch(() => setAccountMode('freelancer'))
+  }, [])
+
+  useEffect(() => {
+    // Wait for the account mode to resolve so the very first fetch is
+    // already scoped — a client dashboard has no business listing a
+    // contract this account is the freelancer on, and vice versa.
+    if (!accountMode) return
+    axios.get(`${API}/marketplace/contracts`, { params: { role: accountMode } })
       .then(r => setContracts(r.data))
       .catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
-  }, [])
+  }, [accountMode])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-main)', color: 'var(--text)' }}>

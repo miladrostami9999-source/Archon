@@ -5,7 +5,7 @@ import Sidebar from '../../components/Sidebar'
 import EmptyState from '../../components/EmptyState'
 import LoadingState from '../../components/LoadingState'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { Wallet, Check, Receipt } from 'lucide-react'
+import { Wallet, Check, Receipt, Paperclip, CircleDollarSign } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -27,6 +27,15 @@ interface PayMethods {
   support_email: string; support_phone: string
 }
 
+interface UnfundedMilestone {
+  id: number
+  title: string
+  amount: number
+  contract_id: number
+  project_title: string
+  currency: string
+}
+
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
   pending:  { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Awaiting confirmation' },
   approved: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Confirmed' },
@@ -43,27 +52,91 @@ export default function ClientBillingPage() {
   const [pay, setPay] = useState<PayMethods | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState('')
+  const [unfunded, setUnfunded] = useState<UnfundedMilestone[]>([])
+  const [openFund, setOpenFund] = useState<UnfundedMilestone | null>(null)
+  const [fundForm, setFundForm] = useState({ amount: '', method: '', reference: '', note: '' })
+  const [receipt, setReceipt] = useState<{ url: string; name: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [fundMsg, setFundMsg] = useState('')
 
-  useEffect(() => {
+  const load = () => {
     Promise.all([
       axios.get(`${API}/marketplace/billing/history`),
       axios.get(`${API}/auth/payment-methods`).catch(() => ({ data: null })),
+      axios.get(`${API}/marketplace/contracts`, { params: { role: 'client', status: 'active' } }),
     ])
-      .then(([billing, methods]) => {
+      .then(([billing, methods, contracts]) => {
         setPayments(billing.data.payments)
         setApprovedTotal(billing.data.approved_total)
         setPendingTotal(billing.data.pending_total)
         setPay(methods.data)
+        const rows: UnfundedMilestone[] = []
+        for (const c of contracts.data as any[]) {
+          for (const m of c.milestones) {
+            if (m.status === 'pending') {
+              rows.push({ id: m.id, title: m.title, amount: m.amount, contract_id: c.id, project_title: c.project_title, currency: c.currency })
+            }
+          }
+        }
+        setUnfunded(rows)
       })
       .catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
-  }, [])
+  }
+  useEffect(() => { load() }, [])
 
   const copy = (label: string, value: string) => {
     navigator.clipboard?.writeText(value)
     setCopied(label)
     setTimeout(() => setCopied(''), 1800)
   }
+
+  const startFund = (m: UnfundedMilestone) => {
+    setOpenFund(m)
+    setFundForm({ amount: String(m.amount), method: '', reference: '', note: '' })
+    setReceipt(null)
+    setFundMsg('')
+  }
+
+  const uploadReceipt = async (file: File) => {
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await axios.post(`${API}/auth/upload/receipt`, fd)
+      setReceipt({ url: r.data.url, name: file.name })
+    } catch (e: any) {
+      setFundMsg(e.response?.data?.detail || 'Upload failed')
+    }
+    setUploading(false)
+  }
+
+  const submitFund = async () => {
+    if (!openFund) return
+    if (!fundForm.reference.trim() && !receipt) { setFundMsg('Attach a receipt or enter a tracking number'); return }
+    setSubmitting(true); setFundMsg('')
+    try {
+      await axios.post(`${API}/marketplace/milestones/${openFund.id}/fund`, {
+        amount: Number(fundForm.amount),
+        currency: openFund.currency,
+        method: fundForm.method || null,
+        reference: fundForm.reference || null,
+        receipt_url: receipt?.url || null,
+        note: fundForm.note || null,
+      })
+      setOpenFund(null)
+      load()
+    } catch (e: any) { setFundMsg(e.response?.data?.detail || 'Could not submit payment') }
+    setSubmitting(false)
+  }
+
+  const input: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)',
+    border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '9px 11px',
+    fontSize: '13px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit',
+  }
+  const label: React.CSSProperties = { display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '5px' }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main)' }}>
@@ -127,6 +200,86 @@ export default function ClientBillingPage() {
                     {(pay.support_email || pay.support_phone) && <> Questions? {pay.support_email}{pay.support_email && pay.support_phone ? ' · ' : ''}{pay.support_phone}</>}
                   </p>
                 </div>
+              )}
+
+              {unfunded.length > 0 && (
+                <>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '20px 0 10px' }}>Awaiting payment ({unfunded.length})</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                    {unfunded.map(m => (
+                      <div key={m.id} style={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '12px 16px' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.title}</div>
+                            <div style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>{m.project_title}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                            <span className="mono" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{m.amount.toLocaleString('en-US')} {m.currency}</span>
+                            {openFund?.id !== m.id && (
+                              <button onClick={() => startFund(m)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer' }}>
+                                <CircleDollarSign size={13} strokeWidth={1.75} /> Submit payment proof
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {openFund?.id === m.id && (
+                          <div style={{ padding: '0 16px 16px' }}>
+                            <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+                                <div>
+                                  <label style={label}>Amount</label>
+                                  <input type="number" value={fundForm.amount} onChange={e => setFundForm(f => ({ ...f, amount: e.target.value }))} style={input} />
+                                </div>
+                                <div>
+                                  <label style={label}>Method</label>
+                                  <select value={fundForm.method} onChange={e => setFundForm(f => ({ ...f, method: e.target.value }))} style={input}>
+                                    <option value="">Select…</option>
+                                    <option value="card_to_card">Card to card</option>
+                                    <option value="bank_transfer">Bank transfer</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="other">Other</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={label}>Reference no.</label>
+                                  <input value={fundForm.reference} onChange={e => setFundForm(f => ({ ...f, reference: e.target.value }))} style={input} />
+                                </div>
+                              </div>
+                              <div style={{ marginBottom: '10px' }}>
+                                <label style={label}>Receipt / proof of payment</label>
+                                {receipt ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <a href={receipt.url} target="_blank" rel="noreferrer" style={{ fontSize: '12.5px', color: 'var(--success)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Paperclip size={12} strokeWidth={1.75} />{receipt.name}</a>
+                                    <button onClick={() => setReceipt(null)} style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--border)', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                    <Paperclip size={12} strokeWidth={1.75} />{uploading ? 'Uploading…' : 'Attach a receipt or screenshot'}
+                                    <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+                                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadReceipt(f); e.target.value = '' }} />
+                                  </label>
+                                )}
+                              </div>
+                              {fundMsg && <p style={{ fontSize: '12px', color: 'var(--error)', margin: '0 0 10px' }}>{fundMsg}</p>}
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={submitFund} disabled={submitting}
+                                  style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
+                                  {submitting ? 'Submitting…' : 'Submit payment'}
+                                </button>
+                                <button onClick={() => setOpenFund(null)}
+                                  style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
 
               <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '20px 0 10px' }}>Payment history</p>

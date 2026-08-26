@@ -22,6 +22,7 @@ interface UserAccount {
   role: string; plan: string; created_at: string; last_login: string | null
   google_email?: string | null
   google_connected?: boolean
+  account_mode?: string
 }
 
 interface FullProfile {
@@ -188,7 +189,9 @@ export default function ProfileSecurityPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            <PublishSection profile={profile} />
+            {/* A public portfolio page is a freelancer concept — a client
+                account has no work to showcase, so this doesn't apply. */}
+            {user?.account_mode !== 'client' && <PublishSection profile={profile} />}
 
             {/* PERSONAL INFORMATION — moved here from the main Profile tab */}
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>

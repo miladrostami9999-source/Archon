@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar'
 import VerifiedBadge from '../components/VerifiedBadge'
 import LoadingState from '../components/LoadingState'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Briefcase, Inbox, FileCheck2, Wallet, Star, Plus, MessageCircle, ArrowRight } from 'lucide-react'
+import { Briefcase, Inbox, FileCheck2, Wallet, Star, Plus, MessageCircle, ArrowRight, Rocket } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -53,9 +53,9 @@ export default function ClientOverviewPage() {
       axios.get(`${API}/marketplace/projects`, { params: { mine: true } }),
       axios.get(`${API}/marketplace/proposals/pending-count`),
       axios.get(`${API}/marketplace/proposals/inbox`, { params: { status: 'pending', sort: 'newest' } }),
-      axios.get(`${API}/marketplace/conversations`),
+      axios.get(`${API}/marketplace/conversations`, { params: { role: 'client' } }),
       axios.get(`${API}/marketplace/billing/history`),
-      axios.get(`${API}/marketplace/contracts`),
+      axios.get(`${API}/marketplace/contracts`, { params: { role: 'client' } }),
     ])
       .then(([proj, pending, inbox, convos, billing, contracts]) => {
         setProjects(proj.data)
@@ -78,18 +78,40 @@ export default function ClientOverviewPage() {
       <Sidebar />
       <main style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', marginTop: isMobile ? '52px' : 0, padding: isMobile ? '20px 16px 40px' : '32px 40px' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Client Overview</h1>
-            <a href="/projects"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none' }}>
-              <Plus size={14} strokeWidth={2} /> Post a Project
-            </a>
-          </div>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: '0 0 20px' }}>Client Overview</h1>
 
           {loading ? (
             <LoadingState fullPage />
           ) : (
             <>
+              {/* A small landing-page-style section, not just a button — the
+                  one on-ramp into the whole client dashboard, so it gets
+                  real visual weight instead of competing with the KPI row. */}
+              <div style={{
+                borderRadius: 'var(--radius-lg)', border: '1px solid var(--accent-dim)', background: 'linear-gradient(135deg, rgba(61,79,224,0.08), rgba(46,59,176,0.03))',
+                padding: isMobile ? '24px 20px' : '32px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' }}>
+                    <Rocket size={22} strokeWidth={1.75} color="white" />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', margin: '0 0 3px' }}>
+                      {projects && projects.length === 0 ? 'Create your first project' : 'Ready to hire again?'}
+                    </p>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0 }}>
+                      {projects && projects.length === 0
+                        ? 'Describe what you need done and start receiving proposals from freelancers today.'
+                        : 'Post a new project and start receiving proposals from freelancers.'}
+                    </p>
+                  </div>
+                </div>
+                <a href="/projects"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '13px 26px', borderRadius: 'var(--radius-md)', fontSize: '14.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none', flexShrink: 0, boxShadow: '0 4px 16px rgba(61,79,224,0.35)' }}>
+                  <Plus size={16} strokeWidth={2.25} /> Post a Project
+                </a>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
                 <a href="/projects" style={{ ...card, textDecoration: 'none' }}>
                   <Briefcase size={16} strokeWidth={1.75} color="var(--text-dim)" />
