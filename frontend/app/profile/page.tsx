@@ -279,6 +279,7 @@ export default function ProfilePage() {
   }
 
   const removePortfolioImage = (projectId: string, imageId: string) => {
+    if (!window.confirm('Remove this image?')) return
     const updated = {
       ...profile,
       portfolio: profile.portfolio.map(p =>
@@ -303,6 +304,7 @@ export default function ProfilePage() {
   }
 
   const removeCustomSkill = (skill: string) => {
+    if (!window.confirm(`Remove "${skill}"?`)) return
     setProfile(p => ({ ...p, customSkills: p.customSkills.filter(s => s !== skill) }))
   }
 
@@ -359,6 +361,7 @@ export default function ProfilePage() {
   }
 
   const removePortfolio = (id: string) => {
+    if (!window.confirm('Delete this portfolio project? This can\'t be undone.')) return
     const updated = { ...profile, portfolio: profile.portfolio.filter(p => p.id !== id) }
     setProfile(updated)
     saveProfile(updated)
@@ -374,6 +377,7 @@ export default function ProfilePage() {
   }
 
   const removeEducation = (id: string) => {
+    if (!window.confirm('Delete this education entry?')) return
     const updated = { ...profile, education: profile.education.filter(e => e.id !== id) }
     setProfile(updated)
     saveProfile(updated)
@@ -388,6 +392,7 @@ export default function ProfilePage() {
   }
 
   const removeExperience = (id: string) => {
+    if (!window.confirm('Delete this experience entry?')) return
     const updated = { ...profile, experience: profile.experience.filter(e => e.id !== id) }
     setProfile(updated)
     saveProfile(updated)

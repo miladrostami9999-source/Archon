@@ -378,7 +378,10 @@ def accept_proposal(
         freelancer_id=proposal.freelancer_id,
         total_amount=proposal.proposed_amount,
         currency=project.currency,
-        status="active",
+        # The client just picked the milestone breakdown — possibly different
+        # from what the freelancer actually proposed (only the total has to
+        # match). Nothing starts moving until the freelancer confirms it.
+        status="pending_approval",
     )
     db.add(contract)
     db.flush()
@@ -411,9 +414,9 @@ def accept_proposal(
         db.add(Conversation(contract_id=contract.id, user_a_id=a, user_b_id=b))
 
     notif.notify(
-        db, proposal.freelancer_id, notif.PROPOSAL_ACCEPTED,
-        "Your proposal was accepted",
-        f"“{project.title}” is yours — the contract is open.",
+        db, proposal.freelancer_id, notif.CONTRACT_PENDING_APPROVAL,
+        "Confirm your new contract",
+        f"“{project.title}” is yours — review the milestones and confirm to start work.",
         f"/contracts/{contract.id}",
     )
     for other in others:
@@ -426,4 +429,4 @@ def accept_proposal(
 
     db.commit()
     db.refresh(contract)
-    return {"message": "Proposal accepted, contract created", "contract_id": contract.id}
+    return {"message": "Proposal accepted — waiting for the freelancer to confirm the contract", "contract_id": contract.id}

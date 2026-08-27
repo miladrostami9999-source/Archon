@@ -59,10 +59,12 @@ interface Contract {
 }
 
 const CONTRACT_STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
+  pending_approval: { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Awaiting approval' },
   active:    { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Active' },
   completed: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
   disputed:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
+  declined:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Declined' },
 }
 
 // Ordered so the timeline reads left-to-right as the money/work actually
@@ -155,6 +157,16 @@ export default function ContractDetailPage() {
     return () => clearInterval(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, openPanel])
+
+  const decideContract = async (decision: 'approve' | 'decline') => {
+    if (decision === 'decline' && !window.confirm('Decline this contract? The project will reopen for other freelancers.')) return
+    setBusy(-1)
+    try {
+      await axios.post(`${API}/marketplace/contracts/${id}/${decision}`)
+      load()
+    } catch (e: any) { setMsg(e.response?.data?.detail || 'Could not update the contract') }
+    setBusy(null)
+  }
 
   const submitReview = async () => {
     if (!reviewRating) { setReviewMsg('Pick a star rating'); return }
@@ -293,7 +305,32 @@ export default function ContractDetailPage() {
                 </div>
               </div>
 
-              {msg && <p style={{ fontSize: '12.5px', color: /submitted|approved/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
+              {contract.status === 'pending_approval' && (
+                <div style={{ borderRadius: '14px', border: '1px solid var(--warning)', background: 'rgba(221,162,63,0.08)', padding: '16px 20px', marginBottom: '18px' }}>
+                  {contract.viewer_role === 'freelancer' ? (
+                    <>
+                      <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>Confirm this contract</p>
+                      <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                        Review the milestones below — the client may have split them differently than your proposal. Nothing starts until you confirm.
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => decideContract('approve')} disabled={busy === -1}
+                          style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 700, color: 'white', background: 'var(--success)', border: 'none', cursor: busy === -1 ? 'wait' : 'pointer' }}>
+                          {busy === -1 ? '…' : 'Approve & start'}
+                        </button>
+                        <button onClick={() => decideContract('decline')} disabled={busy === -1}
+                          style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: busy === -1 ? 'wait' : 'pointer' }}>
+                          Decline
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0 }}>Waiting for {contract.freelancer_name || 'the freelancer'} to confirm the contract before work can start.</p>
+                  )}
+                </div>
+              )}
+
+              {msg && <p style={{ fontSize: '12.5px', color: /submitted|approved|confirmed/i.test(msg) ? 'var(--success)' : 'var(--error)', marginBottom: '14px' }}>{msg}</p>}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: 0 }}>

@@ -19,6 +19,9 @@ from app.models.database import Notification, User
 PROPOSAL_RECEIVED = "proposal_received"
 PROPOSAL_ACCEPTED = "proposal_accepted"
 PROPOSAL_REJECTED = "proposal_rejected"
+CONTRACT_PENDING_APPROVAL = "contract_pending_approval"   # → freelancer: confirm terms before work starts
+CONTRACT_APPROVED = "contract_approved"                    # → client
+CONTRACT_DECLINED = "contract_declined"                    # → client
 MESSAGE_RECEIVED = "message_received"
 PAYMENT_SUBMITTED = "payment_submitted"      # → admin
 MILESTONE_PROPOSED = "milestone_proposed"

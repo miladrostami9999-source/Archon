@@ -34,10 +34,12 @@ interface Contract {
 }
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
+  pending_approval: { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Awaiting approval' },
   active:    { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Active' },
   completed: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
   disputed:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
+  declined:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Declined' },
 }
 
 const MILESTONE_META: Record<string, { color: string; bg: string; label: string }> = {

@@ -71,6 +71,64 @@ def get_contract(
     return serialize_contract(contract, current_user.id, db)
 
 
+@router.post("/contracts/{contract_id}/approve")
+def approve_contract(
+    contract_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """The freelancer signing off on the contract — including whatever
+    milestone breakdown the client chose at accept time — before anything
+    is fundable. Nothing moves until this happens."""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract.freelancer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the freelancer on this contract can confirm it")
+    if contract.status != "pending_approval":
+        raise HTTPException(status_code=400, detail="This contract isn't awaiting your approval")
+    contract.status = "active"
+    notif.notify(
+        db, contract.client_id, notif.CONTRACT_APPROVED,
+        "Contract confirmed",
+        f"{current_user.name} confirmed the contract — work can start.",
+        f"/contracts/{contract.id}",
+    )
+    db.commit()
+    return {"message": "Contract confirmed"}
+
+
+@router.post("/contracts/{contract_id}/decline")
+def decline_contract(
+    contract_id: int,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """The freelancer walking away before work starts — e.g. the client's
+    milestone split isn't what they agreed to. The project reopens so the
+    client can hire someone else."""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    if contract.freelancer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the freelancer on this contract can decline it")
+    if contract.status != "pending_approval":
+        raise HTTPException(status_code=400, detail="This contract isn't awaiting your approval")
+    contract.status = "declined"
+    from app.models.database import Project
+    project = db.query(Project).filter(Project.id == contract.project_id).first()
+    if project:
+        project.status = "open"
+    notif.notify(
+        db, contract.client_id, notif.CONTRACT_DECLINED,
+        "Contract declined",
+        f"{current_user.name} declined the contract for “{project.title if project else 'your project'}”. The project is open again.",
+        f"/projects/{contract.project_id}",
+    )
+    db.commit()
+    return {"message": "Contract declined"}
+
+
 @router.post("/contracts/{contract_id}/milestones")
 def propose_milestone(
     contract_id: int,

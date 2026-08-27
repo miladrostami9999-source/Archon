@@ -92,6 +92,8 @@ def fund_milestone(
     m, c = _get_milestone_and_contract(db, milestone_id)
     if c.client_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the client on this contract can fund it")
+    if c.status != "active":
+        raise HTTPException(status_code=400, detail="The freelancer hasn't confirmed this contract yet")
     if m.status != "pending":
         raise HTTPException(status_code=400, detail="This milestone isn't awaiting funding")
     # The claimed figure has to be the milestone's own — an admin still eyeballs

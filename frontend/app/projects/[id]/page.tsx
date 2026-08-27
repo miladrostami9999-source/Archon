@@ -196,7 +196,7 @@ export default function ProjectDetailPage() {
     try {
       await axios.post(`${API}/marketplace/proposals/${acceptTarget.id}/accept`, milestones ? { milestones } : {})
       setAcceptTarget(null)
-      setMsg('Proposal accepted — contract created')
+      setMsg('Proposal accepted — waiting for the freelancer to confirm the contract')
       load()
     } catch (e: any) { setAcceptError(e.response?.data?.detail || 'Could not accept') }
     setBusy(null)

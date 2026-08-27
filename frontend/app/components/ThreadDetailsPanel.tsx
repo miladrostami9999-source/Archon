@@ -53,10 +53,12 @@ const MILESTONE_META: Record<string, { color: string; bg: string; label: string 
 }
 
 const CONTRACT_META: Record<string, { color: string; bg: string; label: string }> = {
+  pending_approval: { color: 'var(--warning)', bg: 'rgba(221,162,63,0.12)', label: 'Awaiting approval' },
   active:    { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'Active' },
   completed: { color: 'var(--success)', bg: 'rgba(63,185,131,0.12)', label: 'Completed' },
   disputed:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Disputed' },
   cancelled: { color: 'var(--text-dim)', bg: 'var(--bg-input)', label: 'Cancelled' },
+  declined:  { color: 'var(--error)', bg: 'rgba(228,114,111,0.12)', label: 'Declined' },
 }
 
 const sectionLabel: React.CSSProperties = {
@@ -112,6 +114,13 @@ export default function ThreadDetailsPanel({
   const rejectMilestoneProposal = async (id: number) => {
     setMilestoneBusy(id)
     try { await axios.post(`${API}/marketplace/milestones/${id}/reject-proposal`); loadContract() } catch {}
+    setMilestoneBusy(null)
+  }
+  const decideContract = async (decision: 'approve' | 'decline') => {
+    if (!contract) return
+    if (decision === 'decline' && !window.confirm('Decline this contract? The project will reopen for other freelancers.')) return
+    setMilestoneBusy(-1)
+    try { await axios.post(`${API}/marketplace/contracts/${contract.id}/${decision}`); loadContract() } catch {}
     setMilestoneBusy(null)
   }
 
@@ -179,6 +188,30 @@ export default function ThreadDetailsPanel({
               Open contract <ArrowUpRight size={13} strokeWidth={1.75} />
             </a>
           </div>
+
+          {/* Contract pending the freelancer's confirmation — nothing below
+              (funding, delivering) is possible until this is resolved. */}
+          {contract.status === 'pending_approval' && (
+            <div style={{ ...card, border: '1px solid var(--warning)', background: 'rgba(221,162,63,0.08)' }}>
+              {contract.viewer_role === 'freelancer' ? (
+                <>
+                  <p style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>Confirm this contract to start work</p>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => decideContract('approve')} disabled={milestoneBusy === -1}
+                      style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', fontSize: '11.5px', fontWeight: 700, color: 'white', background: 'var(--success)', border: 'none', cursor: milestoneBusy === -1 ? 'wait' : 'pointer' }}>
+                      Approve
+                    </button>
+                    <button onClick={() => decideContract('decline')} disabled={milestoneBusy === -1}
+                      style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: milestoneBusy === -1 ? 'wait' : 'pointer' }}>
+                      Decline
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Waiting for the freelancer to confirm the contract.</p>
+              )}
+            </div>
+          )}
 
           {/* Payment progress */}
           <div style={card}>
