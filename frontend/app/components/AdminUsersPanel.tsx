@@ -173,26 +173,36 @@ export default function AdminUsersPanel() {
                   ))}
                 </div>
 
-                {(detail.profile?.bio || detail.profile?.location || detail.profile?.company) && (
+                {(detail.profile?.location || detail.profile?.company) && (
                   <div style={{ borderRadius: '12px', border: '1px solid var(--border)', padding: '14px', marginBottom: '14px' }}>
                     {detail.profile.company && <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{detail.profile.company}</p>}
-                    {detail.profile.location && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 6px' }}>{detail.profile.location}</p>}
-                    {detail.profile.bio && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{detail.profile.bio}</p>}
-                    {detail.profile.skills?.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '10px' }}>
-                        {detail.profile.skills.slice(0, 10).map((sk: string) => (
-                          <span key={sk} style={{ fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-tag)', color: 'var(--text-muted)' }}>{sk}</span>
-                        ))}
-                      </div>
-                    )}
+                    {detail.profile.location && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{detail.profile.location}</p>}
                   </div>
                 )}
+
+                {(['freelancer', 'client'] as const).map(hat => {
+                  const h = detail.profile?.[hat]
+                  if (!h || (!h.bio && !h.skills?.length && !h.portfolio_count)) return null
+                  return (
+                    <div key={hat} style={{ borderRadius: '12px', border: '1px solid var(--border)', padding: '14px', marginBottom: '14px' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 8px' }}>{hat} profile</p>
+                      {h.bio && <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{h.bio}</p>}
+                      {h.skills?.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '10px' }}>
+                          {h.skills.slice(0, 10).map((sk: string) => (
+                            <span key={sk} style={{ fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'var(--bg-tag)', color: 'var(--text-muted)' }}>{sk}</span>
+                          ))}
+                        </div>
+                      )}
+                      <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '8px 0 0' }}>Portfolio projects: {h.portfolio_count}</p>
+                    </div>
+                  )
+                })}
 
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
                   <span>Signed up: {detail.created_at ? new Date(detail.created_at).toLocaleDateString() : '-'}</span>
                   <span>Last login: {detail.last_login ? new Date(detail.last_login).toLocaleDateString() : 'never'}</span>
                   <span>Plan expires: {detail.plan_expires_at ? new Date(detail.plan_expires_at).toLocaleDateString() : '-'}</span>
-                  <span>Portfolio projects: {detail.profile?.portfolio_count ?? 0}</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>

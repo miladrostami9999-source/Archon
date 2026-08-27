@@ -588,7 +588,7 @@ export default function ProfilePage() {
 
             {/* CARD 3 — Education / Experience summary + contact + links */}
             <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '20px' }}>
-              {profile.education.length > 0 && (
+              {accountMode === 'freelancer' && profile.education.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Education</p>
                   {profile.education.slice(0, 2).map(e => (
@@ -601,7 +601,7 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {profile.experience.length > 0 && (
+              {accountMode === 'freelancer' && profile.experience.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Experience</p>
                   {profile.experience.slice(0, 2).map(e => (
@@ -615,7 +615,7 @@ export default function ProfilePage() {
               )}
 
               {/* CONTACT — deliberately last in the card, per Milad's request */}
-              <div style={{ borderTop: (profile.education.length > 0 || profile.experience.length > 0) ? '1px solid var(--border)' : 'none', paddingTop: (profile.education.length > 0 || profile.experience.length > 0) ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ borderTop: (accountMode === 'freelancer' && (profile.education.length > 0 || profile.experience.length > 0)) ? '1px solid var(--border)' : 'none', paddingTop: (accountMode === 'freelancer' && (profile.education.length > 0 || profile.experience.length > 0)) ? '12px' : 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {user?.email && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
                     <Mail size={13} strokeWidth={1.5} style={{ color: 'var(--text-dim)', flexShrink: 0 }} /> {user.email}
@@ -723,6 +723,9 @@ export default function ProfilePage() {
             )}
 
             {/* HEADLINE & BIO */}
+            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              Editing your {accountMode === 'client' ? 'Client' : 'Freelancer'} profile — switch hats from the sidebar to edit the other one.
+            </p>
             <SectionCard title="Headline & Description" editing={editingBio} onToggleEdit={() => setEditingBio(v => !v)}>
               {editingBio ? (
                 <>
@@ -751,9 +754,10 @@ export default function ProfilePage() {
             </SectionCard>
 
             {/* SKILLS */}
-            <SectionCard title="Skills & Expertise" editing={editingSkills} onToggleEdit={() => setEditingSkills(v => !v)}>
+            <SectionCard title={accountMode === 'client' ? 'What you need help with' : 'Skills & Expertise'} editing={editingSkills} onToggleEdit={() => setEditingSkills(v => !v)}>
               {editingSkills ? (
                 <>
+                  {accountMode === 'freelancer' && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                     {SKILLS_OPTIONS.map(skill => {
                       const selected = profile.skills.includes(skill)
@@ -765,10 +769,11 @@ export default function ProfilePage() {
                       )
                     })}
                   </div>
+                  )}
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                     <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
-                      placeholder="e.g. Rhino, Grasshopper, Midjourney..."
+                      placeholder={accountMode === 'client' ? 'e.g. Interior Rendering, Product Visualization...' : 'e.g. Rhino, Grasshopper, Midjourney...'}
                       style={{ ...inputStyle, flex: 1 }} />
                     <button onClick={addCustomSkill} disabled={!newSkill.trim()}
                       style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer', opacity: !newSkill.trim() ? 0.4 : 1 }}>
@@ -859,6 +864,7 @@ export default function ProfilePage() {
             </SectionCard>
 
             {/* EDUCATION */}
+            {accountMode === 'freelancer' && <>
             <SectionCard title="Education" editing={editingEducation} onToggleEdit={() => setEditingEducation(v => !v)}>
               {profile.education.length === 0 && !editingEducation && (
                 <p style={{ fontSize: '13px', color: 'var(--text-dim)', margin: 0 }}>No education added yet</p>
@@ -954,6 +960,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </SectionCard>
+            </>}
             </>
           )}
 

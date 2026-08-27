@@ -1240,7 +1240,16 @@ def user_detail(user_id: int, admin: User = Depends(require_admin), db: Session 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    profile = json.loads(user.profile_json) if user.profile_json else {}
+    profile = _migrate_profile_json(json.loads(user.profile_json) if user.profile_json else {})
+
+    def _hat_summary(role: str) -> dict:
+        p = profile.get(role, {})
+        return {
+            "bio": p.get("bio", ""),
+            "skills": (p.get("skills") or []) + (p.get("customSkills") or []),
+            "portfolio_count": len(p.get("portfolio") or []),
+        }
+
     return {
         "id": user.id, "name": user.name, "email": user.email,
         "role": user.role, "plan": user.plan, "plan_status": user.plan_status or "active",
@@ -1253,11 +1262,11 @@ def user_detail(user_id: int, admin: User = Depends(require_admin), db: Session 
             UserVerification.user_id == user.id, UserVerification.status == "verified",
         ).first() is not None,
         "profile": {
-            "bio": profile.get("bio", ""), "location": profile.get("location", ""),
+            "location": profile.get("location", ""),
             "website": profile.get("website", ""), "company": profile.get("company", ""),
             "phone": profile.get("phone", ""), "avatar": profile.get("avatar", ""),
-            "skills": (profile.get("skills") or []) + (profile.get("customSkills") or []),
-            "portfolio_count": len(profile.get("portfolio") or []),
+            "freelancer": _hat_summary("freelancer"),
+            "client": _hat_summary("client"),
         },
         "activity": _user_activity(db, user),
     }
@@ -1346,6 +1355,29 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = None
 
 
+# The 7 fields that make up a "professional showcase" — split per hat since a
+# client posting work and a freelancer bidding on it are different personas,
+# even on the same account. Everything else in profile_json (location,
+# company, website, phone, avatar) is real-world identity/contact info and
+# stays shared at the top level.
+PROFESSIONAL_FIELDS = ["headline", "bio", "skills", "customSkills", "portfolio", "education", "experience"]
+
+
+def _migrate_profile_json(data: dict) -> dict:
+    """Lazily upgrades a flat legacy profile_json blob into the role-keyed
+    shape {..shared fields.., "freelancer": {...}, "client": {...}}. Old data
+    had one shared set of professional fields, so on first read we seed both
+    hats with the same values — nobody loses anything, they just each get
+    their own copy to diverge from going forward."""
+    if "freelancer" in data and "client" in data:
+        return data
+    seed = {f: data.get(f, [] if f in ("skills", "customSkills", "portfolio", "education", "experience") else "") for f in PROFESSIONAL_FIELDS}
+    migrated = {k: v for k, v in data.items() if k not in PROFESSIONAL_FIELDS}
+    migrated["freelancer"] = dict(seed)
+    migrated["client"] = dict(seed)
+    return migrated
+
+
 def slugify(text: str) -> str:
     text = text.strip().lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
@@ -1366,9 +1398,12 @@ def ensure_unique_username(db: Session, desired: str, user_id: int) -> str:
 
 
 @router.get("/profile/me")
-def get_my_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_my_profile(as_: Optional[str] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.models.database import Campaign, Post
-    data = json.loads(current_user.profile_json) if current_user.profile_json else {}
+    data = _migrate_profile_json(json.loads(current_user.profile_json) if current_user.profile_json else {})
+    active_role = as_ if as_ in ("freelancer", "client") else (current_user.account_mode if current_user.account_mode == "client" else "freelancer")
+    shared = {k: v for k, v in data.items() if k not in ("freelancer", "client")}
+    professional = data.get(active_role, {})
     return {
         "id": current_user.id,
         "name": current_user.name,
@@ -1377,18 +1412,21 @@ def get_my_profile(current_user: User = Depends(get_current_user), db: Session =
         "role": current_user.role,
         "username": current_user.username,
         "is_public": current_user.is_public,
+        "active_profile_role": active_role,
         "is_verified": db.query(UserVerification).filter(
             UserVerification.user_id == current_user.id, UserVerification.status == "verified",
         ).first() is not None,
         "has_post": db.query(Post).filter(Post.user_id == current_user.id, Post.is_deleted == False).first() is not None,
         "has_sent_email": db.query(Campaign).filter(Campaign.user_id == current_user.id, Campaign.status.in_(["sent", "replied"])).first() is not None,
-        **data,
+        **shared,
+        **professional,
     }
 
 
 @router.put("/profile/me")
 def update_my_profile(
     payload: ProfileUpdate,
+    as_: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1402,21 +1440,27 @@ def update_my_profile(
     if payload.is_public is not None:
         current_user.is_public = payload.is_public
 
-    profile_data = {
+    active_role = as_ if as_ in ("freelancer", "client") else (current_user.account_mode if current_user.account_mode == "client" else "freelancer")
+    existing = _migrate_profile_json(json.loads(current_user.profile_json) if current_user.profile_json else {})
+
+    # Shared identity/contact fields live at the top level; only the active
+    # hat's professional showcase gets overwritten, so saving from one hat
+    # never clobbers the other hat's bio/skills/portfolio.
+    existing["location"] = payload.location
+    existing["website"] = payload.website
+    existing["company"] = payload.company
+    existing["phone"] = payload.phone
+    existing["avatar"] = payload.avatar
+    existing[active_role] = {
         "headline": payload.headline,
         "bio": payload.bio,
-        "location": payload.location,
-        "website": payload.website,
-        "company": payload.company,
-        "phone": payload.phone,
-        "avatar": payload.avatar,
         "skills": payload.skills,
         "customSkills": payload.customSkills,
         "portfolio": [p.dict() for p in payload.portfolio],
         "education": [e.dict() for e in payload.education],
         "experience": [e.dict() for e in payload.experience],
     }
-    current_user.profile_json = json.dumps(profile_data)
+    current_user.profile_json = json.dumps(existing)
     db.commit()
 
     return {
@@ -1433,7 +1477,11 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
     if not user or not user.is_public or not user.is_active:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    data = json.loads(user.profile_json) if user.profile_json else {}
+    data = _migrate_profile_json(json.loads(user.profile_json) if user.profile_json else {})
+    # The public page always shows the freelancer-facing showcase — this is
+    # a "hire me" page, and the client hat has no public marketing profile
+    # (same as Upwork: clients don't have a public portfolio page).
+    freelancer_data = data.get("freelancer", {})
 
     # Marketplace reputation — only meaningful once the account has
     # completed contracts and been reviewed; the frontend hides it at
@@ -1481,16 +1529,16 @@ def get_public_profile(username: str, db: Session = Depends(get_db)):
             UserVerification.user_id == user.id, UserVerification.status == "verified",
         ).first() is not None,
         "avatar": data.get("avatar", ""),
-        "headline": data.get("headline", ""),
-        "bio": data.get("bio", ""),
+        "headline": freelancer_data.get("headline", ""),
+        "bio": freelancer_data.get("bio", ""),
         "location": data.get("location", ""),
         "website": data.get("website", ""),
         "company": data.get("company", ""),
-        "skills": data.get("skills", []),
-        "customSkills": data.get("customSkills", []),
-        "portfolio": data.get("portfolio", []),
-        "education": data.get("education", []),
-        "experience": data.get("experience", []),
+        "skills": freelancer_data.get("skills", []),
+        "customSkills": freelancer_data.get("customSkills", []),
+        "portfolio": freelancer_data.get("portfolio", []),
+        "education": freelancer_data.get("education", []),
+        "experience": freelancer_data.get("experience", []),
         "marketplace_rating": rating["avg_rating"],
         "marketplace_review_count": rating["review_count"],
         "marketplace_satisfaction": satisfaction,

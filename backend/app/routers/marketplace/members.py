@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Contract, Review, User
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, _migrate_profile_json
 from app.services.marketplace_access import get_user_rating, is_verified
 
 router = APIRouter(prefix="/members", tags=["marketplace-members"])
@@ -36,6 +36,9 @@ def member_profile(
             data = json.loads(user.profile_json)
         except Exception:
             data = {}
+    data = _migrate_profile_json(data)
+    member_role = user.account_mode if user.account_mode == "client" else "freelancer"
+    hat = data.get(member_role, {})
 
     rating = get_user_rating(db, user.id)
     review_rows = (
@@ -63,13 +66,13 @@ def member_profile(
         "is_verified": is_verified(db, user.id),
         "account_mode": user.account_mode or "freelancer",
         "avatar": data.get("avatar", ""),
-        "bio": data.get("bio", ""),
+        "bio": hat.get("bio", ""),
         "location": data.get("location", ""),
         "website": data.get("website", ""),
         "company": data.get("company", ""),
-        "skills": data.get("skills", []),
-        "customSkills": data.get("customSkills", []),
-        "portfolio": data.get("portfolio", []),
+        "skills": hat.get("skills", []),
+        "customSkills": hat.get("customSkills", []),
+        "portfolio": hat.get("portfolio", []),
         "rating": rating["avg_rating"],
         "review_count": rating["review_count"],
         "satisfaction": round((rating["avg_rating"] / 5) * 100) if rating["avg_rating"] else None,
