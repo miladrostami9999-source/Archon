@@ -66,6 +66,7 @@ The single best discovery pattern found. One page names 25–220 firms.
 | **Architizer A+List** | `architizer.com` "A+List" / "firms to watch" — 220+ firms | 220 |
 | **Archello "50 best in the United States"** | same pattern, per-country | 50 |
 | **archisoup city lists** | `site:archisoup.com "architecture firms in <city>"` — confirmed fetchable directly, gives name + address + website per firm, no verification step needed for those fields. Covers most major US/UK cities (Austin, Boston, Chicago, Philadelphia, LA…) | 14–20/page |
+| **archline.ir national office directory** (Iran) | `archline.ir` → "لیست دفاتر معماری و مهندسین مشاور ایران" — ~110 offices **each with its own domain**, fetches directly | 110 |
 | **Design Middle East / Middle East Architect power lists** | annual "top firms" features | 20–50 |
 | **Construction Week "top developers to watch"** | Gulf developers, annual | 10–30 |
 
@@ -535,6 +536,15 @@ searches one at a time.
    Do not open a projects page to refine it.
 4. **Never re-search a company** whose name and city you already have — go
    straight to the contact search.
+5. **When a source hands you domains, bulk-verify them before Phase B.** One
+   shell loop doing `curl -s -o /dev/null -m 10 -w "%{http_code}" -L` over
+   every candidate domain (https, falling back to http) plus an MX lookup costs
+   one tool call and tells you which names are worth a contact search at all.
+   Measured on the archline.ir directory: **27 of 51 domains were live**, so
+   the loop killed 24 searches that would each have returned nothing. Directory
+   pages are never pruned — assume a third to a half of their links are dead.
+   Read `000` as "no response" (retry once over http), `403`/`503` as a bot
+   block on a live site (keep it), and a dead DNS lookup as a genuine drop.
 
 ### Diagnosing a short run
 
