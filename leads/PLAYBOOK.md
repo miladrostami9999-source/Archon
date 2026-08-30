@@ -160,6 +160,25 @@ inside one city.
   aggregators, and local listicles — because Google's own general index and
   Maps draw from the same business listings. Treat "search Google Maps for a
   city" as "run a plain city-level WebSearch", not as a literal Maps fetch.
+- **National map services — the real fix, and better than Maps ever was.**
+  Countries that Google Maps under-serves usually have a domestic map product
+  whose place pages *are* in the search index and have no consent wall.
+  **Confirmed working: `balad.ir` (Iran).** The pattern is
+  `balad.ir "<segment in local language>" <city> آدرس تلفن` — each hit is one
+  place page giving **name + neighbourhood + street address + phone + opening
+  hours**, and `balad.ir/city-<city>/cat-<category>` is a browsable category
+  index. It reopened Iran after two rounds had declared it exhausted.
+  What it does *not* give is a website, so budget one contact search per name;
+  roughly a third resolve to an own domain. A map-verified business with
+  address, phone and hours is **not** a "directory stub" under §4 — write it
+  with a blank `website` and name the map service in `evidence`.
+  Try the same trick before writing off any country: Neshan (IR), Yandex Maps
+  (RU/TR), 2GIS (RU/KZ/UZ), Naver/Kakao Map (KR), Amap/Baidu (CN).
+- **National job boards are the cheapest `hiring_viz` source in any market.**
+  A local-language search for the render software rather than the job title is
+  what works — `استخدام "تری دی مکس" معماری` on `jobinja.ir` named a studio
+  hiring an architect who must master 3ds Max + V-Ray/Corona. Searching for
+  "visualiser" returns nothing in markets where the role has no local title.
 - **Houzz, Clutch, DesignRush, GoodFirms** — filterable by city, though most
   403 on direct fetch like the award directories; reach via `site:` search.
 
