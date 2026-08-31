@@ -515,6 +515,18 @@ and don't over-invest chasing the rest (§11 rule 1).
 
 **Belgium round 1 note (dedicated hunt beyond the manual/PT-BE-NO-ES seed):** 22 new rows added (32 → 54 against an 80 quota, Tier B). Segment mix: 6 Architecture, 3 Interior Design, 3 Retail Interior Design, 8 Real Estate, 3 Construction. Size mix: 12 small, 6 medium, 4 large. Cities: Bruges (4), Ghent (3), Liège (2), Leuven (1), Brussels (3), plus regional/Flanders-wide entries. Signals: new_project (8, all Real Estate/Construction), active_social (2). Left email blank for BBAR Architecten (contact page not fetched), Hobeco (no plaintext email in fetched content) and Danneels (same). All 20 new email domains MX-verified, 100% pass. Next-best source for round 2: Belgium still has a 26-row gap to quota — a dedicated Wallonia (Liège/Namur/Charleroi) native-French sweep via `ordredesarchitectes.be` and a CGI/visualization-segment search (this file's viz rows are all from the original manual seed) would extend coverage furthest.
 
+### Oman
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Plain-WebSearch harvest (mawa.om directory, easyoman.com, plain "Muscat architecture / interior / landscape / developer 2026") | 2026-09-01 | 1 (~7 queries) | 6 written | Oman was already **over quota** (58/40) from earlier OmanYP/manual passes — this was a 6-row opportunistic top-up alongside the Bahrain brief. Added Atrium Design Studio, EIDC, Desert Rose Landscaping (landscape segment, only LandArt existed before), iStudio, and two developers with active projects (MHID, WUJHA/Uptown Muscat). **Skipped Design Unit Engineering** — same entity as the existing "Design Unit Oman" row (site designunitengineering.com, mail @designunitoman.com). **Dropped Interno Design Studio** — `internodstudio.com` is a Non-existent domain. Presence Architects / Muscat Landscaping left out — no resolving site found. mawa.om directory is the best untapped Oman source (26+ named firms across architects/landscape/interior) — worth a proper fetch next round. |
+
+### Bahrain
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Plain-WebSearch listicle harvest (Archgyan "Transformative Architecture Firms in Bahrain", infobahrain.com, bahrainyellow.com, plain "Bahrain architecture / interior / fit-out / developer" + Arabic `مكتب هندسي البحرين`) | 2026-09-01 | 1 (~20 queries) | 16 written | **First dedicated `/hunt` for Bahrain** (was 20/40, mostly manual-seed rows). infobahrain.com and archgyan both **403/bot-wall on WebFetch** — names only via WebSearch snippets. benayat.bh is the official licensed-engineering-office registry (`benayat.bh/building-permits/public/engineering-office`) — individual firm pages are search-indexed and worth mining next round. Best finds: nicholas.design (RIBA-chartered, est 2024, BWTC), Akbari Architects, MGAEC, IDA, Ramy Helmy, Castillo Interiors, Atelier Design Studio. 8/16 own-domain MX-verified emails; the fit-out contractors (Sum Works, Kooheji, Watercolor, Yellow Bricks) publish contact forms only. **Dropped — domains no longer resolve** (all confirmed Non-existent via 8.8.8.8): Elevations Architects & Engineers `elevationsae.com`, Makeshift Design Studio `makeshiftdesignstudio.com`, Architecture 360 `architecture360.net`. **Rejected:** Perfect Art Contracting (Riyadh HQ, Bahrain service page only); Farry Kazerooni (no website, FB only). Next pass: benayat.bh registry + Cityscape Bahrain (24-28 Nov 2026) exhibitor press. |
+
 ### Kuwait
 
 | Source | Last used | Times | Firms yielded | Notes |
