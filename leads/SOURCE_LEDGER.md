@@ -548,6 +548,12 @@ and don't over-invest chasing the rest (§11 rule 1).
 |---|---|---|---|---|
 | Plain WebSearch: Halifax interior design + Saskatoon residential studio | 2026-09-01 | 1 | 3 (Stil James Home Interiors, Mattinson-White Interior Design, Beyond Measure Design) | First ledger entry for Canada (earlier CA rounds were manual/prepared-list seeded + US-run spillover, untracked here). Opportunistic buffer — CA already 210/180. Omar Gandhi, Prairie Architects, 5468796 from the same searches were already in the file. Halifax has a real small-interiors cluster (Stil James, Mattinson-White, Pampeliska, Maddie Clarke, Bricks + Birches) worth a fuller pass. |
 
+### Portugal
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Archello "25 best architecture firms in Lisbon/Porto/Portugal" + idealista "5 estúdios portugueses" + Portuguese-language segment searches | 2026-09-01 | ~26 queries | 21 written | **First real hunt for Portugal** (was 18/40, all from a manual PT/BE/NO/ES import). Archello 403s on direct fetch as usual — names via WebSearch. idealista listicle surfaced Fala Atelier, Atelier Local, Summary, RAR.STUDIO. Portuguese architecture is a strong style-fit market (Fala sf 8, SER-ra, Rebelo de Andrade, Carvalho Araújo). Interior: Ding Dong, Andringa, RIMA, Viterbo (recent_award). Developer: Vanguard Properties (new_project). **First dedicated PT arch-viz pass**: Rendergram (Porto), BLOOM3D, MAD studio (Almada), Point of View — all `industry=Visualization`. **PT-specific note: contact pages hide emails aggressively** — only 12/21 rows have an own-domain email; the rest are form-only. **Dropped — no resolving own domain**: Summary (UPTEC-hosted, no site found), ADA Atelier (Famalicão, phone only), Overseas (no site), TUYU Studio (tuyustudio.pt non-existent). Studio 3DVibe rejected — gmail address only. **Next pass**: `espacodearquitetura.com` company directory (filterable by distrito, surfaced RVS3D/3DVibe/BLOOM3D) is a Tier-1-equivalent source worth a proper fetch; Braga/Guimarães/Coimbra/Aveiro barely touched; hospitality-group and retail segments untried. |
+
 ### Mexico
 
 | Source | Last used | Times | Firms yielded | Notes |
