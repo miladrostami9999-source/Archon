@@ -548,6 +548,12 @@ and don't over-invest chasing the rest (§11 rule 1).
 |---|---|---|---|---|
 | Plain WebSearch: Halifax interior design + Saskatoon residential studio | 2026-09-01 | 1 | 3 (Stil James Home Interiors, Mattinson-White Interior Design, Beyond Measure Design) | First ledger entry for Canada (earlier CA rounds were manual/prepared-list seeded + US-run spillover, untracked here). Opportunistic buffer — CA already 210/180. Omar Gandhi, Prairie Architects, 5468796 from the same searches were already in the file. Halifax has a real small-interiors cluster (Stil James, Mattinson-White, Pampeliska, Maddie Clarke, Bricks + Birches) worth a fuller pass. |
 
+### Japan
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| English design-press (Dezeen/Designboom/ArchDaily tiny-house tags) + Japanese-language `建築設計事務所 <city> 住宅 アトリエ` + `建築CGパース 制作会社` | 2026-09-01 | ~28 queries | 20 written | **First real hunt for Japan** (was 27/40, all from a manual import that took the famous names — Bow-Wow, Ando, Ban, SANAA-adjacent — nearly all form-only). This pass deliberately targeted *small* ateliers a rung below fame: Tokyo tiny/narrow-lot house studios (Unemori, KOMINORU, Yoshinori Sakano/ys-arc, SAKAE — recent_award), Osaka/Fukuoka/Nagoya ateliers (Fujiwara Muro/aplan, Atelier M, Sankaku Scale, Saimoto, CASE-REAL). Interior: CURIOSITY, Takenouchi Webb, Yukiko Watanabe. **First dedicated 建築パース arch-viz pass**: Moderno, Space Lab, Sherpa, Nihon Protec, ROOM.C, Iogrants — all `industry=Visualization`. **Japan-specific note: email hit rate ~50%** (better than the "form-only" reputation) — the smaller ateliers publish `info@` more often than the star studios do; several use Google Workspace MX (`smtp.google.com`). **Withheld**: Sherpa (gmail only), Space Lab (holding-co domain). **Dropped**: Tacta (no site found), mega-developers Mitsui/Sumitomo/Daiwa/Nomura (too large, in-house viz depts). **Next pass**: `japanese-architects.com` and `klasic.jp` per-prefecture directories fetch and list many small firms; Kyoto/Sendai/Sapporo untouched; hospitality-group and retail-rollout segments untried. |
+
 ### Portugal
 
 | Source | Last used | Times | Firms yielded | Notes |
