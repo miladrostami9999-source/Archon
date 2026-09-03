@@ -805,3 +805,9 @@ Test one or two per run rather than all at once.
    `studio di architettura`, `despacho de arquitectura`, `architectenbureau`.
 4. **Note the seasonality.** European boards thin out in July–August; Italy's
    closes outright. Gulf boards do not.
+
+### Greece
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Plain WebSearch: interior design Athens, hotel/Cycladic architecture Greece, island villa (Mykonos/Santorini/Paros/Crete), architecture office Thessaloniki | 2026-09-03 | 4 | ~24 named, 16 written | Tier-D opportunistic pass (26 → 42). Greece was Athens-architecture-heavy with **zero interior rows** and no island/Thessaloniki coverage. All four segments filled in one query each. **`beyondgreeksalad.com` and `thegreekfoundation.com` are the Greece-specific studio directories** — both surface named small studios with a sentence of context. `theaficionados.com` and `designhotels.com` good for the hospitality angle. **Cycladic villa/hotel architecture is a strong style-fit seam for Armila** (warm minimalism, white cubic forms): Block722 (Casa Cook), Kapsimalis (Santorini villas), ATENO (OLEN Syros, Dezeen Feb 2026), React (Crete/Paros) — all style_fit 3-4. Thessaloniki cluster: T Square (German Design Award 2023, recent_award), Urban Soul Project (multi-awarded), Skarlakidis, Office Twenty Five (est 2003, also Athens/London). 12/16 own-domain MX-verified. Withheld gmail-only: KRAK Architects, Skarlakidis. Blank: Babatchas (no email on studio page), React Architects (contact page 404). **Next pass**: Athens developers/real-estate (only Lamda, Dimand, Prodea in file — all from manual seed), Greek architecture awards (Domes Award / Hellenic Institute of Architecture) for recent_award signal, and more Crete (Heraklion) + Paros/Naxos studios.
