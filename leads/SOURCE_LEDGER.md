@@ -526,6 +526,12 @@ and don't over-invest chasing the rest (§11 rule 1).
 
 **Austria round 2 note (dedicated hunt beyond the nextroom manual seed):** 22 new rows added (23 → 45 against an 80 quota, Tier B). Segment mix: 8 Architecture, 6 Interior Design, 8 Real Estate (6 developers + 2 hotel properties). Size mix: 14 small, 6 medium, 2 solo. Cities: Vienna (12), Salzburg region (2), Innsbruck (2), Linz (2), Dornbirn (1), Altenmarkt im Pongau (1), Mödling (1), Schladming (1). Signals: new_project (8, all on the Real Estate rows), no_inhouse (4). Left email blank for Treberspurg & Partner (no address on main site, only a contact-page link) — did not fetch the contact page as it was outside the search-first Phase B budget. All 21 new email domains MX-verified, 100% pass. Next-best source for round 3: Austria still has a 35-row gap to quota — a Wien/Graz retail-design and construction/Bauträger sweep (untested this round beyond developers) and Kärnten/Steiermark small-city coverage (Klagenfurt, Villach untouched) would extend it further.
 
+### Bulgaria
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Round 1 (no-brief, fresh territory): Bulgarian/English WebSearch across architecture, interior design, construction/developer, landscape, hospitality segments (Sofia/Plovdiv/Varna/Veliko Tarnovo) | 2026-08-25 | 1 each | ~20 named, 12 written | Bulgaria had only 4 rows and zero ledger history — a genuinely fresh country. Cyrillic-language queries (`архитектурно бюро`, `интериорен дизайн студио`) surfaced small Sofia-based solo/small studios (Adydesign, Studio TXT, Concepta) that don't appear in English-language searches. A&A Architects (Sky Fort, Capital Fort) and MMXX Architects are the strongest style-fit finds. Ncode Design Studio and FRAME Architecture/Design (Plovdiv) had no confirmed own-domain website (social-media-only presence) — dropped entirely rather than written without a website. Taskov & Stoyanov's email came back redacted (`[email protected]`) — left blank. All 10 new own-domain email domains MX-verified in one batch, 100% pass (two gmail.com addresses accepted as published contact channels). Next-best source for round 2: Bulgarian Chamber of Architects register (untried), Plovdiv/Burgas city-level sweep, and a hospitality/hotel-design segment retry with different phrasing (this round's attempt returned only award-press mentions, no named studio). |
+
 ### Belgium
 
 | Source | Last used | Times | Firms yielded | Notes |
