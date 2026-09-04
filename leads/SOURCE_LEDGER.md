@@ -305,6 +305,12 @@ and don't over-invest chasing the rest (§11 rule 1).
 
 **Italy-specific note (2026-08-21 round):** 32 new rows added (92→124), closing the Tier-C quota gap (120) and slightly exceeding it. 17 of 32 new rows carry a confirmed, MX-verified email (all 17 checked passed MX on the first batch, no failures). The remaining 15 were left blank per policy: two site fetches 403'd (ADesign, Salvatore Sito), one 404'd (Casettastudio contacts page), one ECONNREFUSED (Studio Eigen), several search snippets showed only a redacted `[email protected]` placeholder (Paiola Design, Studio Didea, Esseelle Associati, Studio 183), one broker-guessed format was rejected (Studio Modus via RocketReach), and one used only Gmail addresses not matching the company's own domain (Ideastudio Bari). No emails were invented. Segment mix skewed architecture/interior again (25 of 32) despite deliberately searching real estate and construction — those segments continue to be the hardest to surface with published contact info in Italy, consistent with the Aug-20 finding.
 
+### Slovenia
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Round 1 (fresh territory, no prior ledger section): Maribor/Celje architecture, Ljubljana+Maribor interior design, landscape architecture, developer/construction segment sweep | 2026-09-04 | 1 each | ~20 named, 10 written | File was 22 rows, all Ljubljana-centric architecture/construction with only 2 interior rows and zero landscape — this round diversified both city and segment. Zgradbazamisli (Celje) is the standout find: does architecture, interior design AND in-house 3D visualization/renders, a genuine overflow-partner profile. Studio Arhideja is the strongest style-fit (modern warm minimalist). Junger Arhitektura and HGB (both Maribor/Celje architecture) had no findable email — dropped rather than guess. Wegraz (a Ljubljana residential developer named in a news article) could not be re-confirmed as a real distinct company via search — dropped. DomCom d.o.o. only had a personal gmail address of uncertain provenance, not clearly the company's own — dropped. Interia's only published email was on a different domain (fiera.si vs interia.si) — Layer-2 mismatch, left blank. Next-best source for round 2: a dedicated Kranj/Novo Mesto/Koper city sweep (untried) and Slovenian architecture awards (Plečnik Medal, Piranesi Award) for recent_award signals. |
+
 ### Spain
 
 | Source | Last used | Times | Firms yielded | Notes |
