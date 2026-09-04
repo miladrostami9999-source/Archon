@@ -60,6 +60,18 @@ are.
 
 One row per source actually used for a country. `—` = never tried.
 
+### Slovakia
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| **Slovak-language WebSearch: "architektonické štúdio Bratislava zoznam"** | 2026-09-04 | 1 | 3 (ROAR architekti, plus directory pointers) | Fresh territory — no prior ledger section (file had 26 rows, none logged). Surfaced daibau.sk/zoznam.sk architect directories as further mining candidates, untouched this round. |
+| **Slovak-language WebSearch: "interiérové štúdio Bratislava dizajn"** | 2026-09-04 | 1 | 9 (PRUNUS, WSD 13, LUAL STUDIO, Ambiente Design, INTTERIO, Studio E, Arcada, MOZEGO, plus directory) | Strong interior-design yield — this segment was under-represented (0 interior rows before this run). Arcada and MOZEGO dropped: no confirmed email surfaced in search snippets. |
+| **Slovak-language WebSearch: developer/rezidenčný projekt Bratislava 2026** | 2026-09-04 | 1 | 2 (FEDORS GROUP, BELEVIS via Hviezdne Bývanie project) | JTRE/YIT/Immocap-style large developers already in file; this pass found a smaller premium brokerage and a mid-size developer instead. |
+| **Slovak-language WebSearch: Košice/Žilina/Nitra architecture** | 2026-09-04 | 1 | 3 (3linea architekti, Atrium Architekti, arz) | Regional-city sweep outside Bratislava — all three are established (15-20+ yr) small Košice studios. |
+| **Slovak-language WebSearch: hotel/hospitality interior** | 2026-09-04 | 1 | 2 (Room Design Žilina, FMDESIGN Kežmarok) | Hospitality segment was previously empty; both do hotel/pension interiors alongside residential. |
+| **Slovak-language WebSearch: landscape/garden architecture** | 2026-09-04 | 1 | 3 (Sobola a Janík, Ateliér Papaver, Gardn) | Landscape segment was previously empty. Gardn's email not exposed in search — kept as contact-form-only. |
+| **Slovak-language WebSearch: 3D vizualizácie/CGI** | 2026-09-04 | 1 | 5 (WOOW Studio, V STUDIO, Energetic Vision, Createspace, 3D Vizual/Erik Havčo) | Archviz/CGI competitors — included per standing rule (never reject rendering studios). najvizualizacie.sk dropped: no contact info surfaced at all across the search. |
+
 ### United States
 
 | Source | Last used | Times | Firms yielded | Notes |
