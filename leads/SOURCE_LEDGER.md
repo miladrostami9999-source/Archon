@@ -311,6 +311,14 @@ and don't over-invest chasing the rest (§11 rule 1).
 |---|---|---|---|---|
 | Round 1 (fresh territory, no prior ledger section): Maribor/Celje architecture, Ljubljana+Maribor interior design, landscape architecture, developer/construction segment sweep | 2026-09-04 | 1 each | ~20 named, 10 written | File was 22 rows, all Ljubljana-centric architecture/construction with only 2 interior rows and zero landscape — this round diversified both city and segment. Zgradbazamisli (Celje) is the standout find: does architecture, interior design AND in-house 3D visualization/renders, a genuine overflow-partner profile. Studio Arhideja is the strongest style-fit (modern warm minimalist). Junger Arhitektura and HGB (both Maribor/Celje architecture) had no findable email — dropped rather than guess. Wegraz (a Ljubljana residential developer named in a news article) could not be re-confirmed as a real distinct company via search — dropped. DomCom d.o.o. only had a personal gmail address of uncertain provenance, not clearly the company's own — dropped. Interia's only published email was on a different domain (fiera.si vs interia.si) — Layer-2 mismatch, left blank. Next-best source for round 2: a dedicated Kranj/Novo Mesto/Koper city sweep (untried) and Slovenian architecture awards (Plečnik Medal, Piranesi Award) for recent_award signals. |
 
+### Romania
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Necesit.ro city listicles: `birou-arhitectura/cluj`, `birou-arhitectura/iasi`, `design-interior/timisoara` (fetched directly) | 2026-09-04 | 1 each | ~52 names, 19 written | File was 26 rows, all Bucharest — these three Tier-1-style listicles opened Cluj-Napoca, Iasi and Timisoara in one pass. Yield rate was low (~35%) because most names are bare SRL legal entities with no findable public website/email (Atelier Maecenas, RGBA Concept, Deifco, Albonti Arhitecti, Achi Studio, KaleCanya Studio Design, Q Architects Workshop, Arhitectonix Space Studio, Ezzo Design — all dropped, no confirmed domain reachable in a light pass). Developers (SDC Properties, Solaris Real Estate Development, Hexagon Offices/ERA, Best Residence Floresti, Floresti Residence, Elite Grup) were found via plain WebSearch rather than a listicle — no Romanian developer listicle source tried yet. |
+| `necesit.ro/peisagistica/bucuresti` (landscaping) | 2026-09-04 | 1 | 0 written | Almost entirely individual gardeners/handymen and DIY chain stores (Hornbach, Bricostore) rather than design firms — not a useful source for this segment in Romania, skip next round. |
+| Next-best for round 3: a dedicated Brasov/Constanta/Oradea city sweep (untried); Romanian architecture awards (Romanian Building Awards, Bienala de Arhitectura) for `recent_award` signal; a hospitality/retail-rollout segment search (untried this round). |
+
 ### Spain
 
 | Source | Last used | Times | Firms yielded | Notes |
