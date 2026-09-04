@@ -331,6 +331,12 @@ and don't over-invest chasing the rest (§11 rule 1).
 | `necesit.ro/peisagistica/bucuresti` (landscaping) | 2026-09-04 | 1 | 0 written | Almost entirely individual gardeners/handymen and DIY chain stores (Hornbach, Bricostore) rather than design firms — not a useful source for this segment in Romania, skip next round. |
 | Next-best for round 3: a dedicated Brasov/Constanta/Oradea city sweep (untried); Romanian architecture awards (Romanian Building Awards, Bienala de Arhitectura) for `recent_award` signal; a hospitality/retail-rollout segment search (untried this round). |
 
+### Hungary
+
+| Source | Last used | Times | Firms yielded | Notes |
+|---|---|---|---|---|
+| Round 1 (fresh territory, no prior ledger section): Hungarian-language WebSearch across architecture (Budapest + Debrecen/Győr/Szeged/Székesfehérvár/Miskolc city sweep), interior design, landscape architecture, general-contractor/construction, hotel-development news, and exhibition/stand-design segments | 2026-09-04 | 1 each | ~26 named, 23 written | File was 25 rows, entirely Budapest, heavily Architecture/Real Estate (large developers) with only 1 landscape and 3 interior rows and zero construction/exhibition — this round closed all three gaps. Landscape (4D Tájépítész, Lépték-Terv, PAndapont, Gardenworks) and exhibition-stand builders (NORDECO, Litofilm, Stand-Up!, Hillexpo) are genuinely new segments for this country file. Realis WAM Alapkezelő (real-estate fund manager, just bought 3 Budapest office buildings + a Debrecen residential plot) is the best `new_project`/`funding` signal found. SCH Design & Exhibits dropped — stand-design.hu no longer resolves (ENOTFOUND). DOPA/Domokos & Partners dropped — turned out to be a graphic/branding creative agency, not an architecture-adjacent visual buyer, on closer read. GMT Építő kept with blank email (contact-page fetch 500'd). SUMMA-ART and Durst Építész Stúdió (Debrecen) and West-Art (Győr) only had gmail.com addresses as their published contact — kept per existing precedent (personal-domain address is still the firm's own stated contact), MX passes trivially since it's Gmail. Next-best source for round 2: RIBA-equivalent Hungarian architecture awards (Media Architecture Award, Építészkalauz), and a dedicated Pécs/Szombathely/Kecskemét city sweep (untried). |
+
 ### Spain
 
 | Source | Last used | Times | Firms yielded | Notes |
