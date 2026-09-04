@@ -3,6 +3,7 @@
 One line per `/hunt` run, newest at the top. `/hunt` appends to this file as
 the last step of every run — never edit past rows by hand, this is a record.
 
+| 2026-09-04 22:32 RDT | UAE | +18 | 383 / 350 quota | Opportunistic revisit; segment-first sweep into untapped niches (yacht/marine interiors, car showroom design, spa/wellness, office/co-working fit-out, landscape/golf masterplanning, clinic interiors, luxury kitchen/bathroom showrooms) — 10/18 emails MX-verified. |
 | 2026-09-04 22:24 RDT | UK | +14 | 380 / 350 quota | Opportunistic revisit of a saturated file; closed thin segments flagged in the ledger (exhibition stands, landscape architecture, property-marketing CGI, Scottish boutique developers, retail rollout) — all 14 emails MX-verified. |
 | 2026-09-04 22:25 RDT | Germany | +20 | 281 / 250 quota | Opportunistic revisit (quota already met); targeted the ledger's flagged gaps — landscape architecture (first-ever rows for this segment), Bonn/Mannheim developers, Regensburg/Erfurt/Chemnitz architecture, and standalone CGI/visualization studios (ShapeMotion, visualcore, PURE3D); all 20 emails MX-verified. |
 | 2026-09-04 22:15 RDT | Hungary | +23 | 48 / opportunistic | Fresh territory (no prior ledger section); Hungarian-language WebSearch across landscape, interior, construction/general-contracting and exhibition-stand segments closed the non-architecture gap; all 23 emails MX-verified. |
