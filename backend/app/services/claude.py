@@ -908,3 +908,34 @@ def discover_leads(existing_names: list, criteria: dict) -> list:
         "segments": [criteria["industry"]] if criteria.get("industry") else [],
         "count": criteria.get("count") or 5,
     })
+
+
+def generate_project_match_insights(freelancer_summary: str, projects: list[dict]) -> dict:
+    """One short sentence per project on why it fits this freelancer.
+
+    The ranking itself is decided by `services/matching.py` (deterministic,
+    never by the model, same principle as `scoring.py`) — this only writes
+    the "why" for a shortlist someone already asked to see, so it's a single
+    cheap Haiku call per click, not one call per project per pageview.
+    """
+    listing = "\n".join(
+        f"- id {p['id']}: \"{p['title']}\" — {(p.get('description') or '')[:300]}"
+        for p in projects
+    )
+    prompt = f"""A freelancer with this profile:
+{freelancer_summary}
+
+Is looking at these open projects, already ranked as good matches:
+{listing}
+
+For each project id, write ONE short sentence (max 20 words) explaining specifically why it fits this freelancer's skills/background — not a generic compliment. Reply with ONLY this JSON, no other text:
+{{"insights": {{"<id>": "one sentence", ...}}}}"""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=1000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text_blocks = [b.text for b in message.content if getattr(b, "type", None) == "text"]
+    result = parse_json_response("\n".join(text_blocks))
+    return result.get("insights", {}) if isinstance(result, dict) else {}

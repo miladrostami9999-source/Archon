@@ -43,6 +43,8 @@ interface Project {
   proposal_count: number
   my_proposal_status: string | null
   my_proposal_id: number | null
+  match_score: number | null
+  match_breakdown: { label: string; points: number; max: number }[] | null
 }
 
 interface ProposalRow {
@@ -127,6 +129,9 @@ export default function ProjectsPage() {
   const [posting, setPosting] = useState(false)
   const [postMsg, setPostMsg] = useState('')
   const [search, setSearch] = useState('')
+  const [openSort, setOpenSort] = useState<'newest' | 'best_match'>('newest')
+  const [insights, setInsights] = useState<Record<number, string>>({})
+  const [insightsLoading, setInsightsLoading] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [pendingProposalCount, setPendingProposalCount] = useState(0)
   const [proposalsInbox, setProposalsInbox] = useState<ProposalRow[]>([])
@@ -155,8 +160,9 @@ export default function ProjectsPage() {
     if (tab === 'mine') params.mine = true
     else if (tab === 'saved') params.saved = true
     if (search.trim()) params.q = search.trim()
+    if (tab === 'open' && openSort === 'best_match') params.sort = 'best_match'
     axios.get(`${API}/marketplace/projects`, { params })
-      .then(r => setProjects(r.data))
+      .then(r => { setProjects(r.data); setInsights({}) })
       .catch((e) => { if ([401, 403].includes(e.response?.status)) window.location.href = '/dashboard' })
       .finally(() => setLoading(false))
   }
@@ -167,13 +173,24 @@ export default function ProjectsPage() {
     const t = setTimeout(load, search ? 350 : 0)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, search])
+  }, [tab, search, openSort])
 
   useEffect(() => {
     const poll = setInterval(load, 30000)
     return () => clearInterval(poll)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, search])
+  }, [tab, search, openSort])
+
+  const loadMatchInsights = async () => {
+    const topIds = projects.slice(0, 5).map(p => p.id)
+    if (topIds.length === 0) return
+    setInsightsLoading(true)
+    try {
+      const res = await axios.post(`${API}/marketplace/projects/match-insights`, { project_ids: topIds })
+      setInsights(Object.fromEntries(Object.entries(res.data.insights || {}).map(([k, v]) => [Number(k), v as string])))
+    } catch {}
+    setInsightsLoading(false)
+  }
 
   useEffect(() => {
     const clock = setInterval(() => setNow(Date.now()), 30000)
@@ -434,7 +451,23 @@ export default function ProjectsPage() {
                   style={{ ...input, paddingLeft: '32px' }} />
               </div>
             )}
+            {tab === 'open' && (
+              <select value={openSort} onChange={e => setOpenSort(e.target.value as any)} style={{ ...input, width: 'auto' }}>
+                <option value="newest">Newest</option>
+                <option value="best_match">Best matches for you</option>
+              </select>
+            )}
           </div>
+
+          {tab === 'open' && openSort === 'best_match' && projects.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <button onClick={loadMatchInsights} disabled={insightsLoading}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: insightsLoading ? 'wait' : 'pointer' }}>
+                ✨ {insightsLoading ? 'Thinking…' : 'Why these top matches?'}
+              </button>
+              <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Ranked by skill overlap, experience fit, and how fresh the post is.</span>
+            </div>
+          )}
 
           {tab === 'proposals' ? (
             proposalsLoading ? (
@@ -510,6 +543,12 @@ export default function ProjectsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: sm.color, background: sm.bg }}>{sm.label}</span>
+                        {p.match_score != null && (
+                          <span title={p.match_breakdown?.map(b => `${b.label}: ${b.points}/${b.max}`).join('\n')}
+                            style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', color: 'var(--accent)', background: 'var(--accent-dim)', cursor: 'help' }}>
+                            {p.match_score}% match
+                          </span>
+                        )}
                         <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>
                           Posted {relativeTime(p.created_at, now)} · {p.proposal_count} {p.proposal_count === 1 ? 'proposal' : 'proposals'}
                         </span>
@@ -576,6 +615,12 @@ export default function ProjectsPage() {
                       <div style={{ marginTop: '8px', fontSize: '11.5px', color: p.deadline_days_left != null && p.deadline_days_left <= 3 ? 'var(--warning)' : 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <Calendar size={12} strokeWidth={1.75} />Due {new Date(p.deadline).toLocaleDateString()}
                       </div>
+                    )}
+
+                    {insights[p.id] && (
+                      <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--accent)', background: 'var(--accent-dim)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', lineHeight: 1.5 }}>
+                        ✨ {insights[p.id]}
+                      </p>
                     )}
                   </a>
                 )

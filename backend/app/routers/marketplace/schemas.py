@@ -16,6 +16,10 @@ class ProjectCreate(BaseModel):
     location: Optional[str] = None
 
 
+class MatchInsightsRequest(BaseModel):
+    project_ids: List[int]
+
+
 class ProjectUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None

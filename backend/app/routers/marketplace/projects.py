@@ -6,14 +6,14 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.models.database import get_db, Contract, Project, ProjectSave, Proposal, User
-from app.routers.auth import require_marketplace_beta
+from app.routers.auth import require_marketplace_beta, _migrate_profile_json
 from app.services.marketplace_access import get_user_rating, is_verified
-from .schemas import ProjectCreate, ProjectUpdate
+from .schemas import ProjectCreate, ProjectUpdate, MatchInsightsRequest
 
 router = APIRouter(prefix="/projects", tags=["marketplace-projects"])
 
 
-def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
+def _project_to_dict(p: Project, db: Session, viewer_id: int, match: dict | None = None) -> dict:
     from datetime import datetime
 
     client = db.query(User).filter(User.id == p.client_id).first()
@@ -79,6 +79,8 @@ def _project_to_dict(p: Project, db: Session, viewer_id: int) -> dict:
         "proposal_count": proposal_count,
         "my_proposal_status": my_proposal.status if my_proposal else None,
         "my_proposal_id": my_proposal.id if my_proposal else None,
+        "match_score": match["score"] if match else None,
+        "match_breakdown": match["breakdown"] if match else None,
     }
 
 
@@ -114,6 +116,7 @@ def list_projects(
     status: Optional[str] = None,
     saved: bool = False,
     q: Optional[str] = None,
+    sort: str = "newest",  # newest | best_match — best_match only applies to the open board
     current_user: User = Depends(require_marketplace_beta),
     db: Session = Depends(get_db),
 ):
@@ -146,7 +149,83 @@ def list_projects(
         ))
 
     projects = query.order_by(Project.created_at.desc()).all()
+
+    # "Best matches" only makes sense on the open board a freelancer browses
+    # — not on their own posted projects (mine) or a saved list, which are
+    # already a deliberate, ordered selection.
+    if sort == "best_match" and not mine and not saved:
+        from app.services.matching import score_project_for_freelancer
+
+        profile = _migrate_profile_json(json.loads(current_user.profile_json) if current_user.profile_json else {})
+        fl = profile.get("freelancer", {})
+        fl_text = " ".join(filter(None, [
+            fl.get("headline", ""), fl.get("bio", ""),
+            *[item.get("title", "") for item in (fl.get("portfolio") or [])],
+        ]))
+        completed = (
+            db.query(Contract)
+            .filter(Contract.freelancer_id == current_user.id, Contract.status == "completed")
+            .count()
+        )
+        scored = []
+        for p in projects:
+            try:
+                p_skills = json.loads(p.skills) if p.skills else []
+            except Exception:
+                p_skills = []
+            match = score_project_for_freelancer(
+                project_skills=p_skills,
+                project_experience_level=p.experience_level,
+                project_title=p.title or "",
+                project_description=p.description or "",
+                project_created_at=p.created_at,
+                freelancer_skills=fl.get("skills") or [],
+                freelancer_custom_skills=fl.get("customSkills") or [],
+                freelancer_text=fl_text,
+                freelancer_completed_contracts=completed,
+            )
+            scored.append((p, match))
+        scored.sort(key=lambda row: row[1]["score"], reverse=True)
+        return [_project_to_dict(p, db, current_user.id, match=match) for p, match in scored]
+
     return [_project_to_dict(p, db, current_user.id) for p in projects]
+
+
+@router.post("/match-insights")
+def project_match_insights(
+    data: MatchInsightsRequest,
+    current_user: User = Depends(require_marketplace_beta),
+    db: Session = Depends(get_db),
+):
+    """One AI-written sentence per project on why it fits — a "why these?"
+    someone clicks on their own top matches, not something regenerated on
+    every page load. The ranking that put these in front of them is entirely
+    deterministic (`services/matching.py`); this only explains it."""
+    ids = data.project_ids[:5]  # a shortlist someone is actually looking at, not the whole board
+    if not ids:
+        return {"insights": {}}
+
+    projects = db.query(Project).filter(Project.id.in_(ids)).all()
+    if not projects:
+        return {"insights": {}}
+
+    profile = _migrate_profile_json(json.loads(current_user.profile_json) if current_user.profile_json else {})
+    fl = profile.get("freelancer", {})
+    summary_parts = [f"Headline: {fl.get('headline', '')}", f"Bio: {fl.get('bio', '')}"]
+    skills = (fl.get("skills") or []) + (fl.get("customSkills") or [])
+    if skills:
+        summary_parts.append(f"Skills: {', '.join(skills)}")
+    freelancer_summary = "\n".join(p for p in summary_parts if p.split(": ", 1)[-1])
+
+    from app.services.claude import generate_project_match_insights
+    try:
+        insights = generate_project_match_insights(
+            freelancer_summary or "No profile details provided.",
+            [{"id": p.id, "title": p.title, "description": p.description} for p in projects],
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"insights": insights}
 
 
 @router.post("/{project_id}/save")
