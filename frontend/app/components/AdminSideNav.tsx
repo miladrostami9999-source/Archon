@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Users, DollarSign, HeartPulse, Settings, Search } from 'lucide-react'
+import { LayoutDashboard, Users, DollarSign, HeartPulse, Settings, Search, Globe2 } from 'lucide-react'
 import AdminCommandPalette from './AdminCommandPalette'
 
 const NAV_ITEMS = [
   { key: 'overview', href: '/admin', label: 'Overview', Icon: LayoutDashboard },
   { key: 'users', href: '/admin', label: 'Users', Icon: Users },
   { key: 'revenue', href: '/admin/revenue', label: 'Revenue', Icon: DollarSign },
+  { key: 'market-intelligence', href: '/admin/market-intelligence', label: 'Market Intelligence', Icon: Globe2 },
   { key: 'health', href: '/admin/system-health', label: 'System Health', Icon: HeartPulse },
   { key: 'settings', href: '/admin/settings', label: 'Settings', Icon: Settings },
 ]

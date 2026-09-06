@@ -574,6 +574,59 @@ def catalog_countries(admin: User = Depends(require_admin), db: Session = Depend
     return [{"name": r[0], "count": r[1]} for r in rows]
 
 
+@router.get("/admin/market-intelligence")
+def market_intelligence(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Aggregate facts over the ENTIRE shared catalog — no per-plan country
+    scoping, no UserCompanyState join. Unlike `/companies/analytics/summary`
+    (which is deliberately narrowed to what the viewing member's plan can
+    browse), this is for the one person who can see all of it: how many
+    companies, where they are, what they do, how big, how they scored, and
+    which discovery source actually brought them in."""
+    from app.models.database import Company
+
+    def group_by(column):
+        rows = (
+            db.query(column, func.count(Company.id))
+            .filter(column.isnot(None), column != "")
+            .group_by(column).order_by(func.count(Company.id).desc()).all()
+        )
+        return [{"name": r[0], "count": r[1]} for r in rows]
+
+    total = db.query(Company).count()
+    by_country = group_by(Company.country)
+    by_industry = group_by(Company.industry)
+    by_size = group_by(Company.company_size)
+    by_source = group_by(Company.discovery_source)
+
+    # Same four bands as the per-user score_buckets in analytics.py, just
+    # over the whole catalog instead of one member's touched companies.
+    score_buckets = {"poor": 0, "fair": 0, "good": 0, "great": 0}
+    scores = [r[0] for r in db.query(Company.opportunity_score).all()]
+    for s in scores:
+        s = s or 0
+        if s < 40:
+            score_buckets["poor"] += 1
+        elif s < 60:
+            score_buckets["fair"] += 1
+        elif s < 80:
+            score_buckets["good"] += 1
+        else:
+            score_buckets["great"] += 1
+    avg_score = round(sum(scores) / len(scores), 1) if scores else 0
+
+    return {
+        "total_companies": total,
+        "country_count": len(by_country),
+        "industry_count": len(by_industry),
+        "avg_score": avg_score,
+        "by_country": by_country,
+        "by_industry": by_industry,
+        "by_size": by_size,
+        "by_source": by_source,
+        "score_buckets": score_buckets,
+    }
+
+
 # ─────────────────────────────────────────
 # UPGRADES / MANUAL PAYMENTS
 # No automated gateway is usable yet (Stripe et al. don't serve Iran; Iranian
