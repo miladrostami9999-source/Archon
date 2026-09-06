@@ -1767,6 +1767,7 @@ def get_invite(token: str, db: Session = Depends(get_db)):
         "contact_email": invite.contact_email,
         "contact_name": invite.contact_name,
         "company_name": company.name if company else None,
+        "invite_type": invite.invite_type or "client",
     }
 
 
@@ -1807,7 +1808,7 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     # confirms payment, which keeps them from getting a paid tier for free.
     from app.services.limits import get_plan_limit
     plan = "trial" if invite else (req.plan or "basic")
-    account_mode = "client" if invite else (req.account_mode if req.account_mode in ACCOUNT_MODES else "freelancer")
+    account_mode = (invite.invite_type or "client") if invite else (req.account_mode if req.account_mode in ACCOUNT_MODES else "freelancer")
     instant_use = plan in SELF_SERVE_PLANS
     now = datetime.utcnow()
 

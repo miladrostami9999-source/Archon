@@ -94,6 +94,8 @@ export default function CompanyDetail() {
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteSending, setInviteSending] = useState(false)
   const [inviteResult, setInviteResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [inviteType, setInviteType] = useState<'client' | 'freelancer'>('client')
+  const [isAdmin, setIsAdmin] = useState(false)
   const [editBody, setEditBody] = useState('')
   const [attachments, setAttachments] = useState<{ filename: string; content_base64: string; mime_type: string; size: number }[]>([])
   const [expandedCampaign, setExpandedCampaign] = useState<number | null>(null)
@@ -116,6 +118,13 @@ export default function CompanyDetail() {
 
   useEffect(() => { fetchCompany(); fetchContacts(); fetchNotes(); fetchHistory(); fetchCampaigns() }, [id])
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('archon-user')
+      if (stored) setIsAdmin(JSON.parse(stored).role === 'admin')
+    } catch {}
+  }, [])
+
   // Moving a company through the pipeline, or starring it, engages with it —
   // which spends a company credit if it isn't unlocked yet. Surface the 403.
   const updateStatus = async (status: string) => {
@@ -128,6 +137,7 @@ export default function CompanyDetail() {
     setInviteEmail(primary?.email || company?.email || '')
     setInviteName(primary?.full_name || '')
     setInviteMessage('')
+    setInviteType('client')
     setInviteResult(null)
     setInviteOpen(true)
   }
@@ -138,6 +148,7 @@ export default function CompanyDetail() {
         contact_email: inviteEmail.trim() || undefined,
         contact_name: inviteName.trim() || undefined,
         message: inviteMessage.trim() || undefined,
+        invite_type: inviteType,
       })
       setInviteResult({ ok: true, msg: res.data.message || 'Invite sent' })
       fetchHistory()
@@ -466,9 +477,30 @@ export default function CompanyDetail() {
               </div>
               <div>
                 <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Invite to Marketplace</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>Send {company.name} a link to post a project and hire you directly.</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>
+                  {inviteType === 'freelancer'
+                    ? `Send ${company.name} a link to join as a freelancer.`
+                    : `Send ${company.name} a link to post a project and hire you directly.`}
+                </p>
               </div>
             </div>
+
+            {isAdmin && (
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Invite as</label>
+                <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
+                  {(['client', 'freelancer'] as const).map(t => (
+                    <button key={t} type="button" onClick={() => setInviteType(t)}
+                      style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', textTransform: 'capitalize', background: inviteType === t ? 'linear-gradient(135deg,#3D4FE0,#2E3BB0)' : 'transparent', color: inviteType === t ? 'white' : 'var(--text-muted)' }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: '10.5px', color: 'var(--text-dim)', margin: '5px 0 0', lineHeight: 1.5 }}>
+                  Freelancer invites are admin-only — this could be a competitor studio, so keep it deliberate.
+                </p>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
               <div>

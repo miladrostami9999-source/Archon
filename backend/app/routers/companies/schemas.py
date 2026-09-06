@@ -19,6 +19,7 @@ class MarketplaceInviteRequest(BaseModel):
     contact_email: Optional[str] = None
     contact_name: Optional[str] = None
     message: Optional[str] = None
+    invite_type: Optional[str] = "client"  # client | freelancer — freelancer is admin-only
 
 
 class CompanyUpdate(BaseModel):

@@ -36,6 +36,7 @@ function SignupInner() {
   // so the role toggle and plan copy below are skipped for them.
   const [inviteCompanyName, setInviteCompanyName] = useState<string | null>(null)
   const [inviteInvalid, setInviteInvalid] = useState(false)
+  const [inviteType, setInviteType] = useState<'client' | 'freelancer'>('client')
 
   useEffect(() => {
     const token = localStorage.getItem('archon-token')
@@ -49,7 +50,9 @@ function SignupInner() {
       setEmail(res.data.contact_email || '')
       if (res.data.contact_name) setName(res.data.contact_name)
       setInviteCompanyName(res.data.company_name || 'Armila Design')
-      setAccountMode('client')
+      const type = res.data.invite_type === 'freelancer' ? 'freelancer' : 'client'
+      setInviteType(type)
+      setAccountMode(type)
     }).catch(() => setInviteInvalid(true))
   }, [inviteToken])
 
@@ -71,7 +74,7 @@ function SignupInner() {
         localStorage.setItem('archon-user', JSON.stringify(res.data.user))
         // An invited signup is always client-mode + instant — land them on
         // the client home, not the CRM dashboard or a payment screen.
-        if (inviteToken) { window.location.href = '/client'; return }
+        if (inviteToken) { window.location.href = inviteType === 'freelancer' ? '/projects' : '/client'; return }
         // Paid plans start pending — send them straight to payment; the free
         // trial is usable immediately, so it goes to the dashboard.
         window.location.href = res.data.plan_status === 'pending' ? '/upgrade' : '/dashboard'
@@ -127,7 +130,7 @@ function SignupInner() {
                   inviteInvalid ? (
                     <>This invite link isn't valid anymore. You can still create a free account below.</>
                   ) : (
-                    <><strong style={{ color: 'var(--accent)' }}>{inviteCompanyName || 'Armila Design'}</strong> invited you to post a project on Archon's marketplace. Your account is free and ready instantly.</>
+                    <><strong style={{ color: 'var(--accent)' }}>{inviteCompanyName || 'Armila Design'}</strong> invited you to {inviteType === 'freelancer' ? 'join Archon as a freelancer' : 'post a project on Archon’s marketplace'}. Your account is free and ready instantly.</>
                   )
                 ) : isTrial ? (
                   <>Free for <strong style={{ color: 'var(--success)' }}>7 days</strong> — 10 companies, 10 emails, no card needed. Your account is created instantly.</>

@@ -388,10 +388,20 @@ def invite_to_marketplace(
     """The bridge between the CRM and the marketplace: a lead who replied
     gets an email invite to sign up as a marketplace client, instead of a
     reply dead-ending outside the product. See MarketplaceInvite's
-    docstring for why this is its own table rather than a History row."""
+    docstring for why this is its own table rather than a History row.
+
+    A second, admin-only mode (`invite_type="freelancer"`) invites a
+    catalog company onto the marketplace's supply side instead — kept
+    admin-gated since it's a strategic call (the invited company may well
+    be a competitor studio), not something any CRM user should trigger on
+    their own leads."""
     import secrets
     from app.models.database import Contact, MarketplaceInvite
     from app.services.email_service import send_email
+
+    invite_type = data.invite_type if data.invite_type in ("client", "freelancer") else "client"
+    if invite_type == "freelancer" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only an admin can invite a company as a freelancer")
 
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
@@ -414,10 +424,13 @@ def invite_to_marketplace(
 
     # Don't spam the same lead with a second invite while one is still
     # outstanding — a week is long enough that a second nudge is fair.
+    # Scoped per invite_type so a client-invite and a freelancer-invite to
+    # the same company don't block each other.
     recent = (
         db.query(MarketplaceInvite)
         .filter(
             MarketplaceInvite.company_id == company_id,
+            MarketplaceInvite.invite_type == invite_type,
             MarketplaceInvite.status == "sent",
             MarketplaceInvite.created_at >= datetime.utcnow() - timedelta(days=7),
         )
@@ -430,6 +443,7 @@ def invite_to_marketplace(
     invite = MarketplaceInvite(
         company_id=company_id,
         invited_by_user_id=current_user.id,
+        invite_type=invite_type,
         contact_name=contact_name,
         contact_email=contact_email,
         token=token,
@@ -440,16 +454,23 @@ def invite_to_marketplace(
     signup_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + f"/signup?invite={token}"
     greeting = f"Hi {contact_name}," if contact_name else "Hi,"
     note = f"<p>{data.message}</p>" if data.message else ""
+    if invite_type == "freelancer":
+        subject = f"{current_user.name} invited you to join Archon's freelancer network"
+        pitch = "would like to invite your studio to take on marketplace projects — build a profile, browse open work, and send proposals."
+        cta = "Set up your free freelancer account →"
+    else:
+        subject = f"{current_user.name} invited you to post a project on Archon"
+        pitch = "would like to work with you through Archon's marketplace — post a project, review proposals, and hire directly."
+        cta = "Set up your free client account →"
     try:
         send_email(
             to_email=contact_email,
-            subject=f"{current_user.name} invited you to post a project on Archon",
+            subject=subject,
             html_body=(
                 f"<p>{greeting}</p>"
-                f"<p>{current_user.name} would like to work with you through Archon's marketplace — "
-                f"post a project, review proposals, and hire directly.</p>"
+                f"<p>{current_user.name} {pitch}</p>"
                 f"{note}"
-                f'<p><a href="{signup_url}">Set up your free client account →</a></p>'
+                f'<p><a href="{signup_url}">{cta}</a></p>'
             ),
             text_body=f"{greeting}\n\n{current_user.name} invited you to Archon's marketplace. Set up your account: {signup_url}",
         )
@@ -460,7 +481,7 @@ def invite_to_marketplace(
         company_id=company_id,
         user_id=current_user.id,
         event_type="marketplace_invited",
-        description=f"Invited {contact_email} to the marketplace",
+        description=f"Invited {contact_email} to the marketplace as a {invite_type}",
     ))
     db.commit()
     return {"message": f"Invite sent to {contact_email}"}

@@ -199,6 +199,11 @@ class MarketplaceInvite(Base):
     id                 = Column(Integer, primary_key=True, index=True)
     company_id         = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # client = "come post a project" (any studio user, their own leads);
+    # freelancer = "come join as supply" (admin-only — this invites a
+    # catalog company, possibly a competitor studio, onto the marketplace's
+    # freelancer side, which is a strategic call Milad wants to keep central).
+    invite_type        = Column(String, default="client")  # client | freelancer
     contact_name       = Column(String, default="")
     contact_email      = Column(String, nullable=False)
     token              = Column(String, unique=True, index=True, nullable=False)
@@ -1044,6 +1049,12 @@ def init_db():
                     conn.commit()
                 if "max_api_requests" not in pl_cols:
                     conn.execute(_text("ALTER TABLE plan_limits ADD COLUMN max_api_requests INTEGER DEFAULT 0"))
+                    conn.commit()
+
+            if _inspector.has_table("marketplace_invites"):
+                mi_cols = [c["name"] for c in _inspector.get_columns("marketplace_invites")]
+                if "invite_type" not in mi_cols:
+                    conn.execute(_text("ALTER TABLE marketplace_invites ADD COLUMN invite_type VARCHAR DEFAULT 'client'"))
                     conn.commit()
 
             if _inspector.has_table("discovery_runs"):
