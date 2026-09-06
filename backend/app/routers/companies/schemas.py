@@ -15,6 +15,12 @@ class CompanyCreate(BaseModel):
     linkedin: Optional[str] = None
 
 
+class MarketplaceInviteRequest(BaseModel):
+    contact_email: Optional[str] = None
+    contact_name: Optional[str] = None
+    message: Optional[str] = None
+
+
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None

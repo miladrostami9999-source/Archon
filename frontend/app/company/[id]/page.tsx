@@ -9,7 +9,7 @@ import {
   LayoutGrid, StickyNote, History as HistoryIcon, Mail, Pencil,
   Flame, CloudSun, Snowflake, Trash2, Send, Paperclip, FileText, X, CheckCircle2, AlertTriangle,
   Star, Lock, Globe, Briefcase, Camera, Thermometer, Tag, Sparkles, Pin, RefreshCw, Clipboard,
-  Smile, Zap, BookOpen, Loader2, Clock,
+  Smile, Zap, BookOpen, Loader2, Clock, UserPlus,
 } from 'lucide-react'
 import { LockedField, UnlockButton } from '../../components/AccessLock'
 
@@ -88,6 +88,12 @@ export default function CompanyDetail() {
   const [sendModal, setSendModal] = useState<{ subject: string; body: string; campaignId?: number } | null>(null)
   const [selectedRecipient, setSelectedRecipient] = useState<string>('')
   const [editSubject, setEditSubject] = useState('')
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviteMessage, setInviteMessage] = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteResult, setInviteResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [editBody, setEditBody] = useState('')
   const [attachments, setAttachments] = useState<{ filename: string; content_base64: string; mime_type: string; size: number }[]>([])
   const [expandedCampaign, setExpandedCampaign] = useState<number | null>(null)
@@ -117,6 +123,30 @@ export default function CompanyDetail() {
     catch (e: any) { alert(e.response?.data?.detail || 'Could not update status.'); return }
     fetchCompany()
   }
+  const openInviteModal = () => {
+    const primary = contacts.find(c => c.is_primary) || contacts[0]
+    setInviteEmail(primary?.email || company?.email || '')
+    setInviteName(primary?.full_name || '')
+    setInviteMessage('')
+    setInviteResult(null)
+    setInviteOpen(true)
+  }
+  const sendInvite = async () => {
+    setInviteSending(true); setInviteResult(null)
+    try {
+      const res = await axios.post(`${API}/companies/${id}/invite-to-marketplace`, {
+        contact_email: inviteEmail.trim() || undefined,
+        contact_name: inviteName.trim() || undefined,
+        message: inviteMessage.trim() || undefined,
+      })
+      setInviteResult({ ok: true, msg: res.data.message || 'Invite sent' })
+      fetchHistory()
+    } catch (e: any) {
+      setInviteResult({ ok: false, msg: e.response?.data?.detail || 'Could not send the invite' })
+    }
+    setInviteSending(false)
+  }
+
   const toggleFavorite = async () => {
     try { await axios.patch(`${API}/companies/${id}/favorite`) }
     catch (e: any) { alert(e.response?.data?.detail || 'Could not update this company.'); return }
@@ -425,6 +455,59 @@ export default function CompanyDetail() {
         </div>
       )}
 
+      {/* INVITE TO MARKETPLACE MODAL */}
+      {inviteOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={() => setInviteOpen(false)}>
+          <div style={{ ...card, maxWidth: '420px', width: '100%', margin: '0 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(63,185,131,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <UserPlus size={18} strokeWidth={1.5} color="var(--success)" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Invite to Marketplace</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-dim)', margin: 0 }}>Send {company.name} a link to post a project and hire you directly.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Contact name</label>
+                <input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Optional"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text)', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Contact email *</label>
+                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="contact@company.com" type="email"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text)', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', color: 'var(--text-muted)', marginBottom: '4px' }}>Note (optional)</label>
+                <textarea value={inviteMessage} onChange={e => setInviteMessage(e.target.value)} rows={3} placeholder="Add a personal line..."
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text)', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+              </div>
+            </div>
+
+            {inviteResult && (
+              <p style={{ fontSize: '12.5px', color: inviteResult.ok ? 'var(--success)' : 'var(--error)', margin: '0 0 14px' }}>{inviteResult.msg}</p>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setInviteOpen(false)}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-input)', cursor: 'pointer' }}>
+                {inviteResult?.ok ? 'Close' : 'Cancel'}
+              </button>
+              {!inviteResult?.ok && (
+                <button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 500, color: 'white', background: (inviteSending || !inviteEmail.trim()) ? 'rgba(63,185,131,0.4)' : 'var(--success)', border: 'none', cursor: (inviteSending || !inviteEmail.trim()) ? 'not-allowed' : 'pointer' }}>
+                  {inviteSending ? 'Sending...' : 'Send Invite'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MAIN */}
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : '224px', display: 'flex', flexDirection: 'column', marginTop: isMobile ? '52px' : 0, height: isMobile ? 'calc(100vh - 52px)' : '100vh', overflow: 'hidden' }}>
 
@@ -453,6 +536,13 @@ export default function CompanyDetail() {
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
+          {['replied', 'meeting', 'client'].includes(company.status) && (
+            <button onClick={openInviteModal}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'var(--success)', background: 'rgba(63,185,131,0.1)', border: '1px solid rgba(63,185,131,0.3)', cursor: 'pointer' }}>
+              <UserPlus size={15} strokeWidth={1.5} />
+              {!isMobile && 'Invite to Marketplace'}
+            </button>
+          )}
           <button onClick={() => setActiveTab('email')}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 500, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: 'pointer' }}>
             <Mail size={15} strokeWidth={1.5} />

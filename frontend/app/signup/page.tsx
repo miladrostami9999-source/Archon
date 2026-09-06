@@ -15,6 +15,7 @@ function SignupInner() {
   // Every plan creates the account right away; the trial is usable at once,
   // paid plans unlock their quota features after payment is confirmed.
   const isTrial = plan === 'trial'
+  const inviteToken = searchParams.get('invite')
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -30,11 +31,27 @@ function SignupInner() {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [doneMsg, setDoneMsg] = useState('')
+  // Someone who clicked a "come post a project" link from a CRM outreach
+  // email — the whole point is a frictionless landing, not a plan decision,
+  // so the role toggle and plan copy below are skipped for them.
+  const [inviteCompanyName, setInviteCompanyName] = useState<string | null>(null)
+  const [inviteInvalid, setInviteInvalid] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('archon-token')
     if (token) window.location.href = '/dashboard'
   }, [])
+
+  useEffect(() => {
+    if (!inviteToken) return
+    axios.get(`${API}/auth/invite/${inviteToken}`).then(res => {
+      if (!res.data.valid) { setInviteInvalid(true); return }
+      setEmail(res.data.contact_email || '')
+      if (res.data.contact_name) setName(res.data.contact_name)
+      setInviteCompanyName(res.data.company_name || 'Armila Design')
+      setAccountMode('client')
+    }).catch(() => setInviteInvalid(true))
+  }, [inviteToken])
 
   const submit = async () => {
     if (!name.trim() || !email.trim()) { setError('Please enter your name and email.'); return }
@@ -45,12 +62,16 @@ function SignupInner() {
       const res = await axios.post(`${API}/auth/signup`, {
         name: name.trim(), email: email.trim(), password, plan,
         company: company.trim(), note: note.trim(), account_mode: accountMode,
+        invite_token: inviteToken || undefined,
       })
       // Self-serve plans (the free trial) come back with a token — sign in
       // straight away instead of showing a "we'll be in touch" screen.
       if (res.data.instant && res.data.token) {
         localStorage.setItem('archon-token', res.data.token)
         localStorage.setItem('archon-user', JSON.stringify(res.data.user))
+        // An invited signup is always client-mode + instant — land them on
+        // the client home, not the CRM dashboard or a payment screen.
+        if (inviteToken) { window.location.href = '/client'; return }
         // Paid plans start pending — send them straight to payment; the free
         // trial is usable immediately, so it goes to the dashboard.
         window.location.href = res.data.plan_status === 'pending' ? '/upgrade' : '/dashboard'
@@ -99,10 +120,16 @@ function SignupInner() {
           ) : (
             <>
               <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', textAlign: 'center' }}>
-                {isTrial ? 'Start your free trial' : `Create your ${PLAN_LABELS[plan]} account`}
+                {inviteToken ? "You've been invited" : isTrial ? 'Start your free trial' : `Create your ${PLAN_LABELS[plan]} account`}
               </h2>
               <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 20px', textAlign: 'center', lineHeight: 1.6 }}>
-                {isTrial ? (
+                {inviteToken ? (
+                  inviteInvalid ? (
+                    <>This invite link isn't valid anymore. You can still create a free account below.</>
+                  ) : (
+                    <><strong style={{ color: 'var(--accent)' }}>{inviteCompanyName || 'Armila Design'}</strong> invited you to post a project on Archon's marketplace. Your account is free and ready instantly.</>
+                  )
+                ) : isTrial ? (
                   <>Free for <strong style={{ color: 'var(--success)' }}>7 days</strong> — 10 companies, 10 emails, no card needed. Your account is created instantly.</>
                 ) : (
                   <>Your account is created instantly and you can explore right away. Adding companies and sending email unlock once we confirm your payment.</>
@@ -116,6 +143,7 @@ function SignupInner() {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {!(inviteToken && !inviteInvalid) && (
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '6px' }}>How will you use Archon? *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -143,6 +171,7 @@ function SignupInner() {
                     You can do both either way — this just sets which view you land on, and you can switch it any time.
                   </p>
                 </div>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '6px' }}>Full name *</label>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
@@ -170,7 +199,7 @@ function SignupInner() {
 
                 <button onClick={submit} disabled={loading}
                   style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'white', background: loading ? 'var(--accent-dim)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  {loading ? (<><Loader2 size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>) : (isTrial ? 'Create my account →' : 'Create account & pay →')}
+                  {loading ? (<><Loader2 size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</>) : (inviteToken || isTrial ? 'Create my account →' : 'Create account & pay →')}
                 </button>
               </div>
             </>

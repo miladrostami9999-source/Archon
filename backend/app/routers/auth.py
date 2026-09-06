@@ -1749,6 +1749,25 @@ class WaitlistSignup(BaseModel):
     company: Optional[str] = None
     note: Optional[str] = None
     account_mode: Optional[str] = "freelancer"
+    invite_token: Optional[str] = None
+
+
+@router.get("/invite/{token}")
+def get_invite(token: str, db: Session = Depends(get_db)):
+    """Public — powers the signup page's prefill when someone arrives via a
+    CRM-lead marketplace invite link (see companies/core.py's
+    invite-to-marketplace endpoint)."""
+    from app.models.database import MarketplaceInvite, Company
+    invite = db.query(MarketplaceInvite).filter(MarketplaceInvite.token == token).first()
+    if not invite or invite.status != "sent":
+        return {"valid": False}
+    company = db.query(Company).filter(Company.id == invite.company_id).first()
+    return {
+        "valid": True,
+        "contact_email": invite.contact_email,
+        "contact_name": invite.contact_name,
+        "company_name": company.name if company else None,
+    }
 
 
 @router.post("/signup")
@@ -1772,12 +1791,23 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
     if existing:
         return {"message": "You're already on the list — we'll be in touch soon.", "already": True}
 
+    # A CRM-lead marketplace invite (companies/core.py's invite-to-marketplace)
+    # overrides both plan and account_mode — the whole point is a frictionless
+    # "come post a project" landing, not a CRM subscription decision.
+    from app.models.database import MarketplaceInvite
+    invite = None
+    if req.invite_token:
+        invite = db.query(MarketplaceInvite).filter(
+            MarketplaceInvite.token == req.invite_token, MarketplaceInvite.status == "sent"
+        ).first()
+
     # Everyone gets an account and can sign in straight away — per-user data is
     # isolated, so exploring is harmless. The free trial is usable immediately;
     # paid plans start "pending" and unlock quota features once an admin
     # confirms payment, which keeps them from getting a paid tier for free.
     from app.services.limits import get_plan_limit
-    plan = req.plan or "basic"
+    plan = "trial" if invite else (req.plan or "basic")
+    account_mode = "client" if invite else (req.account_mode if req.account_mode in ACCOUNT_MODES else "freelancer")
     instant_use = plan in SELF_SERVE_PLANS
     now = datetime.utcnow()
 
@@ -1791,7 +1821,7 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         plan_status="active" if instant_use else "pending",
         plan_started_at=now if instant_use else None,
         plan_expires_at=now + timedelta(days=get_plan_limit(db, plan)["period_days"]) if instant_use else None,
-        account_mode=req.account_mode if req.account_mode in ACCOUNT_MODES else "freelancer",
+        account_mode=account_mode,
     )
     db.add(user)
     # Mirror into the waitlist so the admin has one list of every signup, with
@@ -1802,6 +1832,18 @@ def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
         note=(req.note or "").strip() or None,
         status="approved" if instant_use else "pending",
     ))
+    if invite:
+        from app.models.database import History
+        db.flush()  # assign user.id before it's referenced below
+        invite.status = "accepted"
+        invite.accepted_at = now
+        invite.accepted_user_id = user.id
+        db.add(History(
+            company_id=invite.company_id,
+            user_id=invite.invited_by_user_id,
+            event_type="marketplace_invite_accepted",
+            description=f"{user.name} accepted the marketplace invite and signed up",
+        ))
     db.commit()
     db.refresh(user)
 

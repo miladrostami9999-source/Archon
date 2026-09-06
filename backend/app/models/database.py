@@ -187,6 +187,26 @@ class History(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
     company = relationship("Company", back_populates="history")
 
+
+class MarketplaceInvite(Base):
+    """The bridge between the CRM catalog and the marketplace — a lead who
+    replied gets invited by the studio user to sign up as a marketplace
+    client, so a reply doesn't dead-end outside the product. Tracked as its
+    own table (not just a History row) because it needs a lookup-by-token
+    and a sent→accepted state transition, the same reasoning ApiKey got its
+    own table instead of piggybacking on an existing one."""
+    __tablename__ = "marketplace_invites"
+    id                 = Column(Integer, primary_key=True, index=True)
+    company_id         = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    contact_name       = Column(String, default="")
+    contact_email      = Column(String, nullable=False)
+    token              = Column(String, unique=True, index=True, nullable=False)
+    status             = Column(String, default="sent")  # sent | accepted
+    created_at         = Column(DateTime, default=datetime.utcnow)
+    accepted_at        = Column(DateTime, nullable=True)
+    accepted_user_id   = Column(Integer, ForeignKey("users.id"), nullable=True)
+
 # ─────────────────────────────────────────
 # TABLE 7 — DAILY TASKS
 # ─────────────────────────────────────────

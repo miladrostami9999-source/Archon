@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, case
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.models.database import get_db, Company, History, User, UserCompanyState
 from app.routers.auth import get_current_user, require_admin, require_active_plan
 from app.services.access import access_state
-from .schemas import CompanyCreate, CompanyUpdate, BulkDeleteRequest, MergeCountryRequest
+from .schemas import CompanyCreate, CompanyUpdate, BulkDeleteRequest, MergeCountryRequest, MarketplaceInviteRequest
 from .utils import (
     to_dict, calculate_score, company_to_dict, get_or_create_state,
     user_shuffle_key, STATE_FIELDS, _SHUFFLE_MODULUS,
@@ -376,6 +376,94 @@ def toggle_favorite(company_id: int, current_user: User = Depends(require_active
     state.is_favorite = not bool(state.is_favorite)
     db.commit()
     return {"id": company_id, "is_favorite": state.is_favorite}
+
+
+@router.post("/{company_id}/invite-to-marketplace")
+def invite_to_marketplace(
+    company_id: int,
+    data: MarketplaceInviteRequest,
+    current_user: User = Depends(require_active_plan),
+    db: Session = Depends(get_db),
+):
+    """The bridge between the CRM and the marketplace: a lead who replied
+    gets an email invite to sign up as a marketplace client, instead of a
+    reply dead-ending outside the product. See MarketplaceInvite's
+    docstring for why this is its own table rather than a History row."""
+    import secrets
+    from app.models.database import Contact, MarketplaceInvite
+    from app.services.email_service import send_email
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    assert_in_scope(db, current_user, company)
+
+    contact_email = (data.contact_email or "").strip()
+    contact_name = (data.contact_name or "").strip()
+    if not contact_email:
+        primary = db.query(Contact).filter(
+            Contact.company_id == company_id, Contact.is_primary == True  # noqa: E712
+        ).first()
+        if primary and primary.email:
+            contact_email = primary.email
+            contact_name = contact_name or primary.full_name or ""
+        elif company.email:
+            contact_email = company.email
+    if not contact_email:
+        raise HTTPException(status_code=400, detail="No contact email on file — enter one to send the invite")
+
+    # Don't spam the same lead with a second invite while one is still
+    # outstanding — a week is long enough that a second nudge is fair.
+    recent = (
+        db.query(MarketplaceInvite)
+        .filter(
+            MarketplaceInvite.company_id == company_id,
+            MarketplaceInvite.status == "sent",
+            MarketplaceInvite.created_at >= datetime.utcnow() - timedelta(days=7),
+        )
+        .first()
+    )
+    if recent:
+        raise HTTPException(status_code=400, detail="An invite was already sent to this company in the last 7 days")
+
+    token = secrets.token_urlsafe(24)
+    invite = MarketplaceInvite(
+        company_id=company_id,
+        invited_by_user_id=current_user.id,
+        contact_name=contact_name,
+        contact_email=contact_email,
+        token=token,
+    )
+    db.add(invite)
+
+    import os
+    signup_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + f"/signup?invite={token}"
+    greeting = f"Hi {contact_name}," if contact_name else "Hi,"
+    note = f"<p>{data.message}</p>" if data.message else ""
+    try:
+        send_email(
+            to_email=contact_email,
+            subject=f"{current_user.name} invited you to post a project on Archon",
+            html_body=(
+                f"<p>{greeting}</p>"
+                f"<p>{current_user.name} would like to work with you through Archon's marketplace — "
+                f"post a project, review proposals, and hire directly.</p>"
+                f"{note}"
+                f'<p><a href="{signup_url}">Set up your free client account →</a></p>'
+            ),
+            text_body=f"{greeting}\n\n{current_user.name} invited you to Archon's marketplace. Set up your account: {signup_url}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not send the invite email: {e}")
+
+    db.add(History(
+        company_id=company_id,
+        user_id=current_user.id,
+        event_type="marketplace_invited",
+        description=f"Invited {contact_email} to the marketplace",
+    ))
+    db.commit()
+    return {"message": f"Invite sent to {contact_email}"}
 
 
 @router.delete("/{company_id}")

@@ -310,20 +310,29 @@ export default function Sidebar() {
       position: 'fixed', left: 0, top: 0, height: '100dvh', maxHeight: '100vh', width: '224px',
       display: 'flex', flexDirection: 'column', zIndex: 50,
       background: sbg, borderRight: `1px solid ${b}`,
-      transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.25s ease',
+      borderTop: accountMode === 'client' ? '3px solid var(--warning)' : '3px solid transparent',
+      transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.25s ease, border-top-color 0.2s ease',
       transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
     }}>
       {/* LOGO */}
-      <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '20px 16px', borderBottom: `1px solid ${b}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <a href="/dashboard" onClick={() => setMobileOpen(false)}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', minWidth: 0 }}>
           <div style={{ width: '30px', height: '30px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'white', background: 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', boxShadow: '0 2px 8px rgba(61,79,224,0.35)', flexShrink: 0 }}>A</div>
-          <div>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0 }}>Archon</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: tm, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              Archon
+              {accountMode === 'client' && (
+                <span title="You're in Client mode — post projects, hire freelancers"
+                  style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.06em', color: 'white', background: 'linear-gradient(135deg, var(--warning), #B8791C)', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase', flexShrink: 0, boxShadow: '0 2px 6px rgba(221,162,63,0.4)' }}>
+                  Client
+                </span>
+              )}
+            </p>
             <p style={{ fontSize: '10px', color: td, margin: 0 }}>by Armila Design</p>
           </div>
         </a>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
           {user && <NotificationBell dark={dark} />}
           {/* Close button on mobile */}
           {isMobile && (
