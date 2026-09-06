@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.models.database import PaymentRequest, RevenueSnapshot
 from app.services.exchange import get_usd_to_toman
 
-PLAN_ORDER = ["trial", "basic", "pro", "agency"]
+PLAN_ORDER = ["trial", "basic", "pro", "agency", "enterprise"]
 
 
 def _to_usd(db: Session, amount: float | None, currency: str | None) -> float:

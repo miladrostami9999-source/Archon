@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import VerifiedBadge from './VerifiedBadge'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Download, Plus, Hourglass, Gem, Star, Trophy, Trash2, X, Briefcase, Palette, ShieldCheck, Crown, Lock, ShoppingCart } from 'lucide-react'
+import { Download, Plus, Hourglass, Gem, Star, Trophy, Trash2, X, Briefcase, Palette, ShieldCheck, Crown, Lock, ShoppingCart, Building2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -14,6 +14,7 @@ const PLAN_META = {
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.25)', Icon: Gem },
   pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)',  border: 'rgba(61,79,224,0.25)',  Icon: Star },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)', Icon: Trophy },
+  enterprise: { color: '#DDA23F', bg: 'rgba(221,162,63,0.12)', border: 'rgba(221,162,63,0.25)', Icon: Building2 },
 } as const
 
 interface User {
@@ -26,7 +27,7 @@ interface User {
   is_founder?: boolean
 }
 
-const PLAN_RANK: Record<string, number> = { agency: 0, pro: 1, basic: 2, trial: 3 }
+const PLAN_RANK: Record<string, number> = { enterprise: 0, agency: 1, pro: 2, basic: 3, trial: 4 }
 // Founder first, then admins, then everyone else by plan tier — this pin
 // always wins regardless of the chosen sort mode.
 const roleRank = (u: User) => u.is_founder ? 0 : u.role === 'admin' ? 1 : 2
@@ -101,7 +102,7 @@ export default function AdminUsersPanel() {
     catch (e: any) { setDeleteError(e.response?.data?.detail || 'Could not delete this user.') }
   }
 
-  const planCounts = { basic: 0, pro: 0, agency: 0 }
+  const planCounts = { basic: 0, pro: 0, agency: 0, enterprise: 0 }
   users.forEach(u => { if (u.is_active && u.plan in planCounts) (planCounts as any)[u.plan]++ })
   const activeCount = users.filter(u => u.is_active).length
 
@@ -250,8 +251,8 @@ export default function AdminUsersPanel() {
       </div>
 
       {/* PLAN STATS */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? '10px' : '14px', marginBottom: '20px' }}>
-        {(['trial', 'basic', 'pro', 'agency'] as const).map(plan => {
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: isMobile ? '10px' : '14px', marginBottom: '20px' }}>
+        {(['trial', 'basic', 'pro', 'agency', 'enterprise'] as const).map(plan => {
           const pm = PLAN_META[plan]
           const count = (planCounts as any)[plan] ?? users.filter(u => u.plan === plan && u.is_active).length
           const isActive = filterPlan === plan
@@ -288,6 +289,7 @@ export default function AdminUsersPanel() {
                 <option value="basic">Basic</option>
                 <option value="pro">Pro</option>
                 <option value="agency">Agency</option>
+                <option value="enterprise">Enterprise</option>
               </select>
             </div>
           </div>
@@ -344,7 +346,7 @@ export default function AdminUsersPanel() {
                       {isEditing ? (
                         <select value={editUser.plan} onChange={e => setEditUser({ ...editUser, plan: e.target.value })}
                           style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 6px', fontSize: '11px', color: 'var(--text)', outline: 'none' }}>
-                          <option value="trial">Trial</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option>
+                          <option value="trial">Trial</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="agency">Agency</option><option value="enterprise">Enterprise</option>
                         </select>
                       ) : (
                         <span style={{ fontSize: '10px', fontWeight: 700, color: pm.color, background: pm.bg, border: `1px solid ${pm.border}`, padding: '2px 8px', borderRadius: '999px', textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

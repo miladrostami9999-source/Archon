@@ -63,8 +63,19 @@ PLAN_LIMITS = {
         "market_map": True,
     },
     "agency": {
-        "max_companies": 999999,
-        "max_emails_per_month": 999999,
+        # -1 is this codebase's unlimited sentinel (see PlanLimit.max_companies
+        # docstring) — this dict previously used 999999 here, which drifted
+        # from the DB row's -1 and meant two different "no limit" values
+        # existed for the same plan. Reconciled to -1.
+        "max_companies": -1,
+        "max_emails_per_month": -1,
+        "ai_search": True,
+        "weekly_report": True,
+        "market_map": True,
+    },
+    "enterprise": {
+        "max_companies": -1,
+        "max_emails_per_month": -1,
         "ai_search": True,
         "weekly_report": True,
         "market_map": True,
@@ -638,7 +649,7 @@ def get_billing_plans(current_user: User = Depends(get_current_user), db: Sessio
     """Purchasable plans with prices + payment instructions, for the upgrade page."""
     from app.models.database import PlanLimit, AppSetting
     rows = db.query(PlanLimit).all()
-    order = ["trial", "basic", "pro", "agency"]
+    order = ["trial", "basic", "pro", "agency", "enterprise"]
     plans = sorted(
         [{
             "plan": r.plan,

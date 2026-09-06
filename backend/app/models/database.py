@@ -266,7 +266,7 @@ class PlanLimit(Base):
     A value of -1 means unlimited.
     """
     __tablename__ = "plan_limits"
-    plan                 = Column(String, primary_key=True)  # trial | basic | pro | agency
+    plan                 = Column(String, primary_key=True)  # trial | basic | pro | agency | enterprise
     max_companies        = Column(Integer, default=-1)       # companies the user may add to their pipeline
     max_emails_per_month = Column(Integer, default=-1)       # sends allowed per period
     period_days          = Column(Integer, default=30)       # length of a billing/trial window
@@ -292,6 +292,11 @@ DEFAULT_PLAN_LIMITS = {
                "allowed_countries": ""},
     "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30, "price_usd": 99, "price_irr": 0,
                "allowed_countries": ""},
+    # Same unlimited quotas as Agency — Enterprise's real difference is
+    # price and an annual (not monthly) billing period, negotiated per
+    # customer and adjusted from the admin's Plan Limits editor.
+    "enterprise": {"max_companies": -1, "max_emails_per_month": -1, "period_days": 365, "price_usd": 999, "price_irr": 0,
+                   "allowed_countries": ""},
 }
 
 

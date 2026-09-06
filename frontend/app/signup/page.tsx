@@ -6,7 +6,7 @@ import { Palette, Briefcase, CheckCircle2, Loader2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-const PLAN_LABELS: Record<string, string> = { trial: 'Free Trial (7 days)', basic: 'Basic', pro: 'Pro', agency: 'Agency' }
+const PLAN_LABELS: Record<string, string> = { trial: 'Free Trial (7 days)', basic: 'Basic', pro: 'Pro', agency: 'Agency', enterprise: 'Enterprise' }
 
 function SignupInner() {
   const searchParams = useSearchParams()

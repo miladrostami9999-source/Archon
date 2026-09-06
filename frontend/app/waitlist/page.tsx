@@ -14,6 +14,7 @@ const PLAN_META: Record<string, { color: string; bg: string }> = {
   basic:  { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' },
   pro:    { color: '#60A5FA', bg: 'rgba(61,79,224,0.12)' },
   agency: { color: '#A78BFA', bg: 'rgba(139,92,246,0.12)' },
+  enterprise: { color: '#DDA23F', bg: 'rgba(221,162,63,0.12)' },
 }
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
   pending:  { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', label: 'Pending' },
