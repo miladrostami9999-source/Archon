@@ -37,6 +37,7 @@ function SignupInner() {
   const [inviteCompanyName, setInviteCompanyName] = useState<string | null>(null)
   const [inviteInvalid, setInviteInvalid] = useState(false)
   const [inviteType, setInviteType] = useState<'client' | 'freelancer'>('client')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('archon-token')
@@ -60,6 +61,7 @@ function SignupInner() {
     if (!name.trim() || !email.trim()) { setError('Please enter your name and email.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirm) { setError('Passwords do not match.'); return }
+    if (!agreedToTerms) { setError('Please agree to the Terms of Service and Privacy Policy to continue.'); return }
     setLoading(true); setError('')
     try {
       const res = await axios.post(`${API}/auth/signup`, {
@@ -199,6 +201,19 @@ function SignupInner() {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '6px' }}>Anything to add? <span style={{ color: 'var(--text-dim)' }}>(optional)</span></label>
                   <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Tell us about your studio..." rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} onFocus={onFocus} onBlur={onBlur} />
                 </div>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', marginTop: '2px' }}>
+                  <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)}
+                    style={{ marginTop: '2px', width: '14px', height: '14px', flexShrink: 0, accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    I agree to Archon&apos;s{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Terms of Service</a>
+                    {', '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Privacy Policy</a>
+                    {', and '}
+                    <a href="/disputes" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Dispute Resolution</a> process.
+                  </span>
+                </label>
 
                 <button onClick={submit} disabled={loading}
                   style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '14px', fontWeight: 600, color: 'white', background: loading ? 'var(--accent-dim)' : 'linear-gradient(135deg, #3D4FE0, #2E3BB0)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>

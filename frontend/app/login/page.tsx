@@ -124,6 +124,13 @@ export default function LoginPage() {
         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-dim)', marginTop: '24px', opacity: 0.7 }}>
           Archon CRM · Armila Design Studio
         </p>
+        <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-dim)', marginTop: '10px' }}>
+          <a href="/terms" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Terms</a>
+          {' · '}
+          <a href="/privacy" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Privacy</a>
+          {' · '}
+          <a href="/disputes" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>Disputes</a>
+        </p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
