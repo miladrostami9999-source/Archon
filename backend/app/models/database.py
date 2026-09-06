@@ -200,6 +200,33 @@ class PasswordResetToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class ApiKey(Base):
+    """A Data API credential — separate from the login JWT, since a machine
+    client needs its own revocable secret rather than reusing a 60-day
+    human session token. Only the sha256 hash is stored; the raw key is
+    shown once at creation and never recoverable, same convention as a
+    GitHub personal access token."""
+    __tablename__ = "api_keys"
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    key_hash      = Column(String, unique=True, index=True, nullable=False)
+    key_prefix    = Column(String, nullable=False)  # shown in the UI so the owner can tell keys apart
+    label         = Column(String, default="")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    last_used_at  = Column(DateTime, nullable=True)
+    revoked_at    = Column(DateTime, nullable=True)
+
+
+class ApiRequestLog(Base):
+    """One row per Data API call, purely for counting usage against the
+    plan's monthly max_api_requests — same shape as counting Campaign rows
+    for the email quota, not a full audit log."""
+    __tablename__ = "api_request_log"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 class WeeklyReport(Base):
     __tablename__ = "weekly_reports"
     id           = Column(Integer, primary_key=True, index=True)
@@ -276,6 +303,11 @@ class PlanLimit(Base):
     # catalog. Keeps the trial to a sample so it can't be used as a free
     # substitute for a paid plan.
     allowed_countries    = Column(Text, default="")
+    # Programmatic Data API access — a separate sentinel from the -1
+    # "unlimited" convention above: 0 means the plan has no API access at
+    # all (not merely a zero quota), since -1 would misleadingly suggest an
+    # unlimited-but-disabled feature. Only a positive value grants access.
+    max_api_requests     = Column(Integer, default=0)
     updated_at           = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -285,18 +317,19 @@ class PlanLimit(Base):
 # something). The admin edits it per plan from the Admin Panel.
 DEFAULT_PLAN_LIMITS = {
     "trial":  {"max_companies": 10,  "max_emails_per_month": 10,  "period_days": 7,  "price_usd": 0,  "price_irr": 0,
-               "allowed_countries": "United Arab Emirates, Saudi Arabia, United Kingdom"},
+               "allowed_countries": "United Arab Emirates, Saudi Arabia, United Kingdom", "max_api_requests": 0},
     "basic":  {"max_companies": 50,  "max_emails_per_month": 30,  "period_days": 30, "price_usd": 19, "price_irr": 0,
-               "allowed_countries": ""},
+               "allowed_countries": "", "max_api_requests": 0},
     "pro":    {"max_companies": 500, "max_emails_per_month": 300, "period_days": 30, "price_usd": 49, "price_irr": 0,
-               "allowed_countries": ""},
+               "allowed_countries": "", "max_api_requests": 0},
     "agency": {"max_companies": -1,  "max_emails_per_month": -1,  "period_days": 30, "price_usd": 99, "price_irr": 0,
-               "allowed_countries": ""},
-    # Same unlimited quotas as Agency — Enterprise's real difference is
-    # price and an annual (not monthly) billing period, negotiated per
-    # customer and adjusted from the admin's Plan Limits editor.
+               "allowed_countries": "", "max_api_requests": 0},
+    # Same unlimited pipeline quotas as Agency — Enterprise's real
+    # difference is price, an annual (not monthly) billing period, and
+    # being the only plan with Data API access at all (see max_api_requests
+    # below — every other plan is 0, meaning no access, not "unlimited").
     "enterprise": {"max_companies": -1, "max_emails_per_month": -1, "period_days": 365, "price_usd": 999, "price_irr": 0,
-                   "allowed_countries": ""},
+                   "allowed_countries": "", "max_api_requests": 10000},
 }
 
 
@@ -848,6 +881,14 @@ def _seed_plan_limits():
             row = db.query(PlanLimit).filter(PlanLimit.plan == plan).first()
             if row and not row.price_usd and vals.get("price_usd"):
                 row.price_usd = vals["price_usd"]
+        # Same backfill for the enterprise row's Data API quota — it may
+        # already exist (created before this column shipped) and came back
+        # 0 from the ALTER default, which would otherwise silently disable
+        # the one plan that's supposed to have API access.
+        for plan, vals in DEFAULT_PLAN_LIMITS.items():
+            row = db.query(PlanLimit).filter(PlanLimit.plan == plan).first()
+            if row and not row.max_api_requests and vals.get("max_api_requests"):
+                row.max_api_requests = vals["max_api_requests"]
         for key, value in DEFAULT_SETTINGS.items():
             if not db.query(AppSetting).filter(AppSetting.key == key).first():
                 db.add(AppSetting(key=key, value=value))
@@ -980,6 +1021,9 @@ def init_db():
                         conn.commit()
                 if "allowed_countries" not in pl_cols:
                     conn.execute(_text("ALTER TABLE plan_limits ADD COLUMN allowed_countries TEXT DEFAULT ''"))
+                    conn.commit()
+                if "max_api_requests" not in pl_cols:
+                    conn.execute(_text("ALTER TABLE plan_limits ADD COLUMN max_api_requests INTEGER DEFAULT 0"))
                     conn.commit()
 
             if _inspector.has_table("discovery_runs"):

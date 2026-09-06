@@ -4,7 +4,7 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import PublishSection from '../PublishSection'
-import { ArrowLeft, Lock, Mail, Check, Crown, User } from 'lucide-react'
+import { ArrowLeft, Lock, Mail, Check, Crown, User, KeyRound, Copy, Trash2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const getToken = () => localStorage.getItem('archon-token') || ''
@@ -15,6 +15,7 @@ const PLAN_META: Record<string, { label: string; desc: string }> = {
   basic:  { label: 'Basic',  desc: '50 companies · 30 emails/month' },
   pro:    { label: 'Pro',    desc: '500 companies · 300 emails/month · AI Search' },
   agency: { label: 'Agency', desc: 'Unlimited · All features' },
+  enterprise: { label: 'Enterprise', desc: 'Unlimited · All features · Data API' },
 }
 
 interface UserAccount {
@@ -50,6 +51,11 @@ export default function ProfileSecurityPage() {
   const [pwdSuccess, setPwdSuccess] = useState(false)
   const [gmailConnecting, setGmailConnecting] = useState(false)
   const [gmailMsg, setGmailMsg] = useState('')
+  const [apiKeys, setApiKeys] = useState<{ id: number; key_prefix: string; label: string; created_at: string; last_used_at: string | null; revoked: boolean }[]>([])
+  const [newKeyLabel, setNewKeyLabel] = useState('')
+  const [newRawKey, setNewRawKey] = useState('')
+  const [apiKeyBusy, setApiKeyBusy] = useState(false)
+  const [apiKeyMsg, setApiKeyMsg] = useState('')
   const [dangerMode, setDangerMode] = useState<'' | 'deactivate' | 'delete'>('')
   const [deletePwd, setDeletePwd] = useState('')
   const [dangerErr, setDangerErr] = useState('')
@@ -81,6 +87,30 @@ export default function ProfileSecurityPage() {
       })
       .catch(() => {})
   }, [])
+
+  const loadApiKeys = () => {
+    axios.get(`${API}/auth/api-keys`, { headers: headers() }).then(res => setApiKeys(res.data)).catch(() => {})
+  }
+  useEffect(() => { loadApiKeys() }, [])
+
+  const createApiKey = async () => {
+    setApiKeyBusy(true); setApiKeyMsg(''); setNewRawKey('')
+    try {
+      const res = await axios.post(`${API}/auth/api-keys`, { label: newKeyLabel }, { headers: headers() })
+      setNewRawKey(res.data.key)
+      setNewKeyLabel('')
+      loadApiKeys()
+    } catch (e: any) { setApiKeyMsg(e.response?.data?.detail || 'Could not create a key') }
+    setApiKeyBusy(false)
+  }
+
+  const revokeApiKey = async (id: number) => {
+    if (!window.confirm('Revoke this key? Any client using it will stop working immediately.')) return
+    try {
+      await axios.delete(`${API}/auth/api-keys/${id}`, { headers: headers() })
+      loadApiKeys()
+    } catch {}
+  }
 
   const saveContact = async () => {
     setSavingContact(true)
@@ -271,6 +301,74 @@ export default function ProfileSecurityPage() {
                 </button>
               )}
               {gmailMsg && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '10px 0 0' }}>{gmailMsg}</p>}
+            </div>
+
+            <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}><KeyRound size={15} strokeWidth={1.75} /> Data API</h2>
+              {user?.plan !== 'enterprise' ? (
+                <>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                    Programmatic access to the company catalog is available on the Enterprise plan.
+                  </p>
+                  <a href="/upgrade" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Upgrade to Enterprise →</a>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                    Query the company catalog programmatically. Send the key in an <code>X-API-Key</code> header — never as a URL parameter.
+                  </p>
+
+                  <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '16px', fontSize: '11.5px', color: 'var(--text-dim)', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre' }}>
+{`curl ${API}/api/v1/companies \\
+  -H "X-API-Key: ak_..."`}
+                  </div>
+
+                  {newRawKey && (
+                    <div style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: '16px' }}>
+                      <p style={{ fontSize: '12.5px', fontWeight: 600, color: '#34D399', margin: '0 0 8px' }}>Copy this key now — it won't be shown again.</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <code style={{ fontSize: '12px', color: 'var(--text)', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: '6px', flex: 1, overflowX: 'auto', whiteSpace: 'nowrap' }}>{newRawKey}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(newRawKey) }}
+                          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                          <Copy size={14} strokeWidth={1.75} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    <input value={newKeyLabel} onChange={e => setNewKeyLabel(e.target.value)} placeholder="Label (optional, e.g. CRM sync)"
+                      style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={createApiKey} disabled={apiKeyBusy}
+                      style={{ padding: '9px 18px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: apiKeyBusy ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                      {apiKeyBusy ? 'Creating…' : 'Generate new key'}
+                    </button>
+                  </div>
+                  {apiKeyMsg && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '0 0 12px' }}>{apiKeyMsg}</p>}
+
+                  {apiKeys.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {apiKeys.map(k => (
+                        <div key={k.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', opacity: k.revoked ? 0.5 : 1 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <span className="mono" style={{ fontSize: '12.5px', color: 'var(--text)' }}>{k.key_prefix}…</span>
+                            {k.label && <span style={{ fontSize: '12px', color: 'var(--text-dim)', marginLeft: '8px' }}>{k.label}</span>}
+                            <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '2px 0 0' }}>
+                              {k.revoked ? 'Revoked' : k.last_used_at ? `Last used ${new Date(k.last_used_at).toLocaleDateString()}` : 'Never used'}
+                            </p>
+                          </div>
+                          {!k.revoked && (
+                            <button onClick={() => revokeApiKey(k.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F87171', display: 'flex', flexShrink: 0 }}>
+                              <Trash2 size={15} strokeWidth={1.75} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>

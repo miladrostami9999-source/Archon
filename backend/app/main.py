@@ -9,6 +9,7 @@ from app.routers import companies
 from app.routers import auth
 from app.routers import marketplace
 from app.routers import google_oauth
+from app.routers import api_v1
 
 load_dotenv()
 
@@ -54,6 +55,7 @@ app.include_router(companies.router)
 app.include_router(auth.router)
 app.include_router(marketplace.router)
 app.include_router(google_oauth.router)
+app.include_router(api_v1.router)
 
 
 @app.exception_handler(Exception)

@@ -47,6 +47,7 @@ PLAN_LIMITS = {
         "ai_search": False,
         "weekly_report": False,
         "market_map": False,
+        "data_api": False,
     },
     "basic": {
         "max_companies": 50,
@@ -54,6 +55,7 @@ PLAN_LIMITS = {
         "ai_search": False,
         "weekly_report": False,
         "market_map": False,
+        "data_api": False,
     },
     "pro": {
         "max_companies": 500,
@@ -61,6 +63,7 @@ PLAN_LIMITS = {
         "ai_search": True,
         "weekly_report": True,
         "market_map": True,
+        "data_api": False,
     },
     "agency": {
         # -1 is this codebase's unlimited sentinel (see PlanLimit.max_companies
@@ -72,6 +75,7 @@ PLAN_LIMITS = {
         "ai_search": True,
         "weekly_report": True,
         "market_map": True,
+        "data_api": False,
     },
     "enterprise": {
         "max_companies": -1,
@@ -79,6 +83,7 @@ PLAN_LIMITS = {
         "ai_search": True,
         "weekly_report": True,
         "market_map": True,
+        "data_api": True,
     },
 }
 
@@ -482,6 +487,10 @@ class DeleteAccountRequest(BaseModel):
     password: str
 
 
+class ApiKeyCreate(BaseModel):
+    label: Optional[str] = ""
+
+
 @router.post("/me/delete")
 def delete_my_account(data: DeleteAccountRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Self-service permanent delete. Password-confirmed, since it's not
@@ -493,6 +502,62 @@ def delete_my_account(data: DeleteAccountRequest, current_user: User = Depends(g
     _purge_user_data(db, current_user)
     db.delete(current_user); db.commit()
     return {"message": "Your account and all of its data have been deleted."}
+
+
+# ─────────────────────────────────────────
+# DATA API KEYS
+# Self-service, JWT-authenticated (regular login) — separate from the
+# X-API-Key-authenticated Data API endpoints themselves (app/routers/api_v1.py).
+# ─────────────────────────────────────────
+@router.post("/api-keys")
+def create_api_key(
+    data: ApiKeyCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not PLAN_LIMITS.get(current_user.plan, {}).get("data_api"):
+        raise HTTPException(status_code=403, detail="The Data API is available on the Enterprise plan.")
+    from app.models.database import ApiKey
+    from app.services.api_keys import generate_api_key
+
+    raw_key, key_hash, prefix = generate_api_key()
+    key = ApiKey(user_id=current_user.id, key_hash=key_hash, key_prefix=prefix, label=(data.label or "")[:100])
+    db.add(key)
+    db.commit()
+    db.refresh(key)
+    # The only moment the raw key is ever returned — store it now, it can't
+    # be shown again.
+    return {"id": key.id, "key": raw_key, "key_prefix": prefix, "label": key.label, "created_at": key.created_at.isoformat()}
+
+
+@router.get("/api-keys")
+def list_api_keys(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import ApiKey
+    rows = db.query(ApiKey).filter(ApiKey.user_id == current_user.id).order_by(ApiKey.created_at.desc()).all()
+    return [{
+        "id": r.id, "key_prefix": r.key_prefix, "label": r.label,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "last_used_at": r.last_used_at.isoformat() if r.last_used_at else None,
+        "revoked": r.revoked_at is not None,
+    } for r in rows]
+
+
+@router.delete("/api-keys/{key_id}")
+def revoke_api_key(key_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.database import ApiKey
+    key = db.query(ApiKey).filter(ApiKey.id == key_id, ApiKey.user_id == current_user.id).first()
+    if not key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    key.revoked_at = datetime.utcnow()
+    db.commit()
+    return {"message": "API key revoked"}
+
+
+@router.get("/api-keys/usage")
+def api_keys_usage(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.services.api_keys import get_api_usage
+    return get_api_usage(db, current_user)
+
 
 @router.get("/plans")
 def get_plans():
