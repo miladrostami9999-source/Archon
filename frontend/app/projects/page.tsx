@@ -115,6 +115,15 @@ const formatSpent = (amount: number) => {
   return `$${Math.round(amount)}+ spent`
 }
 
+// Phase 10 item #10: "Best matches for you" ranks a freelancer's whole open
+// board, which only means anything once there's real volume to sort through
+// — with a handful of listings it's a gimmick, not a value differentiator,
+// and it undersells the product to offer it prematurely. The scoring itself
+// stays fully built and correct (services/matching.py); this just stops
+// surfacing it to freelancers until the catalog earns it. Raise or remove
+// this once open-project volume is consistently past it.
+const AI_MATCHING_MIN_OPEN_PROJECTS = 20
+
 export default function ProjectsPage() {
   const isMobile = useIsMobile()
   const [tab, setTab] = useState<'open' | 'mine' | 'saved' | 'proposals'>('open')
@@ -130,6 +139,7 @@ export default function ProjectsPage() {
   const [postMsg, setPostMsg] = useState('')
   const [search, setSearch] = useState('')
   const [openSort, setOpenSort] = useState<'newest' | 'best_match'>('newest')
+  const [openBoardTotal, setOpenBoardTotal] = useState<number | null>(null)
   const [insights, setInsights] = useState<Record<number, string>>({})
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -180,6 +190,19 @@ export default function ProjectsPage() {
     return () => clearInterval(poll)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, search, openSort])
+
+  // Unfiltered open-board size, independent of the current search/sort, so
+  // "Best matches for you" can gate on real catalog volume rather than
+  // whatever happens to be in the current filtered view.
+  useEffect(() => {
+    axios.get(`${API}/marketplace/projects`).then(r => setOpenBoardTotal(r.data.length)).catch(() => {})
+  }, [])
+
+  const bestMatchEligible = (openBoardTotal ?? 0) >= AI_MATCHING_MIN_OPEN_PROJECTS
+  useEffect(() => {
+    if (openSort === 'best_match' && openBoardTotal !== null && !bestMatchEligible) setOpenSort('newest')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openBoardTotal])
 
   const loadMatchInsights = async () => {
     const topIds = projects.slice(0, 5).map(p => p.id)
@@ -454,12 +477,12 @@ export default function ProjectsPage() {
             {tab === 'open' && (
               <select value={openSort} onChange={e => setOpenSort(e.target.value as any)} style={{ ...input, width: 'auto' }}>
                 <option value="newest">Newest</option>
-                <option value="best_match">Best matches for you</option>
+                {bestMatchEligible && <option value="best_match">Best matches for you</option>}
               </select>
             )}
           </div>
 
-          {tab === 'open' && openSort === 'best_match' && projects.length > 0 && (
+          {tab === 'open' && openSort === 'best_match' && bestMatchEligible && projects.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <button onClick={loadMatchInsights} disabled={insightsLoading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12px', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent-dim)', cursor: insightsLoading ? 'wait' : 'pointer' }}>

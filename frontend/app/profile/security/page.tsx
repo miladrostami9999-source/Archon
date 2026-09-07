@@ -303,16 +303,15 @@ export default function ProfileSecurityPage() {
               {gmailMsg && <p style={{ fontSize: '12.5px', color: '#F87171', margin: '10px 0 0' }}>{gmailMsg}</p>}
             </div>
 
+            {/* Phase 10 item #9: not actively upsold to non-Enterprise
+                accounts any more (this used to be a permanent "Upgrade to
+                Enterprise →" teaser shown to everyone) — no real demand
+                signal for either the Data API or the Enterprise tier yet,
+                so we stop investing in promoting them further without
+                removing what already exists for accounts that have it. */}
+            {user?.plan === 'enterprise' && (
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}><KeyRound size={15} strokeWidth={1.75} /> Data API</h2>
-              {user?.plan !== 'enterprise' ? (
-                <>
-                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
-                    Programmatic access to the company catalog is available on the Enterprise plan.
-                  </p>
-                  <a href="/upgrade" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Upgrade to Enterprise →</a>
-                </>
-              ) : (
                 <>
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
                     Query the company catalog programmatically. Send the key in an <code>X-API-Key</code> header — never as a URL parameter.
@@ -368,8 +367,8 @@ export default function ProfileSecurityPage() {
                     </div>
                   )}
                 </>
-              )}
             </div>
+            )}
 
             <div style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', margin: '0 0 16px' }}>Account Information</h2>
