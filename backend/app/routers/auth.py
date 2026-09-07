@@ -703,6 +703,118 @@ def market_intelligence(admin: User = Depends(require_admin), db: Session = Depe
     }
 
 
+@router.get("/admin/product-health")
+def product_health(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Phase 10 item #2 — is the product actually being used, not just how
+    many rows exist. Three things, all derived from data that already
+    exists (no new tables):
+
+      1. Activation — of everyone who signed up, how many took the CRM's
+         first real action (added a company to their pipeline) and how many
+         took the Marketplace's (posted a project or sent a proposal)?
+      2. Retention — of accounts old enough to judge, how many logged in
+         within the last 7 / 30 days?
+      3. Marketplace funnel — signup → posted/proposed → contract →
+         completed, with the drop-off at each step. This is the one that
+         matters most right now: the Marketplace only got its first real
+         non-test usage recently, so seeing exactly where people fall off
+         (no proposals? no contract? no completion?) is more useful than a
+         single "N projects posted" vanity number.
+    """
+    from app.models.database import UserCompanyState, Project, Proposal, Contract, Campaign
+
+    total_users = db.query(User).count()
+    now = datetime.utcnow()
+
+    # ── Activation ──────────────────────────────────────────────────
+    crm_activated = (
+        db.query(UserCompanyState.user_id).distinct().count()
+    )
+    mp_client_activated_ids = {r[0] for r in db.query(Project.client_id).distinct().all()}
+    mp_freelancer_activated_ids = {r[0] for r in db.query(Proposal.freelancer_id).distinct().all()}
+    mp_activated = len(mp_client_activated_ids | mp_freelancer_activated_ids)
+    email_sent = (
+        db.query(Campaign.user_id).filter(Campaign.status.in_(["sent", "replied"])).distinct().count()
+    )
+
+    def pct(n: int, d: int) -> float:
+        return round(100 * n / d, 1) if d else 0.0
+
+    # ── Retention ────────────────────────────────────────────────────
+    # Only counted against accounts actually old enough for the window to
+    # mean anything — a user who signed up yesterday can't be judged on
+    # 30-day retention yet.
+    eligible_7d = db.query(User).filter(User.created_at <= now - timedelta(days=7)).count()
+    active_7d = db.query(User).filter(
+        User.created_at <= now - timedelta(days=7), User.last_login.isnot(None),
+        User.last_login >= now - timedelta(days=7),
+    ).count()
+    eligible_30d = db.query(User).filter(User.created_at <= now - timedelta(days=30)).count()
+    active_30d = db.query(User).filter(
+        User.created_at <= now - timedelta(days=30), User.last_login.isnot(None),
+        User.last_login >= now - timedelta(days=30),
+    ).count()
+
+    # ── Marketplace funnel ──────────────────────────────────────────
+    # Each step counts *accounts*, not events, so one prolific poster can't
+    # inflate the step past 100% of signups. "Engaged" = posted a project
+    # (client) or sent a proposal (freelancer) — the Marketplace's one
+    # equivalent to the CRM's "added a company".
+    engaged_ids = mp_client_activated_ids | mp_freelancer_activated_ids
+    contracted_client_ids = {r[0] for r in db.query(Contract.client_id).distinct().all()}
+    contracted_freelancer_ids = {r[0] for r in db.query(Contract.freelancer_id).distinct().all()}
+    contracted_ids = contracted_client_ids | contracted_freelancer_ids
+    completed_client_ids = {r[0] for r in db.query(Contract.client_id).filter(Contract.status == "completed").distinct().all()}
+    completed_freelancer_ids = {r[0] for r in db.query(Contract.freelancer_id).filter(Contract.status == "completed").distinct().all()}
+    completed_ids = completed_client_ids | completed_freelancer_ids
+
+    funnel = [
+        {"step": "Signed up", "count": total_users},
+        {"step": "Posted a project or sent a proposal", "count": len(engaged_ids)},
+        {"step": "On a contract (client or freelancer)", "count": len(contracted_ids)},
+        {"step": "On a completed contract", "count": len(completed_ids)},
+    ]
+    for i, step in enumerate(funnel):
+        prev = funnel[i - 1]["count"] if i > 0 else None
+        step["pct_of_signups"] = pct(step["count"], total_users)
+        step["pct_of_previous"] = pct(step["count"], prev) if prev else None
+
+    # ── Marketplace KPIs (project/contract-level, not account-level) ──
+    total_projects = db.query(Project).count()
+    projects_with_proposal = db.query(Proposal.project_id).distinct().count()
+    projects_with_contract = db.query(Contract.project_id).distinct().count()
+    total_contracts = db.query(Contract).count()
+    completed_contracts = db.query(Contract).filter(Contract.status == "completed").count()
+    active_contracts = db.query(Contract).filter(Contract.status == "active").count()
+    disputed_contracts = db.query(Contract).filter(Contract.status == "disputed").count()
+
+    return {
+        "total_users": total_users,
+        "activation": {
+            "crm_pct": pct(crm_activated, total_users),
+            "marketplace_pct": pct(mp_activated, total_users),
+            "email_sent_pct": pct(email_sent, total_users),
+        },
+        "retention": {
+            "active_7d_pct": pct(active_7d, eligible_7d),
+            "active_7d_eligible": eligible_7d,
+            "active_30d_pct": pct(active_30d, eligible_30d),
+            "active_30d_eligible": eligible_30d,
+        },
+        "marketplace_funnel": funnel,
+        "marketplace_kpis": {
+            "total_projects": total_projects,
+            "projects_with_proposal_pct": pct(projects_with_proposal, total_projects),
+            "projects_with_contract_pct": pct(projects_with_contract, total_projects),
+            "total_contracts": total_contracts,
+            "active_contracts": active_contracts,
+            "completed_contracts": completed_contracts,
+            "completed_contracts_pct": pct(completed_contracts, total_contracts),
+            "disputed_contracts": disputed_contracts,
+        },
+    }
+
+
 # ─────────────────────────────────────────
 # UPGRADES / MANUAL PAYMENTS
 # No automated gateway is usable yet (Stripe et al. don't serve Iran; Iranian
