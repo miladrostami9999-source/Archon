@@ -383,7 +383,13 @@ export default function Dashboard() {
   const unlockCompany = async (id: number) => {
     setUnlocking(id)
     try {
-      await axios.post(`${API}/companies/${id}/unlock`)
+      const res = await axios.post(`${API}/companies/${id}/unlock`)
+      // The preview drawer holds its own snapshot of the company, separate
+      // from the `companies` list — refreshing the list alone doesn't touch
+      // it, so the drawer kept showing locked fields until it was closed and
+      // reopened. The unlock endpoint already returns the fully unlocked
+      // company, so use it to update the open drawer immediately too.
+      setPreviewCompany(prev => (prev && prev.id === id ? res.data : prev))
       await fetchCompanies()
       if (view === 'board') fetchAllCompanies()
     } catch (err: any) {
