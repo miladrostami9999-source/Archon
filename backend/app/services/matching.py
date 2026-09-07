@@ -1,11 +1,25 @@
-"""How well does an open marketplace project fit a given freelancer?
+"""How well does a freelancer and an open marketplace project fit each other?
+
+The same question, asked from both directions — `score_project_for_freelancer`
+ranks projects for a freelancer browsing the open board, and
+`score_freelancer_for_proposal` ranks the proposals a client received on one
+of their projects. They used to be two unrelated implementations (this one,
+and a much cruder rating-only heuristic that lived directly in
+`proposals.py`); that heuristic is gone now and both directions share the
+skill/experience/content axes below, so tuning a weight here — or fixing a
+bug in `_skill_score`/`_content_score` — updates both sides of the
+marketplace at once instead of only the half whoever's editing remembers to.
 
 Four weighted axes, 100 points:
 
     Skill match       50   does the project need what they can actually do
     Experience fit    20   is the project's level in their range
     Content overlap   20   do their headline/bio/portfolio speak to this brief
-    Freshness         10   is this still a live opportunity, not a stale one
+    Freshness/track    10   project→freelancer: is this a live opportunity;
+                            freelancer→project: does this bidder have a track
+                            record worth trusting (every proposal on one
+                            project shares the same posting date, so
+                            freshness can't discriminate between them there)
 
 Skill match carries the most weight on purpose — a freelancer with the exact
 tools a project asks for is a far better match than one who merely writes
@@ -95,6 +109,25 @@ def _freshness_score(created_at: datetime | None) -> tuple[int, str]:
     return points, f"Posted {days_open} days ago"
 
 
+def _track_record_score(rating: float | None, review_count: int, completed_contracts: int) -> tuple[int, str]:
+    # Freshness (how old the listing is) doesn't mean anything when ranking
+    # proposals *on* one project — every proposal there shares the same
+    # project, so it can't discriminate between them. A client instead cares
+    # whether this bidder has a track record worth trusting, which is the
+    # signal `proposals.py` used to score on alone before this module
+    # existed — kept here as this direction's fourth axis so unifying the
+    # two algorithms doesn't throw it away.
+    if not review_count and not completed_contracts:
+        return MAX_FRESHNESS // 2, "No completed contracts or reviews yet"
+    rating_pts = round((MAX_FRESHNESS * 0.7) * ((rating or 0) / 5)) if review_count else 0
+    # A handful of finished contracts matters even before any review lands.
+    track_pts = min(MAX_FRESHNESS - rating_pts, round(completed_contracts * 1.5))
+    points = rating_pts + track_pts
+    if review_count:
+        return points, f"{rating:.1f}★ across {review_count} review{'s' if review_count != 1 else ''}, {completed_contracts} completed contract{'s' if completed_contracts != 1 else ''}"
+    return points, f"{completed_contracts} completed contract{'s' if completed_contracts != 1 else ''}, no reviews yet"
+
+
 def score_project_for_freelancer(
     *,
     project_skills: list[str],
@@ -125,5 +158,46 @@ def score_project_for_freelancer(
             {"label": exp_label, "points": exp_pts, "max": MAX_EXPERIENCE},
             {"label": content_label, "points": content_pts, "max": MAX_CONTENT},
             {"label": fresh_label, "points": fresh_pts, "max": MAX_FRESHNESS},
+        ],
+    }
+
+
+def score_freelancer_for_proposal(
+    *,
+    project_skills: list[str],
+    project_experience_level: str | None,
+    project_title: str,
+    project_description: str,
+    freelancer_skills: list[str],
+    freelancer_custom_skills: list[str],
+    freelancer_text: str,
+    freelancer_completed_contracts: int,
+    freelancer_rating: float | None,
+    freelancer_review_count: int,
+) -> dict:
+    """The other direction of the same question `score_project_for_freelancer`
+    answers: given one project, how well does this particular bidder fit it?
+    Used to rank a client's incoming proposals on a project — previously its
+    own separate, much cruder heuristic (rating + completed contracts only,
+    no skill or content matching at all) lived in `proposals.py`. Reuses the
+    same skill/experience/content axes so the two directions can't drift
+    apart again, only swapping the freshness axis (meaningless here — every
+    proposal on a project shares the same posting date) for track record,
+    which is what the old heuristic scored on exclusively."""
+    fl_skills = {s.strip().lower() for s in (freelancer_skills + freelancer_custom_skills) if s.strip()}
+
+    skill_pts, skill_label = _skill_score(project_skills, fl_skills)
+    exp_pts, exp_label = _experience_score(project_experience_level, freelancer_completed_contracts)
+    content_pts, content_label = _content_score(f"{project_title} {project_description}", freelancer_text)
+    track_pts, track_label = _track_record_score(freelancer_rating, freelancer_review_count, freelancer_completed_contracts)
+
+    total = skill_pts + exp_pts + content_pts + track_pts
+    return {
+        "score": total,
+        "breakdown": [
+            {"label": skill_label, "points": skill_pts, "max": MAX_SKILL},
+            {"label": exp_label, "points": exp_pts, "max": MAX_EXPERIENCE},
+            {"label": content_label, "points": content_pts, "max": MAX_CONTENT},
+            {"label": track_label, "points": track_pts, "max": MAX_FRESHNESS},
         ],
     }

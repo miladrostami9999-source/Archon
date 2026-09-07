@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.models.database import get_db, Project, Proposal, Contract, Conversation, Milestone, User
-from app.routers.auth import require_marketplace_beta
+from app.routers.auth import require_marketplace_beta, _migrate_profile_json
 from app.services.marketplace_access import get_user_rating, is_verified
 from app.services import notifications as notif
 from .schemas import ProposalCreate, ProposalUpdate, ProposalAccept
@@ -72,14 +72,19 @@ def _proposal_to_dict(pr: Proposal, db: Session) -> dict:
     }
 
 
-def _project_row_to_dict(pr: Proposal, project: Project, db: Session) -> dict:
+def _project_row_to_dict(pr: Proposal, project: Project, db: Session, match: dict | None = None) -> dict:
     """A proposal dict with the project it's for stapled on — what the
     client's cross-project Proposals inbox needs that a single-project list
-    doesn't."""
+    doesn't. `match` carries the best_match score/breakdown when that sort
+    was requested, mirroring how `_project_to_dict` in projects.py attaches
+    the mirror-image score on the freelancer's side."""
     d = _proposal_to_dict(pr, db)
     d["project_title"] = project.title
     d["project_currency"] = project.currency
     d["project_status"] = project.status
+    if match is not None:
+        d["match_score"] = match["score"]
+        d["match_breakdown"] = match["breakdown"]
     return d
 
 
@@ -216,18 +221,47 @@ def proposals_inbox(
     rows = query.all()
 
     if sort == "best_match":
-        # No real matching model yet — approximated from the same signals a
-        # client would actually weigh: rated freelancers first, then a track
-        # record of finished contracts, newest as the final tiebreaker.
-        def score(pr: Proposal):
+        # Same scoring model as the freelancer's "best matches for you" sort
+        # on the open board (services/matching.py) — skill/experience/content
+        # fit between this bidder and this specific project, plus a track
+        # record axis in place of the freshness axis (every proposal here is
+        # on the same project, so posting date can't tell them apart).
+        from app.services.matching import score_freelancer_for_proposal
+
+        scored = []
+        for pr, project in rows:
+            try:
+                p_skills = json.loads(project.skills) if project.skills else []
+            except Exception:
+                p_skills = []
+            freelancer = db.query(User).filter(User.id == pr.freelancer_id).first()
+            profile = _migrate_profile_json(json.loads(freelancer.profile_json) if freelancer and freelancer.profile_json else {})
+            fl = profile.get("freelancer", {})
+            fl_text = " ".join(filter(None, [
+                fl.get("headline", ""), fl.get("bio", ""),
+                *[item.get("title", "") for item in (fl.get("portfolio") or [])],
+            ]))
             rating = get_user_rating(db, pr.freelancer_id)
             completed = (
                 db.query(Contract)
                 .filter(Contract.freelancer_id == pr.freelancer_id, Contract.status == "completed")
                 .count()
             )
-            return (rating["avg_rating"] or 0, completed, pr.created_at)
-        rows = sorted(rows, key=lambda row: score(row[0]), reverse=True)
+            match = score_freelancer_for_proposal(
+                project_skills=p_skills,
+                project_experience_level=project.experience_level,
+                project_title=project.title or "",
+                project_description=project.description or "",
+                freelancer_skills=fl.get("skills") or [],
+                freelancer_custom_skills=fl.get("customSkills") or [],
+                freelancer_text=fl_text,
+                freelancer_completed_contracts=completed,
+                freelancer_rating=rating["avg_rating"],
+                freelancer_review_count=rating["review_count"],
+            )
+            scored.append((pr, project, match))
+        scored.sort(key=lambda row: row[2]["score"], reverse=True)
+        return [_project_row_to_dict(pr, project, db, match=match) for pr, project, match in scored]
 
     return [_project_row_to_dict(pr, project, db) for pr, project in rows]
 
