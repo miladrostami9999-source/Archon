@@ -147,8 +147,8 @@ const MARKETPLACE_STEPS_CLIENT: Step[] = [
     path: null, selector: null, Icon: Wallet,
     title: { en: 'Payments are handled manually', fa: 'پرداخت‌ها دستی انجام می‌شن' },
     desc: {
-      en: "Archon isn't an escrow service — you pay the freelancer directly (bank transfer, card-to-card, or PayPal), then mark the milestone as paid. An admin manually confirms it before it's released. Full details are in our Terms.",
-      fa: 'آرکون سرویس escrow نیست — مستقیم به فریلنسر پرداخت می‌کنی (انتقال بانکی، کارت‌به‌کارت، یا پی‌پال)، بعد مایلستون رو به‌عنوان پرداخت‌شده علامت می‌زنی. یک ادمین قبل از آزادسازی، دستی تاییدش می‌کنه. جزئیات کامل توی Terms ماست.',
+      en: "Funding a milestone pays into Archon's own account, not the freelancer's — an admin confirms it, then manually sends a separate payout to the freelancer once you approve their delivery. It's not an automated or escrow service, just a manual pass-through. Full details are in our Terms.",
+      fa: 'فاندکردن یک مایلستون به حساب خودِ آرکون واریز می‌شه، نه فریلنسر — یک ادمین تاییدش می‌کنه، بعد وقتی تحویل رو تایید کردی، جدا و دستی به فریلنسر پرداخت می‌کنه. سرویس خودکار یا escrow نیست، فقط یک واسطه‌ی دستیه. جزئیات کامل توی Terms ماست.',
     },
   },
   {
@@ -200,8 +200,8 @@ const MARKETPLACE_STEPS_FREELANCER: Step[] = [
     path: null, selector: null, Icon: Wallet,
     title: { en: 'Payments are handled manually', fa: 'پرداخت‌ها دستی انجام می‌شن' },
     desc: {
-      en: "Archon isn't an escrow service — the client pays you directly once a milestone is funded and confirmed by an admin, then you deliver and they approve. Full details are in our Terms.",
-      fa: 'آرکون سرویس escrow نیست — وقتی مایلستون فاند و توسط ادمین تایید شد، کارفرما مستقیم بهت پرداخت می‌کنه، بعد کار رو تحویل می‌دی و اون تایید می‌کنه. جزئیات کامل توی Terms ماست.',
+      en: "The client's payment goes into Archon's own account first — once an admin confirms it and you deliver and get approved, an admin manually sends your payout separately. It's not an automated or escrow service, just a manual pass-through, so expect a short delay. Full details are in our Terms.",
+      fa: 'پرداخت کارفرما اول به حساب خودِ آرکون واریز می‌شه — وقتی ادمین تاییدش کرد و تو تحویل دادی و تایید شد، ادمین جدا و دستی پرداختت رو می‌فرسته. سرویس خودکار یا escrow نیست، فقط یک واسطه‌ی دستیه، پس یک تاخیر کوتاه طبیعیه. جزئیات کامل توی Terms ماست.',
     },
   },
   {

@@ -64,12 +64,16 @@ export default function DisputesPage() {
 
         <h2 style={h2}>Why Archon gets involved at all</h2>
         <p style={p}>
-          As explained in our <a href="/terms" style={link}>Terms</a>, Archon is not a payment processor or escrow
-          service — money moves directly between the client and the freelancer, outside the platform. Because of
-          that, Archon's role in a dispute is not to reverse a transaction (we never held the funds to begin with);
-          it's to look at the paper trail both parties built on the platform — the contract, milestone definitions,
-          delivery notes, messages, and payment confirmations — and help the two sides reach a resolution based on
-          what that record actually shows.
+          As explained in our <a href="/terms" style={link}>Terms</a>, funding a milestone means the client pays into
+          Archon's own account, and Archon later sends that money on to the freelancer as a separate manual payout —
+          Archon is not a licensed escrow provider or bank, and doesn't hold funds in trust, insure them, or guarantee
+          a particular outcome, but money does briefly pass through an account Milad controls as part of that manual
+          process. Because a payout that hasn't gone out yet is something Archon can still act on, Archon's role in a
+          dispute isn't limited to producing a paper trail — for a milestone that's approved but not yet paid out, we
+          can hold that payout while the dispute is reviewed. For money already paid out, or paid directly between the
+          two of you outside this flow, Archon's role goes back to reviewing the paper trail — the contract, milestone
+          definitions, delivery notes, messages, and payment confirmations — and helping the two sides reach a
+          resolution based on what that record actually shows.
         </p>
 
         <h2 style={h2}>How a dispute is handled, step by step</h2>
@@ -103,11 +107,14 @@ export default function DisputesPage() {
         <h2 style={h2}>What Milad can and can't do</h2>
         <ul style={{ paddingLeft: '20px', margin: '0 0 12px' }}>
           <li style={li}><strong style={strongTag}>Can</strong>: review the on-platform record, mediate, recommend or
-            record a resolution, adjust a contract's status, and — where warranted — suspend an account for clearly
-            dishonest behavior (e.g. fabricated payment receipts).</li>
-          <li style={li}><strong style={strongTag}>Cannot</strong>: force either party to send or return money — no
-            funds ever pass through Archon, so there is nothing on the platform to reverse. Any monetary outcome of a
-            dispute has to happen the same way the original payment did: directly between the two parties.</li>
+            record a resolution, adjust a contract's status, hold a milestone's payout while a dispute over it is
+            being reviewed, and — where warranted — suspend an account for clearly dishonest behavior (e.g.
+            fabricated payment receipts).</li>
+          <li style={li}><strong style={strongTag}>Cannot</strong>: reverse a payout that's already been sent to a
+            freelancer, or force a client to send money in the first place. Archon only ever holds funds briefly,
+            between a client's payment arriving and the corresponding payout going out — it isn't an escrow account
+            that funds sit in indefinitely, and once money has moved on, getting it back is between the two of you
+            (or, as a last resort, the courts).</li>
           <li style={li}><strong style={strongTag}>Cannot</strong>: guarantee a particular outcome. Mediation aims for
             a fair resolution based on the evidence available, not an automatic ruling in either party's favor.</li>
         </ul>

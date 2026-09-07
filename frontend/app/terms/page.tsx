@@ -74,16 +74,18 @@ export default function TermsPage() {
 
         <h2 style={h2}>4. How the Marketplace actually works</h2>
         <p style={note}>
-          <strong style={strongTag}>Important — read this section carefully.</strong> Archon is <strong style={strongTag}>not
-          a payment processor, escrow provider, or bank</strong>, and money paid between a client and a freelancer
-          never passes through an Archon-controlled account. Every payment happens directly between the client and the
-          freelancer, outside the platform (bank transfer, card-to-card, PayPal, or another method they agree on).
-          Archon's role is to record the terms, let the client mark a milestone as paid with a reference or receipt,
-          and let an administrator manually confirm that the transfer actually happened before the milestone is
-          treated as funded, and again manually record a payout once a client approves delivered work. This process
-          exists to add a layer of accountability and a shared paper trail — it is <strong style={strongTag}>not a
-          guarantee</strong> that any payment will occur, and Archon does not hold, insure, or have custody of anyone's
-          funds at any point.
+          <strong style={strongTag}>Important — read this section carefully.</strong> When you fund a milestone as a
+          client, you send that payment into <strong style={strongTag}>Archon's own account</strong> (the card, bank,
+          or PayPal details shown to you at the time — these belong to Archon/Armila Design, not to the freelancer).
+          Once an administrator manually confirms your payment arrived, the milestone is marked funded. Once you later
+          approve the freelancer's delivered work, an administrator manually sends that money on to the freelancer as
+          a <strong style={strongTag}>separate payout</strong>, using the payout details the freelancer provided.
+          Money therefore does pass through an account Archon's owner controls, briefly and manually, as a pass-through
+          between the two of you — but Archon is <strong style={strongTag}>not a licensed escrow provider or bank</strong>:
+          we don't hold funds in a segregated trust account, don't pay or earn interest on them, don't insure them, and
+          don't guarantee that a payout will happen on any particular timeline. This process exists to add a layer of
+          accountability and a shared paper trail around a manual transfer, not to replicate what a regulated escrow
+          service does.
         </p>
         <p style={p}>Specific mechanics you should understand before using the Marketplace:</p>
         <ul style={{ paddingLeft: '20px', margin: '0 0 12px' }}>
@@ -91,10 +93,13 @@ export default function TermsPage() {
             while the Marketplace is in beta. We may raise this limit for a specific account on request.</li>
           <li style={li}>Archon does not currently charge a commission or platform fee on Marketplace contracts. We may
             introduce fees in the future; if we do, we will state them clearly before you're charged.</li>
-          <li style={li}>A milestone is only "funded" or "released" once an administrator has manually verified it — we
-            rely on the information the parties give us (receipts, references, delivery links) and do not independently
-            audit every transfer. If you submit false or misleading payment information, your account may be
-            suspended or terminated, and you may be liable for any resulting loss.</li>
+          <li style={li}>A milestone is only "funded" once an administrator has manually verified your payment arrived
+            in Archon's account, and "released" only once an administrator has manually sent the corresponding payout
+            to the freelancer — we rely on the information the parties give us (receipts, references, delivery links)
+            and do not independently audit every transfer. If you submit false or misleading payment information,
+            your account may be suspended or terminated, and you may be liable for any resulting loss.</li>
+          <li style={li}>Payouts to freelancers are processed manually and are not instant — expect a delay between a
+            client's approval and the freelancer actually receiving funds, and contact us if a payout seems overdue.</li>
           <li style={li}>Reviews, ratings, and verification badges reflect information supplied by users and Archon's
             own checks; they are not a warranty of any freelancer's or client's quality, solvency, or reliability.</li>
         </ul>

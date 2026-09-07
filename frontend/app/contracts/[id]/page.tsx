@@ -10,7 +10,7 @@ import EmptyState from '../../components/EmptyState'
 import LoadingState from '../../components/LoadingState'
 import ProposeMilestoneModal from '../../components/ProposeMilestoneModal'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DollarSign, Paperclip, Check, Star, ArrowLeft, SearchX, Plus } from 'lucide-react'
+import { DollarSign, Paperclip, Check, Star, ArrowLeft, SearchX, Plus, Info } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -343,6 +343,15 @@ export default function ContractDetailPage() {
                   </button>
                 )}
               </div>
+              {/* Not dismissible like MarketplaceBeta above — this sits right
+                  next to the Fund/Approve buttons themselves, so it's still
+                  visible to someone who already closed that banner once and
+                  is about to click something that looks like a payment
+                  action but is really just a manual confirmation. */}
+              <p style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '11.5px', color: 'var(--text-dim)', lineHeight: 1.6, margin: '0 0 14px' }}>
+                <Info size={13} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+                Funding pays into Archon's own account, and payout to the freelancer is a separate manual transfer an admin sends after you approve delivery — not an automated or escrow service.
+              </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '32px' }}>
                 {contract.milestones.map(m => {
                   const mm = MILESTONE_META[m.status] || MILESTONE_META.pending
@@ -457,7 +466,7 @@ export default function ContractDetailPage() {
                                 )}
                               </div>
                               <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '10px 0 0', lineHeight: 1.6 }}>
-                                Archon holds the money and releases it to the freelancer once you approve their delivery.
+                                This is Archon's own account, not the freelancer's — an admin manually confirms your transfer, then pays the freelancer out separately once you approve their delivery. No automatic or escrow handling.
                                 {(pay.support_email || pay.support_phone) && <> Questions? {pay.support_email}{pay.support_email && pay.support_phone ? ' · ' : ''}{pay.support_phone}</>}
                               </p>
                             </div>
