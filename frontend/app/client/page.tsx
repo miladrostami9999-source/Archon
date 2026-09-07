@@ -106,7 +106,7 @@ export default function ClientOverviewPage() {
                     </p>
                   </div>
                 </div>
-                <a href="/projects"
+                <a href="/projects" data-tour="client-post-project"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '13px 26px', borderRadius: 'var(--radius-md)', fontSize: '14.5px', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', textDecoration: 'none', flexShrink: 0, boxShadow: '0 4px 16px rgba(61,79,224,0.35)' }}>
                   <Plus size={16} strokeWidth={2.25} /> Post a Project
                 </a>

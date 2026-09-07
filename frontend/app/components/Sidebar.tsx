@@ -277,7 +277,8 @@ export default function Sidebar() {
     const showBadge = !!item.badge && item.badge > 0
     return (
       <a href={item.href}
-        data-tour={item.href === '/tasks' ? 'nav-tasks' : item.href === '/analytics' ? 'nav-analytics' : undefined}
+        data-tour={item.href === '/tasks' ? 'nav-tasks' : item.href === '/analytics' ? 'nav-analytics'
+          : item.href === '/contracts' ? 'nav-contracts' : item.href === '/messages' ? 'nav-messages' : undefined}
         onClick={() => setMobileOpen(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: '10px',

@@ -305,7 +305,7 @@ export default function ProjectsPage() {
             <BetaTag />
           </div>
           {accountMode === 'client' && (
-            <button onClick={() => setShowPost(s => !s)}
+            <button data-tour="post-project-btn" onClick={() => setShowPost(s => !s)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
               {showPost ? 'Cancel' : <><Plus size={14} strokeWidth={2} /> {isMobile ? 'Post' : 'Post a Project'}</>}
             </button>
@@ -409,7 +409,7 @@ export default function ProjectsPage() {
                   browsing everyone else's open board (or saving one for
                   later) doesn't apply. */}
               {(accountMode === 'client' ? (['mine'] as const) : (['open', 'mine', 'saved'] as const)).map(t => (
-                <button key={t} onClick={() => setTab(t)}
+                <button key={t} data-tour={t === 'open' ? 'open-board-tab' : undefined} onClick={() => setTab(t)}
                   style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
                     border: '1px solid ' + (tab === t ? 'var(--accent)' : 'var(--border)'),
                     background: tab === t ? 'var(--accent-dim)' : 'transparent',
@@ -419,7 +419,7 @@ export default function ProjectsPage() {
                 </button>
               ))}
               {accountMode === 'client' && (
-                <button onClick={() => setTab('proposals')}
+                <button data-tour="proposals-tab" onClick={() => setTab('proposals')}
                   style={{ padding: '6px 14px', borderRadius: 'var(--radius-md)', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', position: 'relative',
                     border: '1px solid ' + (tab === 'proposals' ? 'var(--accent)' : 'var(--border)'),
                     background: tab === 'proposals' ? 'var(--accent-dim)' : 'transparent',

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { PartyPopper, Building2, LayoutList, CheckSquare, BarChart3, Globe, Rocket } from 'lucide-react'
+import { PartyPopper, Building2, LayoutList, CheckSquare, BarChart3, Globe, Rocket, Briefcase, Send, FileCheck2, Wallet, Inbox, MessageCircle } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════
 // OnboardingTour — real spotlight tour
@@ -31,9 +31,18 @@ type Step = {
   desc: { en: string; fa: string }
 }
 
-const STEPS: Step[] = [
+// NOTE: "/" is not a Next.js app-router route — next.config.ts rewrites it
+// to a static public/landing.html, and that page's own script bounces a
+// signed-in visitor straight to /dashboard client-side (a plain
+// location.replace, outside React). So the app layout — and this
+// component — never actually mounts while pathname is "/"; using it as a
+// trigger here was silent dead code. /dashboard is the real, always-hit
+// home for a freelancer/admin account; a client-mode account is bounced
+// again from there to /client by useRequireFreelancerMode, so that page is
+// its own real home too. Steps below target those directly.
+const CRM_STEPS: Step[] = [
   {
-    path: '/', selector: null, Icon: PartyPopper,
+    path: '/dashboard', selector: null, Icon: PartyPopper,
     title: { en: 'Welcome to Archon', fa: 'به آرکون خوش اومدی' },
     desc: {
       en: "This quick tour will show you exactly where things are. Let's start on your dashboard.",
@@ -41,7 +50,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="add-company"]', Icon: Building2,
+    path: '/dashboard', selector: '[data-tour="add-company"]', Icon: Building2,
     title: { en: 'Add your first company', fa: 'اولین شرکتت رو اضافه کن' },
     desc: {
       en: 'Click here to add a company by name or website. Archon researches it and scores the fit automatically.',
@@ -49,7 +58,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="view-toggle"]', Icon: LayoutList,
+    path: '/dashboard', selector: '[data-tour="view-toggle"]', Icon: LayoutList,
     title: { en: 'List or Board view', fa: 'نمای لیست یا برد' },
     desc: {
       en: 'Switch to Board to drag companies through your pipeline — New, Sent, Replied, Client.',
@@ -57,7 +66,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="nav-tasks"]', Icon: CheckSquare,
+    path: '/dashboard', selector: '[data-tour="nav-tasks"]', Icon: CheckSquare,
     title: { en: 'Daily AI tasks', fa: 'وظایف روزانه با AI' },
     desc: {
       en: 'Archon generates a daily task list for you — who to follow up with, what to review.',
@@ -65,7 +74,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="nav-analytics"]', Icon: BarChart3,
+    path: '/dashboard', selector: '[data-tour="nav-analytics"]', Icon: BarChart3,
     title: { en: 'Track performance', fa: 'پیگیری عملکرد' },
     desc: {
       en: 'See your pipeline health, reply rates, and top industries — all in one view.',
@@ -73,7 +82,7 @@ const STEPS: Step[] = [
     },
   },
   {
-    path: '/', selector: '[data-tour="profile-link"]', Icon: Globe,
+    path: '/dashboard', selector: '[data-tour="profile-link"]', Icon: Globe,
     title: { en: 'Your profile', fa: 'پروفایل شخصی‌ات' },
     desc: {
       en: 'Add your skills and portfolio here, then publish a public link — no login required for visitors.',
@@ -90,19 +99,154 @@ const STEPS: Step[] = [
   },
 ]
 
-const DONE_KEY = 'archon-onboarding-done'
+// Marketplace-side tour — separate from the CRM one above, and branched by
+// account_mode since a client and a freelancer land on different pages and
+// care about a different flow (post-work vs. find-work). Triggered the
+// first time either home page is actually visited, not bundled into the
+// CRM tour, so someone who only ever uses the Marketplace side still gets
+// a real walkthrough instead of silence.
+const MARKETPLACE_STEPS_CLIENT: Step[] = [
+  {
+    path: '/client', selector: null, Icon: Briefcase,
+    title: { en: 'Welcome to the Marketplace', fa: 'به مارکت‌پلیس خوش اومدی' },
+    desc: {
+      en: "Here's how hiring a freelancer through Archon works, start to finish.",
+      fa: 'اینجا نشونت می‌دیم استخدام یک فریلنسر توی آرکون از اول تا آخر چطوریه.',
+    },
+  },
+  {
+    path: '/client', selector: '[data-tour="client-post-project"]', Icon: Send,
+    title: { en: 'Post a project', fa: 'یک پروژه پست کن' },
+    desc: {
+      en: 'Describe what you need done, set a budget, and freelancers can start sending proposals.',
+      fa: 'کاری که لازم داری رو توضیح بده، بودجه بذار، و فریلنسرها می‌تونن پروپوزال بفرستن.',
+    },
+  },
+  {
+    path: '/projects', selector: '[data-tour="proposals-tab"]', Icon: Inbox,
+    title: { en: 'Review proposals', fa: 'پروپوزال‌ها رو بررسی کن' },
+    desc: {
+      en: 'Every proposal on your projects lands here. Accept one to create a contract with agreed milestones.',
+      fa: 'هر پروپوزالی که برای پروژه‌هات میاد اینجا جمع می‌شه. یکی رو قبول کن تا یک قرارداد با مایلستون‌های توافقی ساخته بشه.',
+    },
+  },
+  {
+    // The sidebar renders on every page (including /client and /projects),
+    // so this spotlights the nav item in place — no navigation needed, and
+    // importantly no route change into /dashboard, which a client-mode
+    // account gets force-redirected away from the instant it renders
+    // (useRequireFreelancerMode) and would silently break this step.
+    path: null, selector: '[data-tour="nav-contracts"]', Icon: FileCheck2,
+    title: { en: 'Contracts & milestones', fa: 'قراردادها و مایلستون‌ها' },
+    desc: {
+      en: 'Track active contracts here — fund a milestone once you\'re ready to pay, then approve delivered work.',
+      fa: 'قراردادهای فعال رو اینجا پیگیری کن — وقتی آماده‌ی پرداخت بودی مایلستون رو فاند کن، بعد کار تحویل‌داده‌شده رو تایید کن.',
+    },
+  },
+  {
+    path: null, selector: null, Icon: Wallet,
+    title: { en: 'Payments are handled manually', fa: 'پرداخت‌ها دستی انجام می‌شن' },
+    desc: {
+      en: "Archon isn't an escrow service — you pay the freelancer directly (bank transfer, card-to-card, or PayPal), then mark the milestone as paid. An admin manually confirms it before it's released. Full details are in our Terms.",
+      fa: 'آرکون سرویس escrow نیست — مستقیم به فریلنسر پرداخت می‌کنی (انتقال بانکی، کارت‌به‌کارت، یا پی‌پال)، بعد مایلستون رو به‌عنوان پرداخت‌شده علامت می‌زنی. یک ادمین قبل از آزادسازی، دستی تاییدش می‌کنه. جزئیات کامل توی Terms ماست.',
+    },
+  },
+  {
+    path: null, selector: null, Icon: Rocket,
+    title: { en: "You're all set", fa: 'همه چی آماده‌ست' },
+    desc: {
+      en: 'Reopen this tour anytime from the Help button in the sidebar. Now go post your first project.',
+      fa: 'هر وقت خواستی از دکمه Help توی سایدبار این تور رو دوباره باز کن. حالا برو اولین پروژه‌ت رو پست کن.',
+    },
+  },
+]
+
+const MARKETPLACE_STEPS_FREELANCER: Step[] = [
+  {
+    path: '/projects', selector: null, Icon: Briefcase,
+    title: { en: 'Welcome to the Marketplace', fa: 'به مارکت‌پلیس خوش اومدی' },
+    desc: {
+      en: "Here's how finding and getting paid for work through Archon works, start to finish.",
+      fa: 'اینجا نشونت می‌دیم پیداکردن کار و گرفتن دستمزدش توی آرکون از اول تا آخر چطوریه.',
+    },
+  },
+  {
+    path: '/projects', selector: '[data-tour="open-board-tab"]', Icon: LayoutList,
+    title: { en: 'Browse the open board', fa: 'برد پروژه‌های باز رو ببین' },
+    desc: {
+      en: 'Every open project studios have posted shows up here. Send a proposal on the ones that fit your skills.',
+      fa: 'هر پروژه‌ی بازی که استودیوها پست کردن اینجا نشون داده می‌شه. روی اونایی که با مهارتت جور در میاد پروپوزال بفرست.',
+    },
+  },
+  {
+    // No navigation needed — the sidebar (and this nav item) renders on
+    // /projects too, so just spotlight it in place.
+    path: null, selector: '[data-tour="nav-contracts"]', Icon: FileCheck2,
+    title: { en: 'Contracts & milestones', fa: 'قراردادها و مایلستون‌ها' },
+    desc: {
+      en: 'Once a client accepts your proposal, the contract and its milestones show up here — deliver work against each one.',
+      fa: 'وقتی کارفرما پروپوزالت رو قبول کرد، قرارداد و مایلستون‌هاش اینجا نشون داده می‌شن — کار رو در قبال هرکدوم تحویل بده.',
+    },
+  },
+  {
+    path: null, selector: '[data-tour="nav-messages"]', Icon: MessageCircle,
+    title: { en: 'Messages', fa: 'پیام‌ها' },
+    desc: {
+      en: 'Talk with clients here — scope questions, delivery links, everything stays on the record.',
+      fa: 'اینجا با کارفرماها صحبت کن — سوالات درباره‌ی scope، لینک تحویل، همه‌چیز توی سابقه می‌مونه.',
+    },
+  },
+  {
+    path: null, selector: null, Icon: Wallet,
+    title: { en: 'Payments are handled manually', fa: 'پرداخت‌ها دستی انجام می‌شن' },
+    desc: {
+      en: "Archon isn't an escrow service — the client pays you directly once a milestone is funded and confirmed by an admin, then you deliver and they approve. Full details are in our Terms.",
+      fa: 'آرکون سرویس escrow نیست — وقتی مایلستون فاند و توسط ادمین تایید شد، کارفرما مستقیم بهت پرداخت می‌کنه، بعد کار رو تحویل می‌دی و اون تایید می‌کنه. جزئیات کامل توی Terms ماست.',
+    },
+  },
+  {
+    path: null, selector: null, Icon: Rocket,
+    title: { en: "You're all set", fa: 'همه چی آماده‌ست' },
+    desc: {
+      en: 'Reopen this tour anytime from the Help button in the sidebar. Now go find your first project.',
+      fa: 'هر وقت خواستی از دکمه Help توی سایدبار این تور رو دوباره باز کن. حالا برو اولین پروژه‌ت رو پیدا کن.',
+    },
+  },
+]
+
+type TourKind = 'crm' | 'marketplace' | null
+
+const DONE_KEY_CRM = 'archon-onboarding-done'
+const DONE_KEY_MARKETPLACE = 'archon-onboarding-marketplace-done'
 const LANG_KEY = 'archon-tour-lang'
 const TOOLTIP_W = 320
+
+function getAccountMode(): 'client' | 'freelancer' {
+  try {
+    const raw = localStorage.getItem('archon-user')
+    if (raw) {
+      const u = JSON.parse(raw)
+      if (u.account_mode === 'client') return 'client'
+    }
+  } catch {}
+  return 'freelancer'
+}
 
 export default function OnboardingTour() {
   const pathname = usePathname()
   const router = useRouter()
+  const [tourKind, setTourKind] = useState<TourKind>(null)
   const [active, setActive] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [lang, setLang] = useState<'en' | 'fa'>('en')
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [locating, setLocating] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const STEPS: Step[] = tourKind === 'marketplace'
+    ? (getAccountMode() === 'client' ? MARKETPLACE_STEPS_CLIENT : MARKETPLACE_STEPS_FREELANCER)
+    : CRM_STEPS
+  const doneKey = tourKind === 'marketplace' ? DONE_KEY_MARKETPLACE : DONE_KEY_CRM
 
   useEffect(() => {
     const saved = localStorage.getItem(LANG_KEY)
@@ -111,23 +255,35 @@ export default function OnboardingTour() {
 
   const setLangPersist = (l: 'en' | 'fa') => { setLang(l); localStorage.setItem(LANG_KEY, l) }
 
-  // Auto-show once on first login, only from Home
+  // Auto-show once per tour, right when a signed-in visitor actually lands
+  // on that tour's real home page — mandatory for a brand-new account (no
+  // silent skip), independent for CRM vs. Marketplace since plenty of
+  // accounts only ever touch one side.
   useEffect(() => {
-    if (pathname !== '/') return
+    if (active) return // don't re-trigger while a tour is already running and navigating between its own steps
     const token = localStorage.getItem('archon-token')
-    const done = localStorage.getItem(DONE_KEY)
-    if (token && !done) {
-      const t = setTimeout(() => { setStepIndex(0); setActive(true) }, 600)
+    if (!token) return
+    let kind: TourKind = null
+    if (pathname === '/dashboard' && !localStorage.getItem(DONE_KEY_CRM)) kind = 'crm'
+    else if ((pathname === '/client' || pathname === '/projects') && !localStorage.getItem(DONE_KEY_MARKETPLACE)) kind = 'marketplace'
+    if (kind) {
+      const t = setTimeout(() => { setTourKind(kind); setStepIndex(0); setActive(true) }, 600)
       return () => clearTimeout(t)
     }
-  }, [pathname])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, active])
 
-  // Manual re-open
+  // Manual re-open — Help button always reopens whichever tour matches the
+  // page you're currently on.
   useEffect(() => {
-    const handler = () => { setStepIndex(0); setActive(true) }
+    const handler = () => {
+      const kind: TourKind = (pathname === '/client' || pathname === '/projects') ? 'marketplace' : 'crm'
+      setTourKind(kind); setStepIndex(0); setActive(true)
+    }
     window.addEventListener('archon:open-onboarding', handler)
     return () => window.removeEventListener('archon:open-onboarding', handler)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   const clearPoll = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }
 
@@ -180,7 +336,7 @@ export default function OnboardingTour() {
     return () => { window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update) }
   }, [active, rect, stepIndex])
 
-  const close = () => { setActive(false); clearPoll(); localStorage.setItem(DONE_KEY, '1') }
+  const close = () => { setActive(false); clearPoll(); localStorage.setItem(doneKey, '1') }
   const next = () => { if (stepIndex < STEPS.length - 1) setStepIndex(i => i + 1); else close() }
   const back = () => { if (stepIndex > 0) setStepIndex(i => i - 1) }
 
@@ -258,8 +414,8 @@ export default function OnboardingTour() {
         backdropFilter: 'blur(3px)',
         clipPath, WebkitClipPath: clipPath,
         transition: 'clip-path 0.3s ease',
-        pointerEvents: rect ? 'none' : 'auto',
-      }} onClick={!rect ? close : undefined} />
+        pointerEvents: 'none',
+      }} />
 
       {/* HIGHLIGHT RING */}
       {rect && (
