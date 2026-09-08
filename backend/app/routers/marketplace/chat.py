@@ -11,7 +11,7 @@ addresses a thread by contract id and shouldn't have to know a conversation id.
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -28,8 +28,8 @@ router = APIRouter(tags=["marketplace-chat"])
 
 
 class MessageCreate(BaseModel):
-    body: Optional[str] = None
-    attachment_url: Optional[str] = None
+    body: Optional[str] = Field(None, max_length=5000)
+    attachment_url: Optional[str] = Field(None, max_length=500)
 
 
 class StartConversation(BaseModel):

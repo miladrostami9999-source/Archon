@@ -1,25 +1,27 @@
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CompanyCreate(BaseModel):
-    name: str
-    domain: Optional[str] = None
-    website: Optional[str] = None
-    email: Optional[str] = None
-    country: Optional[str] = None
-    city: Optional[str] = None
-    industry: Optional[str] = None
-    company_size: Optional[str] = None
-    instagram: Optional[str] = None
-    linkedin: Optional[str] = None
+    name: str = Field(..., max_length=200)
+    domain: Optional[str] = Field(None, max_length=200)
+    website: Optional[str] = Field(None, max_length=500)
+    email: Optional[str] = Field(None, max_length=200)
+    country: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    industry: Optional[str] = Field(None, max_length=100)
+    company_size: Optional[str] = Field(None, max_length=40)
+    instagram: Optional[str] = Field(None, max_length=200)
+    linkedin: Optional[str] = Field(None, max_length=200)
 
 
 class MarketplaceInviteRequest(BaseModel):
-    contact_email: Optional[str] = None
-    contact_name: Optional[str] = None
-    message: Optional[str] = None
-    invite_type: Optional[str] = "client"  # client | freelancer — freelancer is admin-only
+    contact_email: Optional[str] = Field(None, max_length=200)
+    contact_name: Optional[str] = Field(None, max_length=120)
+    # Free text that gets emailed to an outside lead — bounded so it can't be
+    # used to stuff an arbitrarily large payload into someone's inbox.
+    message: Optional[str] = Field(None, max_length=2000)
+    invite_type: Optional[str] = Field("client", max_length=20)  # client | freelancer — freelancer is admin-only
 
 
 class CompanyUpdate(BaseModel):
@@ -59,8 +61,8 @@ class MergeCountryRequest(BaseModel):
 
 
 class NoteCreate(BaseModel):
-    content: str
-    language: str = "en"
+    content: str = Field(..., max_length=10000)
+    language: str = Field("en", max_length=10)
     pinned: bool = False
 
 

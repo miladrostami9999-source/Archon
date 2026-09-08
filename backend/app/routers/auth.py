@@ -9,7 +9,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.services.rate_limit import limiter
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
@@ -123,6 +123,13 @@ def get_current_user(
     user = db.query(User).filter(User.id == payload.get("user_id")).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    # Session invalidation: a token minted before the last password change/reset
+    # carries a stale "tv" and is rejected. Tokens issued before this claim
+    # existed have no "tv" — treat that as 0 so they keep working for accounts
+    # still at version 0 (no forced logout on deploy), but die once the account
+    # bumps its version.
+    if payload.get("tv", 0) != (user.token_version or 0):
+        raise HTTPException(status_code=401, detail="Session expired — please sign in again.")
     # Expiry is deliberately NOT a 401/403 here. Blocking every authenticated
     # route locked expired users out of the upgrade and payment pages too — the
     # one thing they still need to do. Expiry is enforced by
@@ -279,9 +286,9 @@ class LoginRequest(BaseModel):
     password: str
 
 class RegisterRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., max_length=120)
+    email: str = Field(..., max_length=200)
+    password: str = Field(..., max_length=128)
     plan: str = "basic"
 
 class UserUpdate(BaseModel):
@@ -323,7 +330,7 @@ def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Account is deactivated")
     user.last_login = datetime.utcnow()
     db.commit()
-    token = create_token({"user_id": user.id, "email": user.email, "role": user.role, "plan": user.plan})
+    token = create_token({"user_id": user.id, "email": user.email, "role": user.role, "plan": user.plan, "tv": user.token_version or 0})
     return {
         "token": token,
         "user": {
@@ -376,9 +383,22 @@ def change_password(
 ):
     if not verify_password(data.get("old_password", ""), current_user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
-    current_user.password_hash = hash_password(data.get("new_password", ""))
+    new_password = data.get("new_password", "") or ""
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+    current_user.password_hash = hash_password(new_password)
+    # Invalidate every other existing session (a possibly-stolen token is the
+    # reason someone changes their password). Bumping the version would also
+    # kill *this* request's token, so hand back a fresh one carrying the new
+    # version so the tab the user is on stays signed in.
+    current_user.token_version = (current_user.token_version or 0) + 1
     db.commit()
-    return {"message": "Password changed successfully"}
+    token = create_token({
+        "user_id": current_user.id, "email": current_user.email,
+        "role": current_user.role, "plan": current_user.plan,
+        "tv": current_user.token_version,
+    })
+    return {"message": "Password changed successfully", "token": token}
 
 @router.get("/users")
 def list_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
@@ -896,13 +916,13 @@ def exchange_rate(refresh: bool = False, current_user: User = Depends(get_curren
 
 
 class PaymentRequestCreate(BaseModel):
-    plan: str
+    plan: str = Field(..., max_length=40)
     amount: Optional[float] = None
-    currency: str = "IRR"
-    method: Optional[str] = None
-    reference: Optional[str] = None
-    receipt_url: Optional[str] = None
-    note: Optional[str] = None
+    currency: str = Field("IRR", max_length=10)
+    method: Optional[str] = Field(None, max_length=40)
+    reference: Optional[str] = Field(None, max_length=300)
+    receipt_url: Optional[str] = Field(None, max_length=500)
+    note: Optional[str] = Field(None, max_length=2000)
 
 
 @router.post("/billing/requests")
@@ -1587,49 +1607,53 @@ def export_users(admin: User = Depends(require_admin), db: Session = Depends(get
 # PUBLIC PROFILE
 # ─────────────────────────────────────────
 class PortfolioImage(BaseModel):
-    id: str
-    data: str      # image URL (R2) — or a base64 data URI for legacy uploads
-    name: str = ""
-    alt: str = ""  # short per-image caption / alt text
+    id: str = Field(..., max_length=64)
+    # An R2 URL for new uploads; the larger cap tolerates a legacy base64 data
+    # URI without letting an unbounded blob through.
+    data: str = Field(..., max_length=200000)
+    name: str = Field("", max_length=200)
+    alt: str = Field("", max_length=300)
 
 class PortfolioItem(BaseModel):
-    id: str
-    title: str
-    desc: Optional[str] = ""
-    url: Optional[str] = ""
-    images: List[PortfolioImage] = []
+    id: str = Field(..., max_length=64)
+    title: str = Field(..., max_length=200)
+    desc: Optional[str] = Field("", max_length=2000)
+    url: Optional[str] = Field("", max_length=500)
+    images: List[PortfolioImage] = Field(default_factory=list, max_length=20)
 
 class EducationItem(BaseModel):
-    id: str
-    school: str
-    degree: Optional[str] = ""
-    field: Optional[str] = ""
-    start_year: Optional[str] = ""
-    end_year: Optional[str] = ""
+    id: str = Field(..., max_length=64)
+    school: str = Field(..., max_length=200)
+    degree: Optional[str] = Field("", max_length=200)
+    field: Optional[str] = Field("", max_length=200)
+    start_year: Optional[str] = Field("", max_length=10)
+    end_year: Optional[str] = Field("", max_length=10)
 
 class ExperienceItem(BaseModel):
-    id: str
-    title: str
-    company: Optional[str] = ""
-    start_date: Optional[str] = ""
-    end_date: Optional[str] = ""
-    description: Optional[str] = ""
+    id: str = Field(..., max_length=64)
+    title: str = Field(..., max_length=200)
+    company: Optional[str] = Field("", max_length=200)
+    start_date: Optional[str] = Field("", max_length=20)
+    end_date: Optional[str] = Field("", max_length=20)
+    description: Optional[str] = Field("", max_length=2000)
 
 class ProfileUpdate(BaseModel):
-    headline: Optional[str] = ""
-    bio: Optional[str] = ""
-    location: Optional[str] = ""
-    website: Optional[str] = ""
-    company: Optional[str] = ""
-    phone: Optional[str] = ""
-    avatar: Optional[str] = ""              # base64 image
-    skills: List[str] = []
-    customSkills: List[str] = []
-    portfolio: List[PortfolioItem] = []
-    education: List[EducationItem] = []
-    experience: List[ExperienceItem] = []
+    headline: Optional[str] = Field("", max_length=160)
+    bio: Optional[str] = Field("", max_length=4000)
+    location: Optional[str] = Field("", max_length=200)
+    website: Optional[str] = Field("", max_length=500)
+    company: Optional[str] = Field("", max_length=200)
+    phone: Optional[str] = Field("", max_length=40)
+    # avatar is an R2 URL now (uploads go through /auth/upload); the generous
+    # cap still rejects a multi-MB base64 blob pasted straight in.
+    avatar: Optional[str] = Field("", max_length=2000)
+    skills: List[str] = Field(default_factory=list, max_length=100)
+    customSkills: List[str] = Field(default_factory=list, max_length=100)
+    portfolio: List[PortfolioItem] = Field(default_factory=list, max_length=100)
+    education: List[EducationItem] = Field(default_factory=list, max_length=100)
+    experience: List[ExperienceItem] = Field(default_factory=list, max_length=100)
     is_public: Optional[bool] = None
-    username: Optional[str] = None
+    username: Optional[str] = Field(None, max_length=60)
 
 
 # The 7 fields that make up a "professional showcase" — split per hat since a
@@ -1892,14 +1916,14 @@ def _notify_admin_signup(name, email, plan, company, note, instant: bool):
 
 
 class WaitlistSignup(BaseModel):
-    name: str
-    email: str
-    password: str
-    plan: Optional[str] = "basic"
-    company: Optional[str] = None
-    note: Optional[str] = None
-    account_mode: Optional[str] = "freelancer"
-    invite_token: Optional[str] = None
+    name: str = Field(..., max_length=120)
+    email: str = Field(..., max_length=200)
+    password: str = Field(..., max_length=128)
+    plan: Optional[str] = Field("basic", max_length=40)
+    company: Optional[str] = Field(None, max_length=200)
+    note: Optional[str] = Field(None, max_length=2000)
+    account_mode: Optional[str] = Field("freelancer", max_length=20)
+    invite_token: Optional[str] = Field(None, max_length=128)
 
 
 @router.get("/invite/{token}")
@@ -2008,7 +2032,7 @@ def signup_waitlist(request: Request, req: WaitlistSignup, db: Session = Depends
         "already": False,
         "instant": True,
         "plan_status": user.plan_status,
-        "token": create_token({"user_id": user.id, "email": user.email, "role": user.role}),
+        "token": create_token({"user_id": user.id, "email": user.email, "role": user.role, "tv": user.token_version or 0}),
         "user": {
             "id": user.id, "name": user.name, "email": user.email,
             "role": user.role, "plan": user.plan, "account_mode": user.account_mode,
@@ -2313,6 +2337,9 @@ def reset_password(request: Request, req: ResetPasswordRequest, db: Session = De
         raise HTTPException(status_code=404, detail="User not found.")
 
     user.password_hash = hash_password(req.new_password)
+    # Kill any session still holding the old password's token — a reset is
+    # exactly when you want every previously-issued token to stop working.
+    user.token_version = (user.token_version or 0) + 1
     entry.used = True
     db.commit()
 

@@ -23,13 +23,71 @@ already have; either alone is enough.
 """
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
+import socket
+from urllib.parse import urlparse
 
 import httpx
 
 SEARCH_TIMEOUT = 20.0
 FETCH_TIMEOUT = 15.0
+
+
+def _is_public_host(host: str) -> bool:
+    """True only if every IP `host` resolves to is a normal public address.
+
+    Blocks SSRF: a company `website` we fetch is ultimately caller-supplied, so
+    without this a value like `http://169.254.169.254/…` (cloud metadata),
+    `http://127.0.0.1:6379/…` (a local service), or an internal hostname would
+    make the server fetch its own private network and hand the contents back.
+    Resolving here (not just string-matching) also catches a public name that
+    resolves to a private IP. This is defence-in-depth — the only caller is an
+    admin-triggered flow — but a fetcher that follows arbitrary URLs should
+    never be able to reach the private network.
+    """
+    if not host:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except Exception:
+        return False
+    for info in infos:
+        ip = info[4][0]
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        if (addr.is_private or addr.is_loopback or addr.is_link_local
+                or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
+            return False
+    return True
+
+
+def _safe_get(url: str, *, timeout: float, headers: dict) -> httpx.Response:
+    """httpx.get with SSRF protection across redirects.
+
+    Redirects are followed manually (max 5) so each hop's destination is
+    re-validated — `follow_redirects=True` would fetch a redirect to an
+    internal address before we could inspect it.
+    """
+    seen = 0
+    current = url
+    while True:
+        parsed = urlparse(current)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("unsupported scheme")
+        if not _is_public_host(parsed.hostname or ""):
+            raise ValueError("blocked non-public address")
+        r = httpx.get(current, timeout=timeout, follow_redirects=False, headers=headers)
+        if r.is_redirect and r.headers.get("location"):
+            seen += 1
+            if seen > 5:
+                raise ValueError("too many redirects")
+            current = str(r.url.join(r.headers["location"]))
+            continue
+        return r
 
 # Pages are read for contact details and a sense of the work, not archived.
 # 6k characters covers a typical About/Contact page with room to spare.
@@ -188,8 +246,8 @@ def fetch_text(url: str, max_chars: int = DEFAULT_PAGE_CHARS) -> dict:
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
     try:
-        r = httpx.get(
-            url, timeout=FETCH_TIMEOUT, follow_redirects=True,
+        r = _safe_get(
+            url, timeout=FETCH_TIMEOUT,
             headers={"User-Agent": _UA, "Accept": "text/html,application/xhtml+xml"},
         )
         r.raise_for_status()

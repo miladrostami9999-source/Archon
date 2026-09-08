@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.models.database import get_db, Contract, Review, User
@@ -11,8 +11,8 @@ router = APIRouter(tags=["marketplace-reviews"])
 
 
 class ReviewCreate(BaseModel):
-    rating: int
-    comment: Optional[str] = None
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = Field(None, max_length=2000)
 
 
 def _review_to_dict(r: Review, db: Session) -> dict:

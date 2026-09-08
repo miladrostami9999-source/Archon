@@ -137,7 +137,11 @@ export default function ProfileSecurityPage() {
     if (pwdForm.new_password !== pwdForm.confirm) { setPwdError('Passwords do not match'); return }
     if (pwdForm.new_password.length < 8) { setPwdError('Min 8 characters'); return }
     try {
-      await axios.post(`${API}/auth/change-password`, { old_password: pwdForm.old_password, new_password: pwdForm.new_password }, { headers: headers() })
+      const res = await axios.post(`${API}/auth/change-password`, { old_password: pwdForm.old_password, new_password: pwdForm.new_password }, { headers: headers() })
+      // Changing the password invalidates every previously-issued token
+      // (server-side), including this tab's. The endpoint returns a fresh one
+      // carrying the new session version — store it so we stay signed in.
+      if (res.data?.token) localStorage.setItem('archon-token', res.data.token)
       setPwdSuccess(true); setPwdForm({ old_password: '', new_password: '', confirm: '' })
     } catch (e: any) { setPwdError(e.response?.data?.detail || 'Error') }
   }

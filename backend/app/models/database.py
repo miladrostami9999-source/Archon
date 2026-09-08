@@ -58,6 +58,13 @@ class User(Base):
     # "active" = plan is paid for/granted. "pending" = the account exists and can
     # explore the app, but quota features stay locked until an admin approves.
     plan_status     = Column(String, default="active")
+    # Bumped whenever every existing session for this account must be
+    # invalidated at once — currently on password change and password reset.
+    # The value is embedded in each JWT as the "tv" claim and re-checked on
+    # every request, so a token issued before the bump stops working the
+    # moment the password changes (previously a leaked 60-day token survived a
+    # password change, which defeats the point of changing it).
+    token_version   = Column(Integer, default=0)
 
     # ── MARKETPLACE (Phase 6, beta) ──
     # On for everyone by default — the marketplace is labelled Beta in the UI
@@ -989,6 +996,10 @@ def init_db():
             if "plan_status" not in user_cols:
                 conn.execute(_text("ALTER TABLE users ADD COLUMN plan_status VARCHAR DEFAULT 'active'"))
                 conn.execute(_text("UPDATE users SET plan_status = 'active' WHERE plan_status IS NULL"))
+                conn.commit()
+            if "token_version" not in user_cols:
+                conn.execute(_text("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0"))
+                conn.execute(_text("UPDATE users SET token_version = 0 WHERE token_version IS NULL"))
                 conn.commit()
             if _inspector.has_table("mp_projects"):
                 project_cols = [c["name"] for c in _inspector.get_columns("mp_projects")]
