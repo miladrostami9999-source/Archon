@@ -7,7 +7,24 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.models.database import get_db, User, Company, Contact, Note, Campaign, History, DailyTask, WeeklyReport
+from app.models.database import (
+    get_db,
+    # CRM / core
+    User, Company, Contact, Note, Campaign, History, DailyTask, WeeklyReport,
+    WeeklyDigestLog, UserCompanyState, EmailReputationEvent,
+    DiscoveryHunt, DiscoveryRun, WaitlistEntry,
+    # Configuration & billing (losing these means re-entering every plan
+    # price, payment instruction, feature flag and exchange-rate cache by hand)
+    PlanLimit, AppSetting, PaymentRequest, RevenueSnapshot,
+    # Data API credentials & usage
+    ApiKey, ApiRequestLog,
+    # Marketplace — the entire hire/deliver/pay economy
+    MarketplaceInvite, Project, ProjectSave, Proposal, Contract, Milestone,
+    MilestonePayment, MilestonePayout, Conversation, ContractMessage,
+    Notification, UserVerification, Review, Post, PostLike, PostComment, PostReport,
+    # Admin audit trail
+    AdminActivityLog, CronRunLog,
+)
 from app.routers.auth import require_admin
 from .utils import row_to_dict
 
@@ -19,17 +36,65 @@ router = APIRouter()
 _default_backup_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "backups")
 BACKUP_DIR = os.getenv("BACKUP_DIR", _default_backup_dir)
 
-# Tables included in every backup. Password reset tokens are intentionally
-# excluded — they're short-lived and shouldn't be restored across backups.
+# Every table whose loss would be unrecoverable is backed up. Ordered roughly
+# parents-before-children so a future restore can insert in list order without
+# tripping a foreign key.
+#
+# Deliberately EXCLUDED, and why:
+#   * PasswordResetToken — short-lived, single-use security tokens; restoring a
+#     stale one would be a liability, not a recovery.
+#   * PlatformLog — server diagnostics, auto-trimmed to 14 days every night;
+#     regenerable noise, not business data, and can be large.
+#
+# NOTE: this file contains sensitive data by necessity — KYC identity/bank
+# fields (UserVerification), API key hashes (ApiKey), and users' encrypted
+# Google refresh tokens (on User). A complete backup can't omit them, so the
+# downloaded file must be stored securely (the download route is admin-only).
 BACKUP_MODELS = [
+    # config & identity first
+    ("plan_limits", PlanLimit),
+    ("app_settings", AppSetting),
     ("users", User),
+    ("user_verification", UserVerification),
+    ("api_keys", ApiKey),
+    ("api_request_log", ApiRequestLog),
+    ("waitlist", WaitlistEntry),
+    # CRM
     ("companies", Company),
     ("contacts", Contact),
+    ("user_company_state", UserCompanyState),
     ("notes", Note),
     ("campaigns", Campaign),
     ("history", History),
     ("daily_tasks", DailyTask),
     ("weekly_reports", WeeklyReport),
+    ("weekly_digest_log", WeeklyDigestLog),
+    ("email_reputation_events", EmailReputationEvent),
+    ("discovery_hunts", DiscoveryHunt),
+    ("discovery_runs", DiscoveryRun),
+    # billing / revenue
+    ("payment_requests", PaymentRequest),
+    ("revenue_snapshots", RevenueSnapshot),
+    # marketplace
+    ("marketplace_invites", MarketplaceInvite),
+    ("mp_projects", Project),
+    ("mp_project_saves", ProjectSave),
+    ("mp_proposals", Proposal),
+    ("mp_contracts", Contract),
+    ("mp_milestones", Milestone),
+    ("mp_milestone_payments", MilestonePayment),
+    ("mp_milestone_payouts", MilestonePayout),
+    ("mp_conversations", Conversation),
+    ("mp_contract_messages", ContractMessage),
+    ("mp_notifications", Notification),
+    ("mp_reviews", Review),
+    ("mp_posts", Post),
+    ("mp_post_likes", PostLike),
+    ("mp_post_comments", PostComment),
+    ("mp_post_reports", PostReport),
+    # audit
+    ("admin_activity_log", AdminActivityLog),
+    ("cron_run_log", CronRunLog),
 ]
 
 

@@ -4,7 +4,7 @@ import axios from 'axios'
 import Sidebar from '../../components/Sidebar'
 import AdminSideNav from '../../components/AdminSideNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { DatabaseBackup, CircleCheck, CircleX, Circle, Pencil, Trash2, AlertOctagon, AlertTriangle, Info } from 'lucide-react'
+import { DatabaseBackup, CircleCheck, CircleX, Circle, Pencil, Trash2, AlertOctagon, AlertTriangle, Info, Download } from 'lucide-react'
 import InlineStatus from '../../components/InlineStatus'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -24,6 +24,7 @@ export default function SystemHealthPage() {
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null)
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [backing, setBacking] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [backMsg, setBackMsg] = useState('')
 
   const [editingRate, setEditingRate] = useState(false)
@@ -76,6 +77,24 @@ export default function SystemHealthPage() {
       setBackMsg('✗ Backup failed — check server logs')
     }
     setBacking(false)
+  }
+
+  // Pull the file down through an authenticated blob request — the download
+  // route is admin-only (needs the Bearer header), so a plain <a download>
+  // link, which browsers fetch without our Authorization header, would 401.
+  const downloadBackup = async (filename: string) => {
+    setDownloading(true); setBackMsg('')
+    try {
+      const res = await axios.get(`${API}/companies/backup/download/${filename}`, { headers: headers(), responseType: 'blob' })
+      const url = URL.createObjectURL(res.data as Blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setBackMsg('✗ Download failed — try running a fresh backup first')
+    }
+    setDownloading(false)
   }
 
   const openRateEditor = () => {
@@ -162,10 +181,22 @@ export default function SystemHealthPage() {
                 ) : (
                   <p style={{ fontSize: '12.5px', color: 'var(--text-dim)', margin: '0 0 12px' }}>No backups yet.</p>
                 )}
-                <button onClick={runBackup} disabled={backing}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: backing ? 0.6 : 1 }}>
-                  <DatabaseBackup size={15} strokeWidth={1.5} /> {backing ? 'Backing up…' : 'Run backup now'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button onClick={runBackup} disabled={backing}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'white', background: 'linear-gradient(135deg,#3D4FE0,#2E3BB0)', border: 'none', cursor: 'pointer', opacity: backing ? 0.6 : 1 }}>
+                    <DatabaseBackup size={15} strokeWidth={1.5} /> {backing ? 'Backing up…' : 'Run backup now'}
+                  </button>
+                  {latestBackup && (
+                    <button onClick={() => downloadBackup(latestBackup.filename)} disabled={downloading}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: 600, color: 'var(--text)', background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer', opacity: downloading ? 0.6 : 1 }}>
+                      <Download size={15} strokeWidth={1.5} /> {downloading ? 'Downloading…' : 'Download latest'}
+                    </button>
+                  )}
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', margin: '10px 0 0', lineHeight: 1.6 }}>
+                  Backs up every table (accounts, catalog, the full marketplace, payments, verification &amp; settings).
+                  The file holds sensitive data — keep any copy you download somewhere private.
+                </p>
                 {backMsg && <div style={{ marginTop: '8px' }}><InlineStatus text={backMsg} size={11.5} /></div>}
               </div>
 
