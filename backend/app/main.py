@@ -4,7 +4,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.models.database import init_db
+from app.services.rate_limit import limiter
 from app.routers import companies
 from app.routers import auth
 from app.routers import marketplace
@@ -18,6 +21,24 @@ app = FastAPI(
     description="Business Intelligence System for Armila Design",
     version="0.2.0"
 )
+
+# Rate limiting — the limiter itself lives on app.state so the @limiter.limit
+# decorators on individual endpoints can find it; the middleware enforces the
+# limits and the handler turns a breach into a clean 429 (not a 500). We return
+# the message under `detail` (not slowapi's default `error` key) so the
+# frontend's existing `err.response.data.detail` error display shows it.
+app.state.limiter = limiter
+
+
+def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many attempts. Please wait a minute and try again."},
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CORS — allowed origins come from .env (comma-separated).
 # Falls back to localhost dev ports if not set, so local development

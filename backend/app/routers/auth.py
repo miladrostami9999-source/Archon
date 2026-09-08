@@ -4,8 +4,9 @@ import re
 import secrets as _secrets
 from app.services.email_service import send_email, esc
 from app.services import storage
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.services.rate_limit import limiter
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -310,7 +311,8 @@ _DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"timing-equalizer", bcrypt.gensalt()).deco
 
 
 @router.post("/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
         verify_password(req.password, _DUMMY_PASSWORD_HASH)  # equalize timing, result ignored
@@ -365,7 +367,9 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
     }
 
 @router.post("/change-password")
+@limiter.limit("10/hour")
 def change_password(
+    request: Request,
     data: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -902,7 +906,8 @@ class PaymentRequestCreate(BaseModel):
 
 
 @router.post("/billing/requests")
-def create_payment_request(data: PaymentRequestCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("10/hour")
+def create_payment_request(request: Request, data: PaymentRequestCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.models.database import PaymentRequest
     if data.plan not in PLAN_LIMITS:
         raise HTTPException(status_code=400, detail="Unknown plan")
@@ -1917,7 +1922,8 @@ def get_invite(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/signup")
-def signup_waitlist(req: WaitlistSignup, db: Session = Depends(get_db)):
+@limiter.limit("10/hour")
+def signup_waitlist(request: Request, req: WaitlistSignup, db: Session = Depends(get_db)):
     email = req.email.strip().lower()
     if "@" not in email or "." not in email:
         raise HTTPException(status_code=400, detail="Please enter a valid email address.")
@@ -2259,7 +2265,8 @@ def _send_reset_email(to_email: str, reset_link: str, user_name: str):
 
 
 @router.post("/forgot-password")
-def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("4/hour")
+def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
 
     # Always return the same generic response, whether or not the email exists —
@@ -2291,7 +2298,8 @@ def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/reset-password")
-def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/hour")
+def reset_password(request: Request, req: ResetPasswordRequest, db: Session = Depends(get_db)):
     entry = db.query(PasswordResetToken).filter(PasswordResetToken.token == req.token).first()
 
     if not entry or entry.used or entry.expires_at < datetime.utcnow():
