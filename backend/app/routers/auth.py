@@ -2,7 +2,7 @@ import os
 import json
 import re
 import secrets as _secrets
-from app.services.email_service import send_email
+from app.services.email_service import send_email, esc
 from app.services import storage
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -301,10 +301,21 @@ class AccountModeUpdate(BaseModel):
 # ─────────────────────────────────────────
 # ENDPOINTS
 # ─────────────────────────────────────────
+# A real bcrypt hash of a throwaway value. When the email doesn't exist we
+# still run one verify against this, so a login attempt takes the same time
+# whether or not the account is real — otherwise the missing bcrypt call makes
+# "no such user" measurably faster and lets an attacker enumerate which emails
+# are registered (worse with no rate limiting in front of it).
+_DUMMY_PASSWORD_HASH = bcrypt.hashpw(b"timing-equalizer", bcrypt.gensalt()).decode()
+
+
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
-    if not user or not verify_password(req.password, user.password_hash):
+    if not user:
+        verify_password(req.password, _DUMMY_PASSWORD_HASH)  # equalize timing, result ignored
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated")
@@ -499,6 +510,24 @@ def delete_my_account(data: DeleteAccountRequest, current_user: User = Depends(g
         raise HTTPException(status_code=400, detail="Admin accounts can't be deleted from here.")
     if not verify_password(data.password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Password is incorrect.")
+    # A marketplace project/proposal/contract is a two-sided record: every
+    # step needs both parties (a milestone one side proposes only counts once
+    # the other accepts; a contract needs the freelancer to confirm; delivery
+    # needs the client to approve). Letting one party self-delete would tear
+    # those shared records out from under the other side and orphan the FK rows
+    # _purge_user_data doesn't touch — exactly what the admin delete route
+    # already refuses. Deactivate keeps the history intact and still blocks
+    # sign-in, so it's offered as the safe alternative.
+    if _has_marketplace_activity(db, current_user.id):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Your account is part of marketplace projects or contracts, so it can't be fully "
+                "deleted — the other side of each of those relies on the shared record. Deactivate "
+                "your account instead: it blocks sign-in and hides your profile while keeping those "
+                "contracts intact for the people on the other side."
+            ),
+        )
     _purge_user_data(db, current_user)
     db.delete(current_user); db.commit()
     return {"message": "Your account and all of its data have been deleted."}
@@ -906,11 +935,11 @@ def create_payment_request(data: PaymentRequestCreate, current_user: User = Depe
             to_email=current_user.email,
             subject="We received your payment — verifying now",
             html_body=(
-                f"<p>Hi {current_user.name},</p>"
+                f"<p>Hi {esc(current_user.name)},</p>"
                 f"<p>Thanks — we've received your payment details for the "
-                f"<strong>{data.plan}</strong> plan and are verifying them now. "
+                f"<strong>{esc(data.plan)}</strong> plan and are verifying them now. "
                 f"You'll get another email the moment your plan is active (usually within a few hours).</p>"
-                f"<p>Reference: {pr.reference}</p>"
+                f"<p>Reference: {esc(pr.reference)}</p>"
                 f"<p>— Archon, by Armila Design</p>"
             ),
             text_body=f"We received your payment for the {data.plan} plan (ref {pr.reference}) and are verifying it.",
@@ -924,10 +953,12 @@ def create_payment_request(data: PaymentRequestCreate, current_user: User = Depe
             send_email(
                 to_email=admin_email,
                 subject=f"Archon payment to verify: {current_user.name} → {data.plan}",
+                # User-controlled name/email/method/reference land in the admin's
+                # inbox — escape so a crafted value can't inject markup there.
                 html_body=(
-                    f"<p><strong>{current_user.name}</strong> ({current_user.email}) submitted a payment.</p>"
-                    f"<p>Plan: {data.plan}<br>Amount: {data.amount or '—'} {pr.currency}<br>"
-                    f"Method: {pr.method or '—'}<br>Reference: {pr.reference}</p>"
+                    f"<p><strong>{esc(current_user.name)}</strong> ({esc(current_user.email)}) submitted a payment.</p>"
+                    f"<p>Plan: {esc(data.plan)}<br>Amount: {esc(data.amount) or '—'} {esc(pr.currency)}<br>"
+                    f"Method: {esc(pr.method) or '—'}<br>Reference: {esc(pr.reference)}</p>"
                 ),
                 text_body=f"{current_user.name} paid for {data.plan}. Ref: {pr.reference}",
             )
@@ -1305,8 +1336,8 @@ def approve_payment(request_id: int, admin: User = Depends(require_admin), db: S
             to_email=user.email,
             subject=f"Your Archon {pr.plan.capitalize()} plan is active",
             html_body=(
-                f"<p>Hi {user.name},</p>"
-                f"<p>We've confirmed your payment — your <strong>{pr.plan}</strong> plan is now active "
+                f"<p>Hi {esc(user.name)},</p>"
+                f"<p>We've confirmed your payment — your <strong>{esc(pr.plan)}</strong> plan is now active "
                 f"until {user.plan_expires_at.strftime('%d %b %Y')}.</p>"
                 f"<p>— Archon, by Armila Design</p>"
             ),
@@ -1843,9 +1874,11 @@ def _notify_admin_signup(name, email, plan, company, note, instant: bool):
         send_email(
             to_email=admin_email,
             subject=f"New Archon signup: {name} ({plan})",
+            # Public signup — every one of these fields is attacker-controlled and
+            # this email goes to the admin, so escape before interpolating.
             html_body=(
-                f"<p><strong>{name}</strong> ({email}) {what}.</p>"
-                f"<p>Plan: {plan}<br>Company: {company or '—'}<br>Note: {note or '—'}</p>"
+                f"<p><strong>{esc(name)}</strong> ({esc(email)}) {what}.</p>"
+                f"<p>Plan: {esc(plan)}<br>Company: {esc(company) or '—'}<br>Note: {esc(note) or '—'}</p>"
             ),
             text_body=f"{name} ({email}) {what}. Plan: {plan}.",
         )
@@ -2020,8 +2053,8 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
                 to_email=existing.email,
                 subject="Your Archon plan is active",
                 html_body=(
-                    f"<p>Hi {existing.name},</p>"
-                    f"<p>Your <strong>{existing.plan}</strong> plan is now active — everything is unlocked.</p>"
+                    f"<p>Hi {esc(existing.name)},</p>"
+                    f"<p>Your <strong>{esc(existing.plan)}</strong> plan is now active — everything is unlocked.</p>"
                     f"<p><a href=\"{login_url}\">Open Archon</a></p>"
                     f"<p>— Archon, by Armila Design</p>"
                 ),
@@ -2070,17 +2103,17 @@ def approve_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Se
     login_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + "/login"
     if temp_password:
         html = (
-            f"<p>Hi {entry.name},</p>"
+            f"<p>Hi {esc(entry.name)},</p>"
             f"<p>Your Archon account has been approved. Sign in with:</p>"
-            f"<p><strong>Email:</strong> {entry.email}<br>"
-            f"<strong>Temporary password:</strong> {temp_password}</p>"
+            f"<p><strong>Email:</strong> {esc(entry.email)}<br>"
+            f"<strong>Temporary password:</strong> {esc(temp_password)}</p>"
             f"<p><a href=\"{login_url}\">Sign in</a> and change your password from Profile → Security.</p>"
             f"<p>— Archon, by Armila Design</p>"
         )
         text = f"Your Archon account is ready. Email: {entry.email}  Temp password: {temp_password}  Sign in: {login_url}"
     else:
         html = (
-            f"<p>Hi {entry.name},</p>"
+            f"<p>Hi {esc(entry.name)},</p>"
             f"<p>Good news — your Archon account has been approved and is now active. "
             f"You can sign in with the email and password you chose when you signed up.</p>"
             f"<p><a href=\"{login_url}\">Sign in to Archon</a></p>"
@@ -2117,6 +2150,22 @@ def delete_waitlist(entry_id: int, admin: User = Depends(require_admin), db: Ses
 # ─────────────────────────────────────────
 # IMAGE UPLOAD (avatar + portfolio) → Cloudflare R2
 # ─────────────────────────────────────────
+async def _read_capped(file: UploadFile) -> bytes:
+    """Read an upload but never pull more than the storage size cap into
+    memory. `file.read()` with no argument buffers the *entire* body first —
+    so a client could send a 500 MB file and exhaust server memory before the
+    8 MB check in storage.upload_image ever runs. Reading cap+1 bytes bounds
+    the memory and lets us reject an oversized file up front."""
+    from app.services.storage import MAX_FILE_SIZE_BYTES
+    content = await file.read(MAX_FILE_SIZE_BYTES + 1)
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large (limit is {MAX_FILE_SIZE_BYTES // 1024 // 1024}MB).",
+        )
+    return content
+
+
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
@@ -2127,7 +2176,7 @@ async def upload_image(
     if not storage.is_configured():
         raise HTTPException(status_code=503, detail="Image storage is not configured on the server")
 
-    content = await file.read()
+    content = await _read_capped(file)
     try:
         url = storage.upload_image(content, file.content_type or "", prefix=f"users/{current_user.id}")
     except ValueError as e:
@@ -2148,7 +2197,7 @@ async def upload_receipt(
     if not storage.is_configured():
         raise HTTPException(status_code=503, detail="File storage is not configured on the server")
 
-    content = await file.read()
+    content = await _read_capped(file)
     try:
         url = storage.upload_image(
             content, file.content_type or "",
@@ -2186,7 +2235,7 @@ def _send_reset_email(to_email: str, reset_link: str, user_name: str):
     )
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <p>Hi {user_name},</p>
+      <p>Hi {esc(user_name)},</p>
       <p>We received a request to reset your Archon password. This link expires in {RESET_TOKEN_EXPIRE_MINUTES} minutes.</p>
       <p style="margin:24px 0">
         <a href="{reset_link}" style="background:linear-gradient(135deg,#4F7BF7,#7C3AED);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Reset Password</a>

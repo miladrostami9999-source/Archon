@@ -69,12 +69,15 @@ def _email_admins(admins, title: str, body: str, link: str) -> None:
     """Best-effort email. Silent on failure — the in-app copy already landed."""
     try:
         import os
-        from app.services.email_service import send_email
+        from app.services.email_service import send_email, esc
 
         frontend = os.getenv("FRONTEND_URL", "").rstrip("/")
         url = f"{frontend}{link}" if frontend and link else ""
+        # `body` routinely carries another user's name (e.g. "{name} proposed …")
+        # and reaches this recipient's inbox — escape it so a crafted name can't
+        # inject markup into the email.
         html = (
-            f"<p>{body}</p>"
+            f"<p>{esc(body)}</p>"
             + (f'<p><a href="{url}">Open it in Archon</a></p>' if url else "")
         )
         for a in admins:

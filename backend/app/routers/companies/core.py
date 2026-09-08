@@ -451,9 +451,14 @@ def invite_to_marketplace(
     db.add(invite)
 
     import os
+    from app.services.email_service import esc
     signup_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + f"/signup?invite={token}"
-    greeting = f"Hi {contact_name}," if contact_name else "Hi,"
-    note = f"<p>{data.message}</p>" if data.message else ""
+    # This email goes to an outside contact (a scraped lead), so the inviter's
+    # name and free-text message are attacker-controlled relative to the
+    # recipient — escape them before they land in someone else's inbox.
+    inviter = esc(current_user.name)
+    greeting = f"Hi {esc(contact_name)}," if contact_name else "Hi,"
+    note = f"<p>{esc(data.message)}</p>" if data.message else ""
     if invite_type == "freelancer":
         subject = f"{current_user.name} invited you to join Archon's freelancer network"
         pitch = "would like to invite your studio to take on marketplace projects — build a profile, browse open work, and send proposals."
@@ -468,7 +473,7 @@ def invite_to_marketplace(
             subject=subject,
             html_body=(
                 f"<p>{greeting}</p>"
-                f"<p>{current_user.name} {pitch}</p>"
+                f"<p>{inviter} {pitch}</p>"
                 f"{note}"
                 f'<p><a href="{signup_url}">{cta}</a></p>'
             ),

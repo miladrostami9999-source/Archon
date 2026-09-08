@@ -1,9 +1,27 @@
 import os
+from html import escape as _html_escape
 from typing import Optional
 
 import httpx
 
 RESEND_API_URL = "https://api.resend.com/emails"
+
+
+def esc(value) -> str:
+    """HTML-escape a value before interpolating it into an email's html_body.
+
+    User-controlled strings (a person's name, a payment reference, an invite
+    message) end up in emails delivered to *other* people — a studio's lead,
+    the admin, the other party on a contract. Without escaping, a name like
+    `<img src=x onerror=…>` or arbitrary markup would render in the
+    recipient's mail client (HTML injection / phishing content). Every
+    user-supplied value dropped into an html_body must pass through here;
+    static template markup does not.
+
+    Only None is treated as empty — a numeric 0 stays "0" rather than being
+    swallowed by a truthiness check (which would turn a $0 amount blank).
+    """
+    return _html_escape(str(value) if value is not None else "", quote=True)
 
 
 def send_email(
